@@ -28,6 +28,7 @@
     "@nestjs/core": "^9.0.0",
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^9.0.0",
+    "bcrypt": "^5.1.1",
     "dynamoose": "^2.8.6",
     "lint-staged": "^15.2.7",
     "reflect-metadata": "^0.1.13",

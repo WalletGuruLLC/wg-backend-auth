@@ -1,4 +1,5 @@
 import * as dynamoose from 'dynamoose';
+import bcrypt from 'bcrypt';
 import { Injectable } from '@nestjs/common';
 import { Model } from 'dynamoose/dist/Model';
 import { CreateUserDto } from '../dto/create-user.dto';
@@ -16,11 +17,18 @@ export class UserService {
 	}
 
 	async create(createUserDto: CreateUserDto) {
+		const saltRounds = 10;
+
+		const hashedPassword = await bcrypt.hash(
+			createUserDto.PasswordHash,
+			saltRounds
+		);
+
 		return await this.dbInstance.create({
 			Id: createUserDto.Id,
 			Username: createUserDto.Username,
 			Email: createUserDto.Email,
-			PasswordHash: createUserDto.PasswordHash,
+			PasswordHash: hashedPassword,
 			MfaEnabled: createUserDto.MfaEnabled,
 			MfaType: createUserDto.MfaType,
 			Rol: createUserDto.Rol,
