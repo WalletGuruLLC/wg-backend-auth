@@ -18,7 +18,7 @@ export class CognitoService implements CognitoServiceInterface {
 	): Promise<any> {
 		const params = {
 			UserPoolId: cognitoConfig.UserPoolId,
-			Username: username,
+			Username: email,
 			TemporaryPassword: password,
 			UserAttributes: [
 				{ Name: 'email', Value: email },

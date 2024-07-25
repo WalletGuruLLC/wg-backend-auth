@@ -3,7 +3,7 @@ import * as dynamoose from 'dynamoose';
 export const UserSchema = new dynamoose.Schema(
 	{
 		Id: {
-			type: Number,
+			type: String,
 			hashKey: true,
 			required: true,
 		},

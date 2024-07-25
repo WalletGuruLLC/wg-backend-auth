@@ -45,11 +45,11 @@ export class UserService {
 		});
 	}
 
-	async findOne(id: number) {
+	async findOne(id: string) {
 		return await this.dbInstance.get({ Id: id });
 	}
 
-	async update(id: number, updateUserDto: UpdateUserDto) {
+	async update(id: string, updateUserDto: UpdateUserDto) {
 		return await this.dbInstance.update({
 			Id: id,
 			Username: updateUserDto.Username,
@@ -61,7 +61,7 @@ export class UserService {
 		});
 	}
 
-	async remove(id: number) {
+	async remove(id: string) {
 		return await this.dbInstance.delete({ Id: id });
 	}
 }
