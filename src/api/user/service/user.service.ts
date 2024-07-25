@@ -1,3 +1,5 @@
+// src/api/user/service/user.service.ts
+
 import * as dynamoose from 'dynamoose';
 import bcrypt from 'bcrypt';
 import { Injectable } from '@nestjs/common';
@@ -6,24 +8,34 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
 import { UserSchema } from '../entities/user.schema';
+import { CognitoService } from '../cognito/cognito.service';
 
 @Injectable()
 export class UserService {
 	private dbInstance: Model<User>;
+	private cognitoService: CognitoService;
 
 	constructor() {
 		const tableName = 'users';
 		this.dbInstance = dynamoose.model<User>(tableName, UserSchema);
+		this.cognitoService = new CognitoService();
 	}
 
 	async create(createUserDto: CreateUserDto) {
 		const saltRounds = 10;
-
 		const hashedPassword = await bcrypt.hash(
 			createUserDto.PasswordHash,
 			saltRounds
 		);
 
+		// Crear usuario en Cognito
+		await this.cognitoService.createUser(
+			createUserDto.Username,
+			createUserDto.PasswordHash,
+			createUserDto.Email
+		);
+
+		// Crear usuario en DynamoDB
 		return await this.dbInstance.create({
 			Id: createUserDto.Id,
 			Username: createUserDto.Username,
