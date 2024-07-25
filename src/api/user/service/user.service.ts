@@ -1,5 +1,3 @@
-// src/api/user/service/user.service.ts
-
 import * as dynamoose from 'dynamoose';
 import bcrypt from 'bcrypt';
 import { Injectable } from '@nestjs/common';
@@ -28,14 +26,14 @@ export class UserService {
 			saltRounds
 		);
 
-		// Crear usuario en Cognito
+		// Create user in Cognito
 		await this.cognitoService.createUser(
 			createUserDto.Username,
 			createUserDto.PasswordHash,
 			createUserDto.Email
 		);
 
-		// Crear usuario en DynamoDB
+		// Create user in DynamoDB
 		return await this.dbInstance.create({
 			Id: createUserDto.Id,
 			Username: createUserDto.Username,

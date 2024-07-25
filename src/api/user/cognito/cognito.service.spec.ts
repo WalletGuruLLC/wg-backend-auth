@@ -1,9 +1,7 @@
-// src/api/user/cognito/cognito.service.spec.ts
-
 import { CognitoService } from './cognito.service';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
 
-// Mock de CognitoIdentityServiceProvider
+// Mock of CognitoIdentityServiceProvider
 jest.mock('aws-sdk', () => {
 	const mAdminCreateUser = jest.fn();
 	return {
@@ -29,8 +27,7 @@ describe('CognitoService', () => {
 		} as any);
 	});
 
-	it('debería crear un usuario en Cognito', async () => {
-		// Configura el mock para devolver un valor específico
+	it('should create a user in Cognito', async () => {
 		const expectedResponse = { User: { Username: 'testuser' } };
 		mockPromise.mockResolvedValue(expectedResponse);
 
@@ -51,7 +48,7 @@ describe('CognitoService', () => {
 		});
 	});
 
-	it('debería manejar errores al crear un usuario', async () => {
+	it('should handle errors when creating a user', async () => {
 		const errorMessage = 'Error creating user';
 		mockPromise.mockRejectedValue(new Error(errorMessage));
 
