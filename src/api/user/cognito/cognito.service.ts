@@ -1,5 +1,3 @@
-// src/api/user/cognito/cognito.service.ts
-
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
 import { cognitoConfig } from './cognito.config';
 import { CognitoServiceInterface } from './cognito.interface';
