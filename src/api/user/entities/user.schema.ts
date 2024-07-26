@@ -10,10 +10,18 @@ export const UserSchema = new dynamoose.Schema(
 		Username: {
 			type: String,
 			required: true,
+			index: {
+				global: true,
+				name: 'UsernameIndex',
+			},
 		},
 		Email: {
 			type: String,
 			required: true,
+			index: {
+				global: true,
+				name: 'EmailIndex',
+			},
 		},
 		PasswordHash: {
 			type: String,
@@ -31,6 +39,13 @@ export const UserSchema = new dynamoose.Schema(
 		Rol: {
 			type: String,
 			default: 'user',
+		},
+		Otp: {
+			type: String,
+			default: '',
+		},
+		OtpTimestamp: {
+			type: Date,
 		},
 	},
 	{
