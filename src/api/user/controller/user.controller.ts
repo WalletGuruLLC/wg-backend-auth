@@ -10,6 +10,8 @@ import {
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserService } from '../service/user.service';
+import { SignInDto } from '../dto/signin.dto';
+import { ForgotPasswordDto, VerifyOtpDto } from '../dto/forgotPassword.dto';
 
 @Controller('user')
 export class UserController {
@@ -33,5 +35,20 @@ export class UserController {
 	@Delete(':id')
 	remove(@Param('id') id: string) {
 		return this.userService.remove(id);
+	}
+
+	@Post('signin')
+	signin(@Body() signinDto: SignInDto) {
+		return this.userService.signin(signinDto);
+	}
+
+	@Post('forgot/password')
+	forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+		return this.userService.forgotPassword(forgotPasswordDto);
+	}
+
+	@Post('verify/password')
+	verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+		return this.userService.verifyOtp(verifyOtpDto);
 	}
 }
