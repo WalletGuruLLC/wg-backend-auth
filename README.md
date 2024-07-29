@@ -4,7 +4,6 @@ Descripción
 
 Este microservicio se encarga de la autenticación de usuarios utilizando Node.js y NestJS como framework de desarrollo, DynamoDB como base de datos NoSQL y Dynamoose como ORM para la interacción con DynamoDB. Proporciona funcionalidades como el registro de usuarios, inicio de sesión, y verificación de tokens JWT.
 
-
 Requisitos
 
 Node.js (v14 o superior)
@@ -26,7 +25,9 @@ env
 AWS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_REGION=
+COGNITO_USER_POOL_ID=
+COGNITO_CLIENT_ID=
 
-Ejecutar 
+Ejecutar
 
 npm run start
