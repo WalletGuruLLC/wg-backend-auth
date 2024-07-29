@@ -3,7 +3,7 @@ import * as dynamoose from 'dynamoose';
 export const UserSchema = new dynamoose.Schema(
 	{
 		Id: {
-			type: Number,
+			type: String,
 			hashKey: true,
 			required: true,
 		},
@@ -40,3 +40,9 @@ export const UserSchema = new dynamoose.Schema(
 		},
 	}
 );
+
+export const UserModel = dynamoose.model('users', UserSchema, {
+	create: false, // No crear tablas automáticamente
+	update: false, // No actualizar tablas automáticamente
+	waitForActive: false, // No esperar a que las tablas estén activas
+});

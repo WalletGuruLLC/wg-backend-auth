@@ -6,24 +6,34 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
 import { UserSchema } from '../entities/user.schema';
+import { CognitoService } from '../cognito/cognito.service';
 
 @Injectable()
 export class UserService {
 	private dbInstance: Model<User>;
+	private cognitoService: CognitoService;
 
 	constructor() {
 		const tableName = 'users';
 		this.dbInstance = dynamoose.model<User>(tableName, UserSchema);
+		this.cognitoService = new CognitoService();
 	}
 
 	async create(createUserDto: CreateUserDto) {
 		const saltRounds = 10;
-
 		const hashedPassword = await bcrypt.hash(
 			createUserDto.PasswordHash,
 			saltRounds
 		);
 
+		// Create user in Cognito
+		await this.cognitoService.createUser(
+			createUserDto.Username,
+			createUserDto.PasswordHash,
+			createUserDto.Email
+		);
+
+		// Create user in DynamoDB
 		return await this.dbInstance.create({
 			Id: createUserDto.Id,
 			Username: createUserDto.Username,
@@ -35,11 +45,11 @@ export class UserService {
 		});
 	}
 
-	async findOne(id: number) {
+	async findOne(id: string) {
 		return await this.dbInstance.get({ Id: id });
 	}
 
-	async update(id: number, updateUserDto: UpdateUserDto) {
+	async update(id: string, updateUserDto: UpdateUserDto) {
 		return await this.dbInstance.update({
 			Id: id,
 			Username: updateUserDto.Username,
@@ -51,7 +61,7 @@ export class UserService {
 		});
 	}
 
-	async remove(id: number) {
+	async remove(id: string) {
 		return await this.dbInstance.delete({ Id: id });
 	}
 }
