@@ -6,7 +6,6 @@ import { Model } from 'dynamoose/dist/Model';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
-import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
 import { UserSchema } from '../entities/user.schema';
 import { CognitoService } from '../cognito/cognito.service';
@@ -20,7 +19,7 @@ export class UserService {
 	private dbInstance: Model<User>;
 	private cognitoService: CognitoService;
 
-	constructor(private readonly jwtService: JwtService) {
+	constructor() {
 		const tableName = 'users';
 		this.dbInstance = dynamoose.model<User>(tableName, UserSchema);
 		this.cognitoService = new CognitoService();
@@ -35,10 +34,11 @@ export class UserService {
 
 		// Create user in Cognito
 		await this.cognitoService.createUser(
-			createUserDto.Username,
+			createUserDto.Email,
 			createUserDto.PasswordHash,
 			createUserDto.Email
 		);
+
 		// Create user in DynamoDB
 		const newUser = await this.dbInstance.create({
 			Id: createUserDto.Id,
@@ -56,9 +56,7 @@ export class UserService {
 			email: newUser.Email,
 		};
 
-		const token = this.jwtService.sign(payload);
-
-		return { token, user: newUser };
+		return newUser;
 	}
 
 	async findOne(id: string) {
@@ -109,8 +107,27 @@ export class UserService {
 		});
 	}
 
-	async remove(id: string) {
-		return await this.dbInstance.delete({ Id: id });
+	async remove(id: string): Promise<void> {
+		try {
+			const user = await this.findOne(id);
+			if (!user) {
+				throw new Error('User not found in database');
+			}
+
+			try {
+				await this.cognitoService.deleteUser(user.Email);
+			} catch (error) {
+				throw new Error(`Error deleting user from Cognito: ${error.message}`);
+			}
+
+			try {
+				await this.dbInstance.delete({ Id: id });
+			} catch (error) {
+				throw new Error(`Error deleting user from database: ${error.message}`);
+			}
+		} catch (error) {
+			throw new Error(`Failed to remove user: ${error.message}`);
+		}
 	}
 
 	async signin(signinDto: SignInDto) {
@@ -118,19 +135,22 @@ export class UserService {
 		if (!user) {
 			return 'User not found';
 		}
-		const isPasswordValid = await bcrypt.compare(
-			signinDto.password,
-			user.PasswordHash
-		);
-		if (!isPasswordValid) {
-			return 'Invalid credentials';
+
+		try {
+			const authResult = await this.cognitoService.authenticateUser(
+				signinDto.email,
+				signinDto.password
+			);
+			const token = authResult.AuthenticationResult?.AccessToken;
+
+			if (!token) {
+				return 'Invalid credentials';
+			}
+
+			return { token, user };
+		} catch (error) {
+			throw new Error(`Authentication failed: ${error.message}`);
 		}
-
-		const payload = { id: user.Id, username: user.Username, email: user.Email };
-
-		const token = this.jwtService.sign(payload);
-
-		return { token, user };
 	}
 
 	async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
