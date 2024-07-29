@@ -47,9 +47,6 @@ export const UserSchema = new dynamoose.Schema(
 		OtpTimestamp: {
 			type: Date,
 		},
-		AccessToken: {
-			type: String,
-		},
 	},
 	{
 		timestamps: {

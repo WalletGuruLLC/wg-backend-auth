@@ -38,7 +38,6 @@ export class UserService {
 			createUserDto.PasswordHash,
 			createUserDto.Email
 		);
-
 		// Create user in DynamoDB
 		const newUser = await this.dbInstance.create({
 			Id: createUserDto.Id,
@@ -202,5 +201,5 @@ export class UserService {
 		}
 
 		return { message: 'OTP verified successfully' };
-	}
+	}	
 }
