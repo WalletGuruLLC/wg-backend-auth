@@ -8,7 +8,7 @@ describe('UserController', () => {
 
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
-			imports: [JwtModule],
+			imports: [],
 			controllers: [UserController],
 			providers: [UserService, JwtService],
 		}).compile();

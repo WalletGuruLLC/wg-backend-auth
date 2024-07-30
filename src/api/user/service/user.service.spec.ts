@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
-import { JwtModule, JwtService } from '@nestjs/jwt';
 import { UserController } from '../controller/user.controller';
 
 const sendEmailNodemailer = jest.fn();
@@ -16,9 +15,8 @@ describe('UserService', () => {
 
 	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
-			imports: [JwtModule],
 			controllers: [UserController],
-			providers: [UserService, JwtService],
+			providers: [UserService],
 		}).compile();
 
 		service = module.get<UserService>(UserService);

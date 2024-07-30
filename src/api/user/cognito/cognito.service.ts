@@ -1,6 +1,13 @@
 import { CognitoIdentityServiceProvider, AWSError } from 'aws-sdk';
 import { cognitoConfig } from './cognito.config';
 import { CognitoServiceInterface } from './cognito.interface';
+import {
+	CreateUserResponse,
+	AuthenticateUserResponse,
+	ChangePasswordResponse,
+	ForgotPasswordResponse,
+	ConfirmForgotPasswordResponse,
+} from './cognito.types';
 
 export class CognitoService implements CognitoServiceInterface {
 	private cognitoISP: CognitoIdentityServiceProvider;
@@ -15,7 +22,7 @@ export class CognitoService implements CognitoServiceInterface {
 		username: string,
 		password: string,
 		email: string
-	): Promise<any> {
+	): Promise<CreateUserResponse> {
 		const params = {
 			UserPoolId: cognitoConfig.UserPoolId,
 			Username: email, // Assumes email is used as username
@@ -27,7 +34,9 @@ export class CognitoService implements CognitoServiceInterface {
 		};
 
 		try {
-			return await this.cognitoISP.adminCreateUser(params).promise();
+			return (await this.cognitoISP
+				.adminCreateUser(params)
+				.promise()) as CreateUserResponse;
 		} catch (error) {
 			throw new Error(`Error creating user in Cognito: ${error.message}`);
 		}
@@ -46,7 +55,10 @@ export class CognitoService implements CognitoServiceInterface {
 		}
 	}
 
-	async authenticateUser(username: string, password: string): Promise<any> {
+	async authenticateUser(
+		username: string,
+		password: string
+	): Promise<AuthenticateUserResponse> {
 		const params = {
 			AuthFlow: 'ADMIN_NO_SRP_AUTH',
 			UserPoolId: cognitoConfig.UserPoolId,
@@ -58,7 +70,9 @@ export class CognitoService implements CognitoServiceInterface {
 		};
 
 		try {
-			return await this.cognitoISP.adminInitiateAuth(params).promise();
+			return (await this.cognitoISP
+				.adminInitiateAuth(params)
+				.promise()) as AuthenticateUserResponse;
 		} catch (error) {
 			throw new Error(`Error authenticating user in Cognito: ${error.message}`);
 		}
@@ -68,7 +82,7 @@ export class CognitoService implements CognitoServiceInterface {
 		accessToken: string,
 		previousPassword: string,
 		proposedPassword: string
-	): Promise<void> {
+	): Promise<ChangePasswordResponse> {
 		const params = {
 			AccessToken: accessToken,
 			PreviousPassword: previousPassword,
@@ -76,20 +90,26 @@ export class CognitoService implements CognitoServiceInterface {
 		};
 
 		try {
-			await this.cognitoISP.changePassword(params).promise();
+			(await this.cognitoISP
+				.changePassword(params)
+				.promise()) as ChangePasswordResponse;
+			return {};
 		} catch (error) {
 			throw new Error(`Error changing password in Cognito: ${error.message}`);
 		}
 	}
 
-	async forgotPassword(username: string): Promise<void> {
+	async forgotPassword(username: string): Promise<ForgotPasswordResponse> {
 		const params = {
 			ClientId: cognitoConfig.ClientId,
 			Username: username,
 		};
 
 		try {
-			await this.cognitoISP.forgotPassword(params).promise();
+			(await this.cognitoISP
+				.forgotPassword(params)
+				.promise()) as ForgotPasswordResponse;
+			return {};
 		} catch (error) {
 			throw new Error(
 				`Error in forgot password process in Cognito: ${error.message}`
@@ -101,7 +121,7 @@ export class CognitoService implements CognitoServiceInterface {
 		username: string,
 		confirmationCode: string,
 		newPassword: string
-	): Promise<void> {
+	): Promise<ConfirmForgotPasswordResponse> {
 		const params = {
 			ClientId: cognitoConfig.ClientId,
 			Username: username,
@@ -110,7 +130,10 @@ export class CognitoService implements CognitoServiceInterface {
 		};
 
 		try {
-			await this.cognitoISP.confirmForgotPassword(params).promise();
+			(await this.cognitoISP
+				.confirmForgotPassword(params)
+				.promise()) as ConfirmForgotPasswordResponse;
+			return {};
 		} catch (error) {
 			throw new Error(
 				`Error confirming new password in Cognito: ${error.message}`
