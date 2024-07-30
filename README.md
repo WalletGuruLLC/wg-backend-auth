@@ -25,7 +25,6 @@ Crear un archivo .env en la raíz del proyecto con el siguiente contenido:
     AWS_REGION=
     COGNITO_USER_POOL_ID=
     COGNITO_CLIENT_ID=
-    PAYSTREAM_JWT_SECRET=
     AWS_SES_EMAIL=
 
 ### Ejecutar
