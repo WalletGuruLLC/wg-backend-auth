@@ -175,7 +175,7 @@ export class UserService {
 
 		return new Promise((resolve, reject) => {
 			userCognito.authenticateUser(authenticationDetails, {
-				onSuccess: () => {
+				onSuccess: function (result) {
 					userCognito.changePassword(
 						currentPassword,
 						newPassword,
@@ -188,8 +188,14 @@ export class UserService {
 						}
 					);
 				},
-				onFailure: err => {
+
+				onFailure: function (err) {
 					reject(err);
+				},
+
+				newPasswordRequired: function (userAttributes, requiredAttributes) {
+					delete userAttributes.email_verified;
+					resolve(userAttributes);
 				},
 			});
 		});
