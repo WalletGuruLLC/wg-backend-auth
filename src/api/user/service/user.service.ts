@@ -55,6 +55,7 @@ export class UserService {
 			Email: createUserDto.Email,
 			PasswordHash: hashedPassword,
 			MfaEnabled: createUserDto.MfaEnabled,
+			ServiceProvider: createUserDto.ServiceProvider,
 			MfaType: createUserDto.MfaType,
 			Rol: createUserDto.Rol,
 		});
@@ -103,6 +104,7 @@ export class UserService {
 			Id: id,
 			Username: updateUserDto.Username,
 			Email: updateUserDto.Email,
+			ServiceProvider: updateUserDto.ServiceProvider,
 			PasswordHash: updateUserDto.PasswordHash,
 			MfaEnabled: updateUserDto.MfaEnabled,
 			MfaType: updateUserDto.MfaType,
