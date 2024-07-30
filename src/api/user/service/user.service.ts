@@ -6,23 +6,31 @@ import { Model } from 'dynamoose/dist/Model';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
-import * as crypto from 'crypto';
 import { UserSchema } from '../entities/user.schema';
 import { CognitoService } from '../cognito/cognito.service';
-import { ForgotPasswordDto, VerifyOtpDto } from '../dto/forgotPassword.dto';
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserPasswordDto } from '../dto/update-password-user.dto copy';
-import { sendEmailNodemailer } from '../../../utils/helpers/sendEmailNodemailer';
+import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
+import {
+	AuthenticationDetails,
+	CognitoUser,
+	CognitoUserPool,
+} from 'amazon-cognito-identity-js';
+import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
+import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
+import { cognitoConfig } from '../cognito/cognito.config';
 
 @Injectable()
 export class UserService {
 	private dbInstance: Model<User>;
 	private cognitoService: CognitoService;
+	private userPool: CognitoUserPool;
 
 	constructor() {
 		const tableName = 'users';
 		this.dbInstance = dynamoose.model<User>(tableName, UserSchema);
 		this.cognitoService = new CognitoService();
+		this.userPool = new CognitoUserPool(cognitoConfig);
 	}
 
 	async create(createUserDto: CreateUserDto) {
@@ -48,12 +56,6 @@ export class UserService {
 			MfaType: createUserDto.MfaType,
 			Rol: createUserDto.Rol,
 		});
-
-		const payload = {
-			id: newUser.Id,
-			username: newUser.Username,
-			email: newUser.Email,
-		};
 
 		return newUser;
 	}
@@ -152,54 +154,90 @@ export class UserService {
 		}
 	}
 
-	async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
-		const { email } = forgotPasswordDto;
-		const otp = crypto.randomInt(100000, 999999).toString();
-		const saltRounds = 8;
-		const hashedOtp = await bcrypt.hash(otp, saltRounds);
-		const user = await this.findOneByEmailAndUpdate(email, {
-			Otp: hashedOtp,
-			OtpTimestamp: new Date(),
+	async changeUserPassword(
+		authChangePasswordUserDto: AuthChangePasswordUserDto
+	) {
+		const { email, currentPassword, newPassword } = authChangePasswordUserDto;
+
+		const userData = {
+			Username: email,
+			Pool: this.userPool,
+		};
+
+		const authenticationDetails = new AuthenticationDetails({
+			Username: email,
+			Password: currentPassword,
 		});
 
-		if (!user) {
-			throw new Error('User not found');
-		}
+		const userCognito = new CognitoUser(userData);
 
-		const ToAddress = email;
-		const Subject = 'Recovery passoword - OTP Code';
-		const Html = `<p>Your OTP code is <strong>${otp}</strong>. It is valid for 10 minutes.</p>`;
-
-		try {
-			await sendEmailNodemailer(ToAddress, Subject, Subject, Html);
-			//await sendEmail(ToAddresses, Subject, Html);
-			return { message: 'OTP sent successfully' };
-		} catch (error) {
-			throw new Error(error.message);
-		}
+		return new Promise((resolve, reject) => {
+			userCognito.authenticateUser(authenticationDetails, {
+				onSuccess: () => {
+					userCognito.changePassword(
+						currentPassword,
+						newPassword,
+						(err, result) => {
+							if (err) {
+								reject(err);
+								return;
+							}
+							resolve(result);
+						}
+					);
+				},
+				onFailure: err => {
+					reject(err);
+				},
+			});
+		});
 	}
 
-	async verifyOtp(verifyOtpDto: VerifyOtpDto) {
-		const { email, otp } = verifyOtpDto;
-		const user = await this.findOneByEmail(email);
+	async forgotUserPassword(
+		authForgotPasswordUserDto: AuthForgotPasswordUserDto
+	) {
+		const { email } = authForgotPasswordUserDto;
 
-		if (!user) {
-			throw new Error('User not found');
-		}
+		const userData = {
+			Username: email,
+			Pool: this.userPool,
+		};
 
-		const otpTimestamp = new Date(user.OtpTimestamp);
-		const now = new Date();
-		const diffInMinutes = (now.getTime() - otpTimestamp.getTime()) / 6000;
+		const userCognito = new CognitoUser(userData);
 
-		if (diffInMinutes > 60) {
-			throw new Error('OTP expired');
-		}
+		return new Promise((resolve, reject) => {
+			userCognito.forgotPassword({
+				onSuccess: result => {
+					resolve(result);
+				},
+				onFailure: err => {
+					reject(err);
+				},
+			});
+		});
+	}
 
-		const isOtpValid = await bcrypt.compare(otp, user.Otp);
-		if (!isOtpValid) {
-			throw new Error('Invalid OTP');
-		}
+	async confirmUserPassword(
+		authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
+	) {
+		const { email, confirmationCode, newPassword } = authConfirmPasswordUserDto;
 
-		return { message: 'OTP verified successfully' };
-	}	
+		const userData = {
+			Username: email,
+			Pool: this.userPool,
+		};
+
+		const userCognito = new CognitoUser(userData);
+
+		return new Promise((resolve, reject) => {
+			userCognito.confirmPassword(confirmationCode, newPassword, {
+				onSuccess: () => {
+					resolve({ status: 'success' });
+				},
+				onFailure: err => {
+					reject(err);
+				},
+			});
+		});
+	}
 }
