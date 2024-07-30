@@ -18,7 +18,6 @@ import {
 } from 'amazon-cognito-identity-js';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
-import { cognitoConfig } from '../cognito/cognito.config';
 
 @Injectable()
 export class UserService {
@@ -30,7 +29,10 @@ export class UserService {
 		const tableName = 'users';
 		this.dbInstance = dynamoose.model<User>(tableName, UserSchema);
 		this.cognitoService = new CognitoService();
-		this.userPool = new CognitoUserPool(cognitoConfig);
+		this.userPool = new CognitoUserPool({
+			UserPoolId: process.env.COGNITO_USER_POOL_ID,
+			ClientId: process.env.COGNITO_CLIENT_ID,
+		});
 	}
 
 	async create(createUserDto: CreateUserDto) {

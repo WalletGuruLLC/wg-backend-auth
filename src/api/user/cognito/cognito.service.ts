@@ -1,5 +1,4 @@
-import { CognitoIdentityServiceProvider, AWSError } from 'aws-sdk';
-import { cognitoConfig } from './cognito.config';
+import { CognitoIdentityServiceProvider } from 'aws-sdk';
 import { CognitoServiceInterface } from './cognito.interface';
 import {
 	CreateUserResponse,
@@ -14,7 +13,7 @@ export class CognitoService implements CognitoServiceInterface {
 
 	constructor() {
 		this.cognitoISP = new CognitoIdentityServiceProvider({
-			region: cognitoConfig.Region,
+			region: process.env.AWS_REGION,
 		});
 	}
 
@@ -24,7 +23,7 @@ export class CognitoService implements CognitoServiceInterface {
 		email: string
 	): Promise<CreateUserResponse> {
 		const params = {
-			UserPoolId: cognitoConfig.UserPoolId,
+			UserPoolId: process.env.COGNITO_USER_POOL_ID,
 			Username: email, // Assumes email is used as username
 			TemporaryPassword: password,
 			UserAttributes: [
@@ -44,7 +43,7 @@ export class CognitoService implements CognitoServiceInterface {
 
 	async deleteUser(username: string): Promise<void> {
 		const params = {
-			UserPoolId: cognitoConfig.UserPoolId,
+			UserPoolId: process.env.COGNITO_USER_POOL_ID,
 			Username: username,
 		};
 
@@ -61,8 +60,8 @@ export class CognitoService implements CognitoServiceInterface {
 	): Promise<AuthenticateUserResponse> {
 		const params = {
 			AuthFlow: 'ADMIN_NO_SRP_AUTH',
-			UserPoolId: cognitoConfig.UserPoolId,
-			ClientId: cognitoConfig.ClientId,
+			UserPoolId: process.env.COGNITO_USER_POOL_ID,
+			ClientId: process.env.COGNITO_CLIENT_ID,
 			AuthParameters: {
 				USERNAME: username,
 				PASSWORD: password,
@@ -101,7 +100,7 @@ export class CognitoService implements CognitoServiceInterface {
 
 	async forgotPassword(username: string): Promise<ForgotPasswordResponse> {
 		const params = {
-			ClientId: cognitoConfig.ClientId,
+			ClientId: process.env.COGNITO_CLIENT_ID,
 			Username: username,
 		};
 
@@ -123,7 +122,7 @@ export class CognitoService implements CognitoServiceInterface {
 		newPassword: string
 	): Promise<ConfirmForgotPasswordResponse> {
 		const params = {
-			ClientId: cognitoConfig.ClientId,
+			ClientId: process.env.COGNITO_CLIENT_ID,
 			Username: username,
 			ConfirmationCode: confirmationCode,
 			Password: newPassword,
