@@ -8,6 +8,7 @@ export class User extends Document {
 	MfaEnabled = false;
 	MfaType = 'TOTP';
 	Rol = 'user';
+	ServiceProvider = '';
 	Otp = '';
 	OtpTimestamp = new Date();
 }

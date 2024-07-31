@@ -40,6 +40,10 @@ export const UserSchema = new dynamoose.Schema(
 			type: String,
 			default: 'user',
 		},
+		ServiceProvider: {
+			type: String,
+			default: '',
+		},
 		Otp: {
 			type: String,
 			default: '',

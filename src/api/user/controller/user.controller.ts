@@ -6,12 +6,16 @@ import {
 	Patch,
 	Param,
 	Delete,
+	UsePipes,
+	ValidationPipe,
 } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserService } from '../service/user.service';
 import { SignInDto } from '../dto/signin.dto';
-import { ForgotPasswordDto, VerifyOtpDto } from '../dto/forgotPassword.dto';
+import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
+import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
+import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -42,13 +46,35 @@ export class UserController {
 		return this.userService.signin(signinDto);
 	}
 
-	@Post('forgot/password')
-	forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-		return this.userService.forgotPassword(forgotPasswordDto);
+	@Post('/change-password')
+	@UsePipes(ValidationPipe)
+	async changePassword(
+		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto
+	) {
+		const result = await this.userService.changeUserPassword(
+			authChangePasswordUserDto
+		);
+
+		if (result == 'SUCCESS') {
+			return { status: 'success' };
+		}
 	}
 
-	@Post('verify/password')
-	verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-		return this.userService.verifyOtp(verifyOtpDto);
+	@Post('/forgot-password')
+	@UsePipes(ValidationPipe)
+	async forgotPassword(
+		@Body() authForgotPasswordUserDto: AuthForgotPasswordUserDto
+	) {
+		return await this.userService.forgotUserPassword(authForgotPasswordUserDto);
+	}
+
+	@Post('/confirm-password')
+	@UsePipes(ValidationPipe)
+	async confirmPassword(
+		@Body() authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
+	) {
+		return await this.userService.confirmUserPassword(
+			authConfirmPasswordUserDto
+		);
 	}
 }
