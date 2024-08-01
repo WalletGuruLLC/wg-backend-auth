@@ -1,4 +1,3 @@
-// cognito-types.ts
 export interface CognitoUserAttribute {
 	Name: string;
 	Value: string;

@@ -1,4 +1,6 @@
 import * as dynamoose from 'dynamoose';
+import { User } from './user.entity';
+import { MfaTypeUser, RoleUser, StateUser, TypeUser } from '../dto/user.enums';
 
 export const UserSchema = new dynamoose.Schema(
 	{
@@ -33,16 +35,47 @@ export const UserSchema = new dynamoose.Schema(
 		},
 		MfaType: {
 			type: String,
-			enum: ['SMS', 'TOTP'],
-			default: null,
+			enum: Object.values(MfaTypeUser),
+			default: MfaTypeUser.TOTP,
 		},
-		Rol: {
+		type: {
 			type: String,
-			default: 'user',
+			enum: Object.values(TypeUser),
+			default: TypeUser.PLATFORM,
 		},
-		ServiceProvider: {
+		RoleId: {
+			type: Number,
+			enum: Object.values(RoleUser),
+			default: RoleUser.USER,
+		},
+		Active: {
+			type: Boolean,
+			default: true,
+		},
+		State: {
+			type: Number,
+			enum: Object.values(StateUser),
+			default: StateUser.VERIFY,
+		},
+		Picture: {
 			type: String,
 			default: '',
+		},
+		SendSms: {
+			type: Boolean,
+			default: false,
+		},
+		SendEmails: {
+			type: Boolean,
+			default: true,
+		},
+		ServiceProviderId: {
+			type: Number,
+			default: 0,
+		},
+		LastSignIn: {
+			type: Date,
+			default: null,
 		},
 		Otp: {
 			type: String,
@@ -50,6 +83,7 @@ export const UserSchema = new dynamoose.Schema(
 		},
 		OtpTimestamp: {
 			type: Date,
+			default: () => new Date(),
 		},
 	},
 	{
@@ -60,8 +94,9 @@ export const UserSchema = new dynamoose.Schema(
 	}
 );
 
-export const UserModel = dynamoose.model('users', UserSchema, {
-	create: false, // No crear tablas automáticamente
-	update: false, // No actualizar tablas automáticamente
-	waitForActive: false, // No esperar a que las tablas estén activas
+// Asocia el modelo con la clase User
+export const UserModel = dynamoose.model<User>('users', UserSchema, {
+	create: false,
+	update: false,
+	waitForActive: false,
 });
