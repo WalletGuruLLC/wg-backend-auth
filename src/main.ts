@@ -8,8 +8,8 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
 	const config = new DocumentBuilder()
-		.setTitle('Cats example')
-		.setDescription('The cats API description')
+		.setTitle('Paystream API')
+		.setDescription('Paystream API Documentation Authentication service')
 		.setVersion('1.0')
 		.build();
 	const document = SwaggerModule.createDocument(app, config);
