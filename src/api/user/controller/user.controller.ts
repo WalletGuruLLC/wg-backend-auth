@@ -1,21 +1,23 @@
 import {
-	Controller,
-	Get,
-	Post,
 	Body,
-	Patch,
-	Param,
+	Controller,
 	Delete,
+	Get,
+	HttpException,
+	HttpStatus,
+	Param,
+	Patch,
+	Post,
 	UsePipes,
 	ValidationPipe,
 } from '@nestjs/common';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { UpdateUserDto } from '../dto/update-user.dto';
-import { UserService } from '../service/user.service';
-import { SignInDto } from '../dto/signin.dto';
+import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
-import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { SignInDto } from '../dto/signin.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { UserService } from '../service/user.service';
 import {
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
@@ -33,8 +35,23 @@ export class UserController {
 		description: 'The record has been successfully created.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	create(@Body() createUserDto: CreateUserDto) {
-		return this.userService.create(createUserDto);
+	async create(@Body() createUserDto: CreateUserDto) {
+		try {
+			const user = await this.userService.create(createUserDto);
+			return {
+				statusCode: HttpStatus.CREATED,
+				message: 'User created successfully',
+				data: user,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					message: `Error creating user: ${error.message}`,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 
 	@Get(':id')
@@ -42,8 +59,29 @@ export class UserController {
 		description: 'The record has been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	findOne(@Param('id') id: string) {
-		return this.userService.findOne(id);
+	async findOne(@Param('id') id: string) {
+		try {
+			const user = await this.userService.findOne(id);
+			if (!user) {
+				throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+			}
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'User found',
+				data: user,
+			};
+		} catch (error) {
+			if (error.status === HttpStatus.NOT_FOUND) {
+				throw error; // Re-throw 404 errors as they are
+			}
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					message: `Error retrieving user: ${error.message}`,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 
 	@Patch(':id')
@@ -51,8 +89,23 @@ export class UserController {
 		description: 'The record has been successfully updated.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-		return this.userService.update(id, updateUserDto);
+	async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+		try {
+			const user = await this.userService.update(id, updateUserDto);
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'User updated successfully',
+				data: user,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					message: `Error updating user: ${error.message}`,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 
 	@Delete(':id')
@@ -60,8 +113,32 @@ export class UserController {
 		description: 'The record has been successfully deleted.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	remove(@Param('id') id: string) {
-		return this.userService.remove(id);
+	async remove(@Param('id') id: string) {
+		try {
+			await this.userService.remove(id);
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'User deleted successfully',
+			};
+		} catch (error) {
+			if (error.message === 'User not found in database') {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.NOT_FOUND,
+						message: error.message,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			} else {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+						message: `Error deleting user: ${error.message}`,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+		}
 	}
 
 	@Post('signin')
@@ -69,8 +146,23 @@ export class UserController {
 		description: 'The user has been successfully signed in.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	signin(@Body() signinDto: SignInDto) {
-		return this.userService.signin(signinDto);
+	async signin(@Body() signinDto: SignInDto) {
+		try {
+			const result = await this.userService.signin(signinDto);
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'Sign-in successful',
+				data: result,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					message: error.message,
+				},
+				HttpStatus.UNAUTHORIZED
+			);
+		}
 	}
 
 	@Post('/change-password')
@@ -82,12 +174,22 @@ export class UserController {
 	async changePassword(
 		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto
 	) {
-		const result = await this.userService.changeUserPassword(
-			authChangePasswordUserDto
-		);
-
-		if (result == 'SUCCESS') {
-			return { status: 'success' };
+		try {
+			const message = await this.userService.changeUserPassword(
+				authChangePasswordUserDto
+			);
+			return {
+				statusCode: HttpStatus.OK,
+				message,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.BAD_REQUEST,
+					message: error,
+				},
+				HttpStatus.BAD_REQUEST
+			);
 		}
 	}
 
@@ -100,7 +202,23 @@ export class UserController {
 	async forgotPassword(
 		@Body() authForgotPasswordUserDto: AuthForgotPasswordUserDto
 	) {
-		return await this.userService.forgotUserPassword(authForgotPasswordUserDto);
+		try {
+			const message = await this.userService.forgotUserPassword(
+				authForgotPasswordUserDto
+			);
+			return {
+				statusCode: HttpStatus.OK,
+				message,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					message: error,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 
 	@Post('/confirm-password')
@@ -112,8 +230,22 @@ export class UserController {
 	async confirmPassword(
 		@Body() authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
 	) {
-		return await this.userService.confirmUserPassword(
-			authConfirmPasswordUserDto
-		);
+		try {
+			const message = await this.userService.confirmUserPassword(
+				authConfirmPasswordUserDto
+			);
+			return {
+				statusCode: HttpStatus.OK,
+				message,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					message: error,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 }
