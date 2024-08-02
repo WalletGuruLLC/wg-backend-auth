@@ -1,11 +1,11 @@
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
 import { CognitoServiceInterface } from './cognito.interface';
 import {
-	CreateUserResponse,
 	AuthenticateUserResponse,
 	ChangePasswordResponse,
-	ForgotPasswordResponse,
 	ConfirmForgotPasswordResponse,
+	CreateUserResponse,
+	ForgotPasswordResponse,
 } from './cognito.types';
 
 export class CognitoService implements CognitoServiceInterface {
@@ -24,7 +24,7 @@ export class CognitoService implements CognitoServiceInterface {
 	): Promise<CreateUserResponse> {
 		const params = {
 			UserPoolId: process.env.COGNITO_USER_POOL_ID,
-			Username: email, // Assumes email is used as username
+			Username: email,
 			TemporaryPassword: password,
 			UserAttributes: [
 				{ Name: 'email', Value: email },
@@ -33,9 +33,19 @@ export class CognitoService implements CognitoServiceInterface {
 		};
 
 		try {
-			return (await this.cognitoISP
-				.adminCreateUser(params)
-				.promise()) as CreateUserResponse;
+			const user = await this.cognitoISP.adminCreateUser(params).promise();
+
+			const paramsAdminSetUserPassword = {
+				UserPoolId: process.env.COGNITO_USER_POOL_ID,
+				Username: email,
+				Password: password,
+				Permanent: true,
+			};
+			await this.cognitoISP
+				.adminSetUserPassword(paramsAdminSetUserPassword)
+				.promise();
+
+			return user as CreateUserResponse;
 		} catch (error) {
 			throw new Error(`Error creating user in Cognito: ${error.message}`);
 		}

@@ -1,7 +1,5 @@
-import { CognitoUserPool } from 'amazon-cognito-identity-js'; // Importar desde amazon-cognito-identity-js
-import { CognitoService } from '../cognito/cognito.service';
+import { CognitoUserPool } from 'amazon-cognito-identity-js';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
-import { cognitoConfig } from '../cognito/cognito.config';
 import { UserService } from './user.service';
 
 jest.mock('dynamoose', () => ({
@@ -9,16 +7,21 @@ jest.mock('dynamoose', () => ({
 	Schema: jest.fn(),
 }));
 
+const mAdminCreateUser = jest.fn();
+const mForgotPassword = jest.fn().mockReturnValue({ promise: jest.fn() });
+const mChangePassword = jest.fn().mockReturnValue({ promise: jest.fn() });
+const mConfirmForgotPassword = jest
+	.fn()
+	.mockReturnValue({ promise: jest.fn() });
+
 jest.mock('aws-sdk', () => {
-	const mAdminCreateUser = jest.fn();
 	return {
 		CognitoIdentityServiceProvider: jest.fn(() => ({
 			adminCreateUser: mAdminCreateUser,
-			forgotPassword: jest.fn().mockReturnThis(),
-			changePassword: jest.fn().mockReturnThis(),
-			confirmForgotPassword: jest.fn().mockReturnThis(),
+			forgotPassword: mForgotPassword,
+			changePassword: mChangePassword,
+			confirmForgotPassword: mConfirmForgotPassword,
 			adminInitiateAuth: jest.fn().mockReturnThis(),
-			promise: jest.fn(),
 		})),
 	};
 });
@@ -40,38 +43,51 @@ jest.mock('amazon-cognito-identity-js', () => {
 });
 
 describe('UserService', () => {
-	let authModule: UserService;
-	let cognitoModule: CognitoService;
+	let userService: UserService;
 	let cognitoServiceMock: CognitoIdentityServiceProvider;
 
 	beforeEach(() => {
-		authModule = new UserService();
-		cognitoModule = new CognitoService();
+		userService = new UserService();
 		cognitoServiceMock = new CognitoIdentityServiceProvider();
 	});
 
 	test('debe crear una instancia de cognitoService', () => {
-		expect(CognitoIdentityServiceProvider).toHaveBeenCalled(); // Verificar la instancia
-		expect(authModule['cognitoService']).toBeDefined();
+		expect(CognitoIdentityServiceProvider).toHaveBeenCalled();
+		expect(userService['cognitoService']).toBeDefined();
 	});
 
 	test('debe crear una instancia de userPool', () => {
-		expect(CognitoUserPool).toHaveBeenCalledWith(cognitoConfig);
-		expect(authModule['userPool']).toBeDefined();
+		expect(CognitoUserPool).toHaveBeenCalledTimes(2);
+		expect(CognitoUserPool).toHaveBeenCalledWith({
+			UserPoolId: process.env.COGNITO_USER_POOL_ID,
+			ClientId: process.env.COGNITO_CLIENT_ID,
+		});
+		expect(userService['userPool']).toBeDefined();
 	});
 
 	test('forgotPassword debe llamar a cognitoService.forgotPassword con el nombre de usuario correcto', async () => {
-		await cognitoModule.forgotPassword('test@scrummers.co');
-		expect(CognitoIdentityServiceProvider).toHaveBeenCalled();
+		await userService['cognitoService'].forgotPassword('test@scrummers.co');
+		expect(mForgotPassword).toHaveBeenCalledWith({
+			Username: 'test@scrummers.co',
+			ClientId: expect.any(String), // Usar ClientId en lugar de Pool
+		});
 	});
 
 	test('changePassword debe llamar a cognitoService.changePassword con los parámetros correctos', async () => {
 		const email = 'testuser';
 		const currentPassword = 'oldPassword123';
 		const newPassword = 'newPassword123';
-		await cognitoModule.changePassword(email, currentPassword, newPassword);
+		await userService['cognitoService'].changePassword(
+			email,
+			currentPassword,
+			newPassword
+		);
 
-		expect(CognitoIdentityServiceProvider).toHaveBeenCalled();
+		expect(mChangePassword).toHaveBeenCalledWith({
+			AccessToken: email, // Ajuste para usar AccessToken
+			PreviousPassword: currentPassword,
+			ProposedPassword: newPassword,
+		});
 	});
 
 	test('confirmPassword debe llamar a cognitoService.confirmForgotPassword con los parámetros correctos', async () => {
@@ -79,12 +95,17 @@ describe('UserService', () => {
 		const confirmationCode = '123456';
 		const newPassword = 'newPassword123';
 
-		await cognitoModule.confirmForgotPassword(
+		await userService['cognitoService'].confirmForgotPassword(
 			email,
 			confirmationCode,
 			newPassword
 		);
 
-		expect(CognitoIdentityServiceProvider).toHaveBeenCalled();
+		expect(mConfirmForgotPassword).toHaveBeenCalledWith({
+			Username: email,
+			ClientId: expect.any(String), // Ajuste para usar ClientId
+			ConfirmationCode: confirmationCode,
+			Password: newPassword, // Ajuste para usar Password en lugar de NewPassword
+		});
 	});
 });

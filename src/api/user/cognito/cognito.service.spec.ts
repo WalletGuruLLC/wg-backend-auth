@@ -1,12 +1,14 @@
-import { CognitoService } from './cognito.service';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { CognitoService } from './cognito.service';
 
 // Mock of CognitoIdentityServiceProvider
 jest.mock('aws-sdk', () => {
 	const mAdminCreateUser = jest.fn();
+	const mAdminSetUserPassword = jest.fn();
 	return {
 		CognitoIdentityServiceProvider: jest.fn(() => ({
 			adminCreateUser: mAdminCreateUser,
+			adminSetUserPassword: mAdminSetUserPassword,
 		})),
 	};
 });
@@ -25,6 +27,9 @@ describe('CognitoService', () => {
 
 		mockPromise = jest.fn();
 		cognitoISP.adminCreateUser.mockReturnValue({
+			promise: mockPromise,
+		} as any);
+		cognitoISP.adminSetUserPassword.mockReturnValue({
 			promise: mockPromise,
 		} as any);
 	});

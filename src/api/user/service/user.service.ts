@@ -1,23 +1,22 @@
-//import { sendEmail } from './../../../utils/helpers/sendEmail';
-import * as dynamoose from 'dynamoose';
-import * as bcrypt from 'bcrypt';
 import { Injectable } from '@nestjs/common';
-import { Model } from 'dynamoose/dist/Model';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { UpdateUserDto } from '../dto/update-user.dto';
-import { User } from '../entities/user.entity';
-import { UserSchema } from '../entities/user.schema';
-import { CognitoService } from '../cognito/cognito.service';
-import { SignInDto } from '../dto/signin.dto';
-import { UpdateUserPasswordDto } from '../dto/update-password-user.dto copy';
-import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
 import {
 	AuthenticationDetails,
 	CognitoUser,
 	CognitoUserPool,
 } from 'amazon-cognito-identity-js';
-import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
+import * as bcrypt from 'bcrypt';
+import * as dynamoose from 'dynamoose';
+import { Model } from 'dynamoose/dist/Model';
+import { CognitoService } from '../cognito/cognito.service';
+import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
+import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { CreateUserResponse, SignInResponse } from '../dto/responses';
+import { SignInDto } from '../dto/signin.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { User } from '../entities/user.entity';
+import { UserSchema } from '../entities/user.schema';
 
 @Injectable()
 export class UserService {
@@ -35,132 +34,126 @@ export class UserService {
 		});
 	}
 
-	async create(createUserDto: CreateUserDto) {
+	async create(createUserDto: CreateUserDto): Promise<CreateUserResponse> {
 		const saltRounds = 8;
 		const hashedPassword = await bcrypt.hash(
-			createUserDto.PasswordHash,
+			createUserDto.passwordHash,
 			saltRounds
 		);
 
 		// Create user in Cognito
 		await this.cognitoService.createUser(
-			createUserDto.Email,
-			createUserDto.PasswordHash,
-			createUserDto.Email
+			createUserDto.email,
+			createUserDto.passwordHash,
+			createUserDto.email
 		);
+
 		// Create user in DynamoDB
 		const newUser = await this.dbInstance.create({
-			Id: createUserDto.Id,
-			Username: createUserDto.Username,
-			Email: createUserDto.Email,
+			Id: createUserDto.id,
+			Username: createUserDto.username,
+			Email: createUserDto.email,
 			PasswordHash: hashedPassword,
-			MfaEnabled: createUserDto.MfaEnabled,
-			ServiceProvider: createUserDto.ServiceProvider,
-			MfaType: createUserDto.MfaType,
-			Rol: createUserDto.Rol,
+			MfaEnabled: createUserDto.mfaEnabled,
+			ServiceProviderId: createUserDto.serviceProviderId,
+			MfaType: createUserDto.mfaType,
+			RoleId: createUserDto.roleId,
+			type: createUserDto.type,
+			Active: createUserDto.active,
 		});
 
-		return newUser;
+		return this.mapUserToCreateUserResponse(newUser);
 	}
 
-	async findOne(id: string) {
-		return await this.dbInstance.get({ Id: id });
+	async findOne(id: string): Promise<User | null> {
+		try {
+			return await this.dbInstance.get({ Id: id });
+		} catch (error) {
+			throw new Error(`Error retrieving user: ${error.message}`);
+		}
 	}
 
-	async findOneByEmail(email: string) {
+	async findOneByEmail(email: string): Promise<User | null> {
 		try {
 			const users = await this.dbInstance.query('Email').eq(email).exec();
 			return users[0];
 		} catch (error) {
-			if (
-				error.message.includes(
-					'The provided key element does not match the schema'
-				)
-			) {
-				console.log('Key schema mismatch:', error);
-			} else {
-				console.log('Error getting user:', error);
-			}
+			throw new Error(`Error retrieving user: ${error.message}`);
 		}
 	}
 
-	async findOneByEmailAndUpdate(
-		email: string,
-		updateUserDto: UpdateUserPasswordDto
-	) {
-		const users = await this.dbInstance.query('Email').eq(email).exec();
-
-		await this.dbInstance.update({
-			Id: users?.[0]?.Id,
-			Otp: updateUserDto?.Otp,
-			OtpTimestamp: updateUserDto?.OtpTimestamp,
-		});
-
-		return users?.[0];
-	}
-
-	async update(id: string, updateUserDto: UpdateUserDto) {
-		return await this.dbInstance.update({
-			Id: id,
-			Username: updateUserDto.Username,
-			Email: updateUserDto.Email,
-			ServiceProvider: updateUserDto.ServiceProvider,
-			PasswordHash: updateUserDto.PasswordHash,
-			MfaEnabled: updateUserDto.MfaEnabled,
-			MfaType: updateUserDto.MfaType,
-			Rol: updateUserDto.Rol,
-		});
+	async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
+		try {
+			return await this.dbInstance.update({
+				Id: id,
+				Username: updateUserDto.username,
+				Email: updateUserDto.email,
+				ServiceProviderId: updateUserDto.serviceProviderId,
+				PasswordHash: updateUserDto.passwordHash,
+				MfaEnabled: updateUserDto.mfaEnabled,
+				MfaType: updateUserDto.mfaType,
+				RoleId: updateUserDto.roleId,
+			});
+		} catch (error) {
+			throw new Error(`Error updating user: ${error.message}`);
+		}
 	}
 
 	async remove(id: string): Promise<void> {
-		try {
-			const user = await this.findOne(id);
-			if (!user) {
-				throw new Error('User not found in database');
-			}
-
-			try {
-				await this.cognitoService.deleteUser(user.Email);
-			} catch (error) {
-				throw new Error(`Error deleting user from Cognito: ${error.message}`);
-			}
-
-			try {
-				await this.dbInstance.delete({ Id: id });
-			} catch (error) {
-				throw new Error(`Error deleting user from database: ${error.message}`);
-			}
-		} catch (error) {
-			throw new Error(`Failed to remove user: ${error.message}`);
+		const user = await this.findOne(id);
+		if (!user) {
+			throw new Error('User not found in database');
 		}
+
+		await this.cognitoService.deleteUser(user.Email);
+		await this.dbInstance.delete({ Id: id });
 	}
 
-	async signin(signinDto: SignInDto) {
+	mapUserToCreateUserResponse(user: User): CreateUserResponse {
+		return {
+			id: user.Id,
+			userName: user.Username,
+			email: user.Email,
+			phone: user.Phone,
+			type: user.type,
+			roleId: user.RoleId,
+			active: user.PasswordHash !== '',
+			state: user.State,
+			serviceProviderId: user.ServiceProviderId,
+			lastLogin: user.LastLogin,
+		};
+	}
+
+	async signin(signinDto: SignInDto): Promise<SignInResponse> {
 		const user = await this.findOneByEmail(signinDto.email);
 		if (!user) {
-			return 'User not found';
+			throw new Error('User not found');
 		}
 
-		try {
-			const authResult = await this.cognitoService.authenticateUser(
-				signinDto.email,
-				signinDto.password
-			);
-			const token = authResult.AuthenticationResult?.AccessToken;
+		const authResult = await this.cognitoService.authenticateUser(
+			signinDto.email,
+			signinDto.password
+		);
+		const token = authResult.AuthenticationResult?.AccessToken;
 
-			if (!token) {
-				return 'Invalid credentials';
-			}
-
-			return { token, user };
-		} catch (error) {
-			throw new Error(`Authentication failed: ${error.message}`);
+		if (!token) {
+			throw new Error('Invalid credentials');
 		}
+
+		const lastLogin = new Date();
+		user.LastLogin = lastLogin;
+
+		await user.save();
+
+		return {
+			token,
+			user: this.mapUserToCreateUserResponse(user),
+		};
 	}
 
 	async changeUserPassword(
 		authChangePasswordUserDto: AuthChangePasswordUserDto
-	) {
+	): Promise<string> {
 		const { email, currentPassword, newPassword } = authChangePasswordUserDto;
 
 		const userData = {
@@ -183,21 +176,19 @@ export class UserService {
 						newPassword,
 						(err, result) => {
 							if (err) {
-								reject(err);
-								return;
+								reject(`Error changing password: ${err.message}`);
+							} else {
+								resolve('Password changed successfully');
 							}
-							resolve(result);
 						}
 					);
 				},
-
 				onFailure: function (err) {
-					reject(err);
+					reject(`Authentication failed: ${err.message}`);
 				},
-
 				newPasswordRequired: function (userAttributes, requiredAttributes) {
 					delete userAttributes.email_verified;
-					resolve(userAttributes);
+					resolve('New password required');
 				},
 			});
 		});
@@ -205,7 +196,7 @@ export class UserService {
 
 	async forgotUserPassword(
 		authForgotPasswordUserDto: AuthForgotPasswordUserDto
-	) {
+	): Promise<string> {
 		const { email } = authForgotPasswordUserDto;
 
 		const userData = {
@@ -218,10 +209,10 @@ export class UserService {
 		return new Promise((resolve, reject) => {
 			userCognito.forgotPassword({
 				onSuccess: result => {
-					resolve(result);
+					resolve('Password reset initiated');
 				},
 				onFailure: err => {
-					reject(err);
+					reject(`Failed to initiate password reset: ${err.message}`);
 				},
 			});
 		});
@@ -229,7 +220,7 @@ export class UserService {
 
 	async confirmUserPassword(
 		authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
-	) {
+	): Promise<string> {
 		const { email, confirmationCode, newPassword } = authConfirmPasswordUserDto;
 
 		const userData = {
@@ -242,10 +233,10 @@ export class UserService {
 		return new Promise((resolve, reject) => {
 			userCognito.confirmPassword(confirmationCode, newPassword, {
 				onSuccess: () => {
-					resolve({ status: 'success' });
+					resolve('Password reset confirmed');
 				},
 				onFailure: err => {
-					reject(err);
+					reject(`Failed to confirm password reset: ${err.message}`);
 				},
 			});
 		});
