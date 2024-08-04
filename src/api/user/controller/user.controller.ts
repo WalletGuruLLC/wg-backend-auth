@@ -42,8 +42,8 @@ export class UserController {
 			if (userFind) {
 				return {
 					statusCode: HttpStatus.FORBIDDEN,
-					customCode: 'r0003',
-					customMessage: customCodes?.r0003?.description,
+					customCode: 'WGE0003',
+					customMessage: customCodes?.WGE0003?.description,
 					message: 'User already exist',
 				};
 			}
@@ -58,8 +58,8 @@ export class UserController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'r0013',
-					customMessage: customCodes.r0013?.description,
+					customCode: 'WGE0013',
+					customMessage: customCodes.WGE0013?.description,
 					message: `Error creating user: ${error.message}`,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
@@ -78,8 +78,8 @@ export class UserController {
 			if (!user) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'r0002',
-					customMessage: customCodes.r0002?.description,
+					customCode: 'WGE0002',
+					customMessage: customCodes.WGE0002?.description,
 					message: 'User not found',
 				};
 			}
@@ -96,8 +96,8 @@ export class UserController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					message: `Error retrieving user: ${error.message}`,
-					customCode: 'r0016',
-					customMessage: customCodes.r0016?.description,
+					customCode: 'WGE0016',
+					customMessage: customCodes.WGE0016?.description,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -115,8 +115,8 @@ export class UserController {
 			if (!userFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'r0002',
-					customMessage: customCodes.r0002?.description,
+					customCode: 'WGE0002',
+					customMessage: customCodes.WGE0002?.description,
 					message: 'User not found',
 				};
 			}
@@ -131,8 +131,8 @@ export class UserController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					message: `Error updating user: ${error.message}`,
-					customCode: 'r0016',
-					customMessage: customCodes.r0016?.description,
+					customCode: 'WGE0016',
+					customMessage: customCodes.WGE0016?.description,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -150,8 +150,8 @@ export class UserController {
 			if (!userFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'r0002',
-					customMessage: customCodes.r0002?.description,
+					customCode: 'WGE0002',
+					customMessage: customCodes.WGE0002?.description,
 					message: 'User not found',
 				};
 			}
@@ -165,8 +165,8 @@ export class UserController {
 				throw new HttpException(
 					{
 						statusCode: HttpStatus.NOT_FOUND,
-						customCode: 'r0002',
-						customMessage: customCodes.r0002?.description,
+						customCode: 'WGE0002',
+						customMessage: customCodes.WGE0002?.description,
 						message: error.message,
 					},
 					HttpStatus.NOT_FOUND
@@ -176,8 +176,8 @@ export class UserController {
 					{
 						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 						message: `Error deleting user: ${error.message}`,
-						customCode: 'r0016',
-						customMessage: customCodes.r0016?.description,
+						customCode: 'WGE0016',
+						customMessage: customCodes.WGE0016?.description,
 					},
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);
@@ -196,8 +196,8 @@ export class UserController {
 			if (!userFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'r0002',
-					customMessage: customCodes.r0002?.description,
+					customCode: 'WGE0002',
+					customMessage: customCodes.WGE0002?.description,
 					message: 'User not found',
 				};
 			}
@@ -211,8 +211,8 @@ export class UserController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
-					customCode: 'r0001',
-					customMessage: customCodes.r0001?.description,
+					customCode: 'WGE0001',
+					customMessage: customCodes.WGE0001?.description,
 					message: error.message,
 				},
 				HttpStatus.UNAUTHORIZED
@@ -236,8 +236,8 @@ export class UserController {
 			if (!userFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'r0002',
-					customMessage: customCodes.r0002?.description,
+					customCode: 'WGE0002',
+					customMessage: customCodes.WGE0002?.description,
 					message: 'User not found',
 				};
 			}
@@ -253,8 +253,8 @@ export class UserController {
 				{
 					statusCode: HttpStatus.BAD_REQUEST,
 					message: error,
-					customCode: 'r0016',
-					customMessage: customCodes.r0016?.description,
+					customCode: 'WGE0016',
+					customMessage: customCodes.WGE0016?.description,
 				},
 				HttpStatus.BAD_REQUEST
 			);
@@ -277,8 +277,8 @@ export class UserController {
 			if (!userFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'r0002',
-					customMessage: customCodes.r0002?.description,
+					customCode: 'WGE0002',
+					customMessage: customCodes.WGE0002?.description,
 					message: 'User not found',
 				};
 			}
@@ -294,8 +294,8 @@ export class UserController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					message: error,
-					customCode: 'r0016',
-					customMessage: customCodes.r0016?.description,
+					customCode: 'WGE0016',
+					customMessage: customCodes.WGE0016?.description,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -318,8 +318,8 @@ export class UserController {
 			if (!userFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'r0002',
-					customMessage: customCodes.r0002?.description,
+					customCode: 'WGE0002',
+					customMessage: customCodes.WGE0002?.description,
 					message: 'User not found',
 				};
 			}
@@ -335,8 +335,8 @@ export class UserController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					message: error,
-					customCode: 'r0016',
-					customMessage: customCodes.r0016?.description,
+					customCode: 'WGE0016',
+					customMessage: customCodes.WGE0016?.description,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
