@@ -18,12 +18,23 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserService } from '../service/user.service';
+import {
+	ApiCreatedResponse,
+	ApiForbiddenResponse,
+	ApiOkResponse,
+	ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('user')
 @Controller('user')
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
 	@Post()
+	@ApiCreatedResponse({
+		description: 'The record has been successfully created.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async create(@Body() createUserDto: CreateUserDto) {
 		try {
 			const user = await this.userService.create(createUserDto);
@@ -44,6 +55,10 @@ export class UserController {
 	}
 
 	@Get(':id')
+	@ApiOkResponse({
+		description: 'The record has been successfully retrieved.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async findOne(@Param('id') id: string) {
 		try {
 			const user = await this.userService.findOne(id);
@@ -70,6 +85,10 @@ export class UserController {
 	}
 
 	@Patch(':id')
+	@ApiOkResponse({
+		description: 'The record has been successfully updated.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
 		try {
 			const user = await this.userService.update(id, updateUserDto);
@@ -90,6 +109,10 @@ export class UserController {
 	}
 
 	@Delete(':id')
+	@ApiOkResponse({
+		description: 'The record has been successfully deleted.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async remove(@Param('id') id: string) {
 		try {
 			await this.userService.remove(id);
@@ -119,6 +142,10 @@ export class UserController {
 	}
 
 	@Post('signin')
+	@ApiOkResponse({
+		description: 'The user has been successfully signed in.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async signin(@Body() signinDto: SignInDto) {
 		try {
 			const result = await this.userService.signin(signinDto);
@@ -140,6 +167,10 @@ export class UserController {
 
 	@Post('/change-password')
 	@UsePipes(ValidationPipe)
+	@ApiOkResponse({
+		description: 'The password has been successfully changed.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async changePassword(
 		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto
 	) {
@@ -164,6 +195,10 @@ export class UserController {
 
 	@Post('/forgot-password')
 	@UsePipes(ValidationPipe)
+	@ApiOkResponse({
+		description: 'The password reset request has been successfully processed.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async forgotPassword(
 		@Body() authForgotPasswordUserDto: AuthForgotPasswordUserDto
 	) {
@@ -188,6 +223,10 @@ export class UserController {
 
 	@Post('/confirm-password')
 	@UsePipes(ValidationPipe)
+	@ApiOkResponse({
+		description: 'The password has been successfully confirmed.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async confirmPassword(
 		@Body() authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
 	) {
