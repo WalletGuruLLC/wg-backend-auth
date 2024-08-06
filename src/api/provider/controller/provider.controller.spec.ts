@@ -5,18 +5,24 @@ import { ProviderService } from '../service/provider.service';
 describe('ProviderController', () => {
 	let controller: ProviderController;
 
+	const mockProviderService = {
+		create: jest.fn().mockResolvedValue({ id: 'someId', name: 'someProvider' }),
+		findAll: jest
+			.fn()
+			.mockResolvedValue([{ id: 'someId', name: 'someProvider' }]),
+		findOne: jest
+			.fn()
+			.mockResolvedValue({ id: 'someId', name: 'someProvider' }),
+		update: jest
+			.fn()
+			.mockResolvedValue({ id: 'someId', name: 'updatedProvider' }),
+		remove: jest.fn().mockResolvedValue(null),
+	};
 	beforeEach(async () => {
-		const module: TestingModule = await Test.createTestingModule({
-			controllers: [ProviderController],
-			providers: [ProviderService],
-		}).compile();
-
-		controller = module.get<ProviderController>(ProviderController);
+		controller = new ProviderController(mockProviderService);
 	});
 
 	it('should be defined', () => {
 		expect(controller).toBeDefined();
 	});
-
-	// Additional tests for CRUD operations can be added here
 });
