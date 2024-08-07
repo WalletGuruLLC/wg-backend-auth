@@ -7,21 +7,22 @@ import {
 } from 'src/api/user/dto/user.enums';
 
 export class User extends Document {
-	Id: string = '0';
-	Username: string = '';
-	Email: string = '';
-	Phone: string = '';
-	PasswordHash: string = '';
-	MfaEnabled: boolean = false;
+	Id = '0';
+	Username = '';
+	Email = '';
+	Phone = '';
+	PasswordHash = '';
+	MfaEnabled = false;
 	MfaType: string = MfaTypeUser.TOTP;
 	type: TypeUser = TypeUser.PLATFORM;
 	RoleId: RoleUser = RoleUser.USER;
 	Active: boolean;
+	First: boolean;
 	State: StateUser = StateUser.VERIFY;
-	Picture: string = '';
-	SendSms: boolean = false;
-	SendEmails: boolean = true;
-	ServiceProviderId: number = 0;
+	Picture = '';
+	SendSms = false;
+	SendEmails = true;
+	ServiceProviderId = 0;
 	LastLogin?: Date = null;
 	OtpTimestamp: Date = new Date();
 }
