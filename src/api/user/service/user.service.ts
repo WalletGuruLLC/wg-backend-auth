@@ -12,11 +12,16 @@ import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto'
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { CreateUserResponse, SignInResponse } from '../dto/responses';
+import {
+	CreateUserResponse,
+	SignInResponse,
+	getUsersResponse,
+} from '../dto/responses';
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
 import { UserSchema } from '../entities/user.schema';
+import { GetUsersDto } from '../dto/get-user.dto';
 
 @Injectable()
 export class UserService {
@@ -240,5 +245,17 @@ export class UserService {
 				},
 			});
 		});
+	}
+
+	async getUsersByType(getUsersDto: GetUsersDto): Promise<getUsersResponse> {
+		const users = await this.dbInstance
+			.query('type')
+			.eq(getUsersDto?.type || 'PLATFORM')
+			.attributes(['Id', 'Type', 'Email', 'Username', 'MfaEnabled', 'MfaType'])
+			.exec();
+
+		return {
+			users,
+		};
 	}
 }

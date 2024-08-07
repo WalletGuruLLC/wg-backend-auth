@@ -7,6 +7,6 @@ import { RoleModule } from './api/role/role.module';
 @Module({
 	imports: [ConfigModule.forRoot(), UserModule, ProviderModule, RoleModule],
 	controllers: [],
-	roles: [],
+	providers: [],
 })
 export class AppModule {}

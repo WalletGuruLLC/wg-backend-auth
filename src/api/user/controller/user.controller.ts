@@ -25,6 +25,7 @@ import {
 	ApiTags,
 } from '@nestjs/swagger';
 import { customCodes } from '../../../utils/constants';
+import { GetUsersDto } from '../dto/get-user.dto';
 
 @ApiTags('user')
 @Controller('user')
@@ -330,6 +331,27 @@ export class UserController {
 				statusCode: HttpStatus.OK,
 				message,
 			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					message: error,
+					customCode: 'WGE0016',
+					customMessage: customCodes.WGE0016?.description,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@Post('/get/all')
+	@ApiOkResponse({
+		description: 'Successfully returned users',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async getUsers(@Body() getUsersDto: GetUsersDto) {
+		try {
+			return this.userService.getUsersByType(getUsersDto);
 		} catch (error) {
 			throw new HttpException(
 				{
