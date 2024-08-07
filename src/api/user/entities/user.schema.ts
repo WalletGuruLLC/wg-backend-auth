@@ -52,6 +52,10 @@ export const UserSchema = new dynamoose.Schema(
 			type: Boolean,
 			default: true,
 		},
+		First: {
+			type: Boolean,
+			default: true,
+		},
 		State: {
 			type: Number,
 			enum: Object.values(StateUser),
