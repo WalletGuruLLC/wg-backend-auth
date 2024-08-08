@@ -18,6 +18,7 @@ export interface CreateUserResponse {
 	serviceProviderId: number;
 	lastLogin: Date | null;
 	first: boolean;
+	accessLevel?: string;
 }
 
 export interface SignInResponse {
