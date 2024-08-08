@@ -99,4 +99,8 @@ export const customCodes = {
 		description:
 			'An unexpected error occurred on the server. Please try again later.',
 	},
+	WGE0017: {
+		message: 'Invalid user type',
+		description: 'The type of user entered is invalid or does not correspond.',
+	},
 };

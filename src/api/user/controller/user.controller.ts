@@ -351,7 +351,20 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async getUsers(@Body() getUsersDto: GetUsersDto) {
 		try {
-			return this.userService.getUsersByType(getUsersDto);
+			const users = await this.userService.getUsersByType(getUsersDto);
+			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(getUsersDto.type)) {
+				return {
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					message: customCodes.WGE0017?.message,
+					customCode: 'WGE0017',
+					customMessage: customCodes.WGE0017?.description,
+				};
+			}
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'Successfully returned users',
+				data: users,
+			};
 		} catch (error) {
 			throw new HttpException(
 				{

@@ -251,7 +251,7 @@ export class UserService {
 		const users = await this.dbInstance
 			.query('type')
 			.eq(getUsersDto?.type || 'PLATFORM')
-			.attributes(['Id', 'Type', 'Email', 'Username', 'MfaEnabled', 'MfaType'])
+			.attributes(['Id', 'type', 'Email', 'Username', 'MfaEnabled', 'MfaType'])
 			.exec();
 
 		return {
