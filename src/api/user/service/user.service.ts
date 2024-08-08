@@ -179,10 +179,18 @@ export class UserService {
 					userCognito.changePassword(
 						currentPassword,
 						newPassword,
-						(err, result) => {
+						async (err, result) => {
 							if (err) {
 								reject(`Error changing password: ${err.message}`);
 							} else {
+								const user = await this.findOneByEmail(
+									authChangePasswordUserDto?.email
+								);
+
+								await this.dbInstance.update({
+									Id: user?.Id,
+									First: false,
+								});
 								resolve('Password changed successfully');
 							}
 						}
