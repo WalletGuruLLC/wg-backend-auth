@@ -68,7 +68,7 @@ export class UserController {
 		}
 	}
 
-	@Get(':id')
+	@Get('/:id')
 	@ApiOkResponse({
 		description: 'The record has been successfully retrieved.',
 	})
@@ -105,7 +105,7 @@ export class UserController {
 		}
 	}
 
-	@Patch(':id')
+	@Patch('/:id')
 	@ApiOkResponse({
 		description: 'The record has been successfully updated.',
 	})
@@ -140,7 +140,7 @@ export class UserController {
 		}
 	}
 
-	@Delete(':id')
+	@Delete('/:id')
 	@ApiOkResponse({
 		description: 'The record has been successfully deleted.',
 	})
@@ -186,7 +186,7 @@ export class UserController {
 		}
 	}
 
-	@Post('signin')
+	@Post('/signin')
 	@ApiOkResponse({
 		description: 'The user has been successfully signed in.',
 	})

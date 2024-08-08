@@ -78,6 +78,43 @@ export class UserService {
 		}
 	}
 
+	async findOneByEmailValidationAttributes(
+		email: string
+	): Promise<User | null> {
+		try {
+			const users = await this.dbInstance
+				.query('Email')
+				.eq(email)
+				.attributes(['Id', 'Email'])
+				.exec();
+			return users[0];
+		} catch (error) {
+			throw new Error(`Error retrieving user: ${error.message}`);
+		}
+	}
+
+	async findOneByEmailAllAttributes(email: string): Promise<User | null> {
+		try {
+			const users = await this.dbInstance
+				.query('Email')
+				.eq(email)
+				.attributes([
+					'Id',
+					'type',
+					'Email',
+					'First',
+					'LastLogin',
+					'Username',
+					'MfaEnabled',
+					'MfaType',
+				])
+				.exec();
+			return users[0];
+		} catch (error) {
+			throw new Error(`Error retrieving user: ${error.message}`);
+		}
+	}
+
 	async findOneByEmail(email: string): Promise<User | null> {
 		try {
 			const users = await this.dbInstance.query('Email').eq(email).exec();
@@ -124,14 +161,17 @@ export class UserService {
 			roleId: user.RoleId,
 			active: user.PasswordHash !== '',
 			state: user.State,
+			first: user.First,
 			serviceProviderId: user.ServiceProviderId,
 			lastLogin: user.LastLogin,
 		};
 	}
 
 	async signin(signinDto: SignInDto): Promise<SignInResponse> {
-		const user = await this.findOneByEmail(signinDto.email);
-		if (!user) {
+		const userFind = await this.findOneByEmailValidationAttributes(
+			signinDto.email
+		);
+		if (!userFind) {
 			throw new Error('User not found');
 		}
 
@@ -144,6 +184,8 @@ export class UserService {
 		if (!token) {
 			throw new Error('Invalid credentials');
 		}
+
+		const user = await this.findOneByEmail(signinDto.email);
 
 		const lastLogin = new Date();
 		user.LastLogin = lastLogin;
