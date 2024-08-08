@@ -23,3 +23,7 @@ export interface SignInResponse {
 	token: string;
 	user: CreateUserResponse;
 }
+
+export interface getUsersResponse {
+	users: Array<any>;
+}
