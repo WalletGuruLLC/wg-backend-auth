@@ -17,6 +17,7 @@ export interface CreateUserResponse {
 	state: StateUser;
 	serviceProviderId: number;
 	lastLogin: Date | null;
+	first: boolean;
 }
 
 export interface SignInResponse {
