@@ -162,6 +162,7 @@ export class UserService {
 			active: user.PasswordHash !== '',
 			state: user.State,
 			first: user.First,
+			accessLevel: user.AccessLevel,
 			serviceProviderId: user.ServiceProviderId,
 			lastLogin: user.LastLogin,
 		};

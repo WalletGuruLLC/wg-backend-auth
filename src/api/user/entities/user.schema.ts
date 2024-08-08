@@ -89,6 +89,10 @@ export const UserSchema = new dynamoose.Schema(
 			type: String,
 			default: '',
 		},
+		AccessLevel: {
+			type: String,
+			default: '',
+		},
 		OtpTimestamp: {
 			type: Date,
 			default: () => new Date(),
