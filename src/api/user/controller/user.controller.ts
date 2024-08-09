@@ -25,11 +25,16 @@ import {
 	ApiTags,
 } from '@nestjs/swagger';
 import { customCodes } from '../../../utils/constants';
+import { SqsService } from '../sqs/sqs.service';
+
 
 @ApiTags('user')
 @Controller('user')
 export class UserController {
-	constructor(private readonly userService: UserService) {}
+	constructor(
+		private readonly userService: UserService,
+		private readonly sqsService: SqsService
+	) {}
 
 	@Post()
 	@ApiCreatedResponse({
@@ -202,6 +207,17 @@ export class UserController {
 				};
 			}
 			const result = await this.userService.signin(signinDto);
+
+			const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+			const sqsMessage = {
+				event: 'OTP_SENT',
+				email: signinDto.email,
+				username: result.user?.userName,
+				otp,
+				timestamp: new Date().toISOString(),
+			};
+			await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
+
 			return {
 				statusCode: HttpStatus.OK,
 				message: 'Sign-in successful',
