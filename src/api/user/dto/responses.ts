@@ -8,7 +8,8 @@ export interface ApiResponse<T> {
 
 export interface CreateUserResponse {
 	id: string;
-	userName: string;
+	firstName: string;
+	lastName: string;
 	email: string;
 	phone: string;
 	type: TypeUser;
@@ -18,7 +19,8 @@ export interface CreateUserResponse {
 	serviceProviderId: number;
 	lastLogin: Date | null;
 	first: boolean;
-	accessLevel?: string;
+	termsConditions: boolean;
+	privacyPolicy: boolean;
 }
 
 export interface SignInResponse {

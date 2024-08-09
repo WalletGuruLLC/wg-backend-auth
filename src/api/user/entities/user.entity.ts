@@ -7,8 +7,9 @@ import {
 } from 'src/api/user/dto/user.enums';
 
 export class User extends Document {
-	Id = '0';
-	Username = '';
+	Id = '';
+	FirstName = '';
+	LastName = '';
 	Email = '';
 	Phone = '';
 	PasswordHash = '';
@@ -20,10 +21,11 @@ export class User extends Document {
 	First: boolean;
 	State: StateUser = StateUser.VERIFY;
 	Picture = '';
-	AccessLevel: string;
 	SendSms = false;
 	SendEmails = true;
 	ServiceProviderId = 0;
 	LastLogin?: Date = null;
 	OtpTimestamp: Date = new Date();
+	TermsConditions = false;
+	PrivacyPolicy = false;
 }

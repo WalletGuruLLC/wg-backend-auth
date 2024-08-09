@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import {
 	AuthenticationDetails,
 	CognitoUser,
 	CognitoUserPool,
 } from 'amazon-cognito-identity-js';
+import * as otpGenerator from 'otp-generator';
 import * as bcrypt from 'bcrypt';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
@@ -20,23 +21,101 @@ import {
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
+import { Otp } from '../../auth/entities/otp.entity';
 import { UserSchema } from '../entities/user.schema';
+import { OtpSchema } from '../../auth/entities/otp.schema';
 import { GetUsersDto } from '../dto/get-user.dto';
+import { CreateOtpRequestDto } from '../../auth/dto/create-otp-request.dto';
+import { CreateOtpResponseDto } from '../../auth/dto/create-otp-response.dto';
+import { VerifyOtpDto } from '../dto/forgotPassword.dto';
 
 @Injectable()
 export class UserService {
 	private dbInstance: Model<User>;
+	private dbOtpInstance: Model<Otp>;
 	private cognitoService: CognitoService;
 	private userPool: CognitoUserPool;
 
 	constructor() {
 		const tableName = 'users';
 		this.dbInstance = dynamoose.model<User>(tableName, UserSchema);
+		this.dbOtpInstance = dynamoose.model<Otp>('otps', OtpSchema);
 		this.cognitoService = new CognitoService();
 		this.userPool = new CognitoUserPool({
 			UserPoolId: process.env.COGNITO_USER_POOL_ID,
 			ClientId: process.env.COGNITO_CLIENT_ID,
 		});
+	}
+
+	async generateOtp(
+		createOtpRequestDto: CreateOtpRequestDto
+	): Promise<CreateOtpResponseDto> {
+		const { email } = createOtpRequestDto;
+
+		const existingOtpEmail = await this.dbOtpInstance
+			.query('email')
+			.eq(email)
+			.exec();
+
+		if (existingOtpEmail.count > 0) {
+			throw new Error(`OTP already exist`);
+		}
+
+		let otp = otpGenerator.generate(6, {
+			upperCaseAlphabets: false,
+			lowerCaseAlphabets: false,
+			specialChars: false,
+		});
+
+		let existingOtp = await this.dbOtpInstance.query('otp').eq(otp).exec();
+
+		while (existingOtp.count > 0) {
+			otp = otpGenerator.generate(6, {
+				upperCaseAlphabets: false,
+			});
+			existingOtp = await this.dbOtpInstance.query('otp').eq(otp).exec();
+		}
+
+		const otpPayload = { email, otp };
+		await this.dbOtpInstance.create(otpPayload);
+
+		return {
+			success: true,
+			message: 'OTP sent successfully',
+			otp,
+		};
+	}
+
+	async verifyOtp(verifyOtp: VerifyOtpDto): Promise<any> {
+		try {
+			const otpRecord = await this.dbOtpInstance.scan(verifyOtp).exec();
+
+			if (!otpRecord || otpRecord.count === 0) {
+				//await this.logAuthAttempt(email, 'failure');
+
+				throw new HttpException(
+					'Invalid or expired OTP',
+					HttpStatus.UNAUTHORIZED
+				);
+			}
+
+			await this.dbOtpInstance.delete({
+				email: verifyOtp?.email,
+				otp: verifyOtp?.otp,
+			});
+
+			//await this.logAuthAttempt(email, 'success');
+
+			const user = await this.findOneByEmail(verifyOtp.email);
+
+			return {
+				user,
+				verified: true,
+			};
+		} catch (error) {
+			console.error(error.message);
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	async create(createUserDto: CreateUserDto): Promise<CreateUserResponse> {
@@ -56,7 +135,8 @@ export class UserService {
 		// Create user in DynamoDB
 		const newUser = await this.dbInstance.create({
 			Id: createUserDto.id,
-			Username: createUserDto.username,
+			FirstName: createUserDto.firstName,
+			LastName: createUserDto.lastName,
 			Email: createUserDto.email,
 			PasswordHash: hashedPassword,
 			MfaEnabled: createUserDto.mfaEnabled,
@@ -65,6 +145,8 @@ export class UserService {
 			RoleId: createUserDto.roleId,
 			type: createUserDto.type,
 			Active: createUserDto.active,
+			TermsConditions: createUserDto.termsConditions,
+			PrivacyPolicy: createUserDto.privacyPolicy,
 		});
 
 		return this.mapUserToCreateUserResponse(newUser);
@@ -128,13 +210,16 @@ export class UserService {
 		try {
 			return await this.dbInstance.update({
 				Id: id,
-				Username: updateUserDto.username,
+				FirstName: updateUserDto.firstName,
+				LastName: updateUserDto.lastName,
 				Email: updateUserDto.email,
 				ServiceProviderId: updateUserDto.serviceProviderId,
 				PasswordHash: updateUserDto.passwordHash,
 				MfaEnabled: updateUserDto.mfaEnabled,
 				MfaType: updateUserDto.mfaType,
 				RoleId: updateUserDto.roleId,
+				TermsConditions: updateUserDto.termsConditions,
+				PrivacyPolicy: updateUserDto.privacyPolicy,
 			});
 		} catch (error) {
 			throw new Error(`Error updating user: ${error.message}`);
@@ -154,7 +239,8 @@ export class UserService {
 	mapUserToCreateUserResponse(user: User): CreateUserResponse {
 		return {
 			id: user.Id,
-			userName: user.Username,
+			firstName: user.FirstName,
+			lastName: user.LastName,
 			email: user.Email,
 			phone: user.Phone,
 			type: user.type,
@@ -162,13 +248,14 @@ export class UserService {
 			active: user.PasswordHash !== '',
 			state: user.State,
 			first: user.First,
-			accessLevel: user.AccessLevel,
 			serviceProviderId: user.ServiceProviderId,
 			lastLogin: user.LastLogin,
+			termsConditions: user.TermsConditions,
+			privacyPolicy: user.PrivacyPolicy,
 		};
 	}
 
-	async signin(signinDto: SignInDto): Promise<SignInResponse> {
+	async signin(signinDto: SignInDto) {
 		const userFind = await this.findOneByEmailValidationAttributes(
 			signinDto.email
 		);
@@ -186,17 +273,8 @@ export class UserService {
 			throw new Error('Invalid credentials');
 		}
 
-		const user = await this.findOneByEmail(signinDto.email);
-
-		const lastLogin = new Date();
-		user.LastLogin = lastLogin;
-
-		await user.save();
-
-		return {
-			token,
-			user: this.mapUserToCreateUserResponse(user),
-		};
+		const result = await this.generateOtp({ email: signinDto.email });
+		return result;
 	}
 
 	async changeUserPassword(

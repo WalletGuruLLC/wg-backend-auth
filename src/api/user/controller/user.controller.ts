@@ -26,6 +26,7 @@ import {
 } from '@nestjs/swagger';
 import { customCodes } from '../../../utils/constants';
 import { GetUsersDto } from '../dto/get-user.dto';
+import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 
 @ApiTags('user')
 @Controller('user')
@@ -203,6 +204,32 @@ export class UserController {
 				};
 			}
 			const result = await this.userService.signin(signinDto);
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'Sign-in successful',
+				data: result,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0001',
+					customMessage: customCodes.WGE0001?.description,
+					message: error.message,
+				},
+				HttpStatus.UNAUTHORIZED
+			);
+		}
+	}
+
+	@Post('/verify/otp/mfa')
+	@ApiOkResponse({
+		description: 'The user has been successfully signed in.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+		try {
+			const result = await this.userService.verifyOtp(verifyOtpDto);
 			return {
 				statusCode: HttpStatus.OK,
 				message: 'Sign-in successful',
