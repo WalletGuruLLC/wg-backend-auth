@@ -20,6 +20,7 @@ export class User extends Document {
 	First: boolean;
 	State: StateUser = StateUser.VERIFY;
 	Picture = '';
+	AccessLevel: string;
 	SendSms = false;
 	SendEmails = true;
 	ServiceProviderId = 0;

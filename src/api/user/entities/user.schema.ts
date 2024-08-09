@@ -42,6 +42,10 @@ export const UserSchema = new dynamoose.Schema(
 			type: String,
 			enum: Object.values(TypeUser),
 			default: TypeUser.PLATFORM,
+			index: {
+				global: true,
+				name: 'userTypeIndex',
+			},
 		},
 		RoleId: {
 			type: Number,
@@ -82,6 +86,10 @@ export const UserSchema = new dynamoose.Schema(
 			default: null,
 		},
 		Otp: {
+			type: String,
+			default: '',
+		},
+		AccessLevel: {
 			type: String,
 			default: '',
 		},

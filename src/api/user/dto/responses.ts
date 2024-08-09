@@ -17,9 +17,15 @@ export interface CreateUserResponse {
 	state: StateUser;
 	serviceProviderId: number;
 	lastLogin: Date | null;
+	first: boolean;
+	accessLevel?: string;
 }
 
 export interface SignInResponse {
 	token: string;
 	user: CreateUserResponse;
+}
+
+export interface getUsersResponse {
+	users: Array<any>;
 }

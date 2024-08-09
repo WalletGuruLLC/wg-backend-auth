@@ -12,11 +12,16 @@ import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto'
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { CreateUserResponse, SignInResponse } from '../dto/responses';
+import {
+	CreateUserResponse,
+	SignInResponse,
+	getUsersResponse,
+} from '../dto/responses';
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
 import { UserSchema } from '../entities/user.schema';
+import { GetUsersDto } from '../dto/get-user.dto';
 
 @Injectable()
 export class UserService {
@@ -73,6 +78,43 @@ export class UserService {
 		}
 	}
 
+	async findOneByEmailValidationAttributes(
+		email: string
+	): Promise<User | null> {
+		try {
+			const users = await this.dbInstance
+				.query('Email')
+				.eq(email)
+				.attributes(['Id', 'Email'])
+				.exec();
+			return users[0];
+		} catch (error) {
+			throw new Error(`Error retrieving user: ${error.message}`);
+		}
+	}
+
+	async findOneByEmailAllAttributes(email: string): Promise<User | null> {
+		try {
+			const users = await this.dbInstance
+				.query('Email')
+				.eq(email)
+				.attributes([
+					'Id',
+					'type',
+					'Email',
+					'First',
+					'LastLogin',
+					'Username',
+					'MfaEnabled',
+					'MfaType',
+				])
+				.exec();
+			return users[0];
+		} catch (error) {
+			throw new Error(`Error retrieving user: ${error.message}`);
+		}
+	}
+
 	async findOneByEmail(email: string): Promise<User | null> {
 		try {
 			const users = await this.dbInstance.query('Email').eq(email).exec();
@@ -119,14 +161,18 @@ export class UserService {
 			roleId: user.RoleId,
 			active: user.PasswordHash !== '',
 			state: user.State,
+			first: user.First,
+			accessLevel: user.AccessLevel,
 			serviceProviderId: user.ServiceProviderId,
 			lastLogin: user.LastLogin,
 		};
 	}
 
 	async signin(signinDto: SignInDto): Promise<SignInResponse> {
-		const user = await this.findOneByEmail(signinDto.email);
-		if (!user) {
+		const userFind = await this.findOneByEmailValidationAttributes(
+			signinDto.email
+		);
+		if (!userFind) {
 			throw new Error('User not found');
 		}
 
@@ -139,6 +185,8 @@ export class UserService {
 		if (!token) {
 			throw new Error('Invalid credentials');
 		}
+
+		const user = await this.findOneByEmail(signinDto.email);
 
 		const lastLogin = new Date();
 		user.LastLogin = lastLogin;
@@ -248,5 +296,17 @@ export class UserService {
 				},
 			});
 		});
+	}
+
+	async getUsersByType(getUsersDto: GetUsersDto): Promise<getUsersResponse> {
+		const users = await this.dbInstance
+			.query('type')
+			.eq(getUsersDto?.type || 'PLATFORM')
+			.attributes(['Id', 'type', 'Email', 'Username', 'MfaEnabled', 'MfaType'])
+			.exec();
+
+		return {
+			users,
+		};
 	}
 }
