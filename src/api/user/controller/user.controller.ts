@@ -24,7 +24,7 @@ import {
 	ApiOkResponse,
 	ApiTags,
 } from '@nestjs/swagger';
-import { customCodes } from '../../../utils/constants';
+import { errorCodes, successCodes } from '../../../utils/constants';
 import { GetUsersDto } from '../dto/get-user.dto';
 import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 
@@ -45,24 +45,26 @@ export class UserController {
 				return {
 					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0003',
-					customMessage: customCodes?.WGE0003?.description,
-					message: 'User already exist',
+					customMessage: errorCodes?.WGE0003?.description,
+					customMessageEs: errorCodes.WGE0003?.descriptionEs,
 				};
 			}
 
 			const user = await this.userService.create(createUserDto);
 			return {
-				statusCode: HttpStatus.CREATED,
-				message: 'User created successfully',
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0013',
+				customMessage: successCodes.WGE0013?.description,
+				customMessageEs: successCodes.WGE0013?.descriptionEs,
 				data: user,
 			};
 		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0013',
-					customMessage: customCodes.WGE0013?.description,
-					message: `Error creating user: ${error.message}`,
+					customCode: 'WGE0016',
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -81,25 +83,24 @@ export class UserController {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
-					customMessage: customCodes.WGE0002?.description,
-					message: 'User not found',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'User found',
+				customCode: 'WGE0019',
+				customMessage: successCodes.WGE0019?.description,
+				customMessageEs: successCodes.WGE0019?.descriptionEs,
 				data: user,
 			};
 		} catch (error) {
-			if (error.status === HttpStatus.NOT_FOUND) {
-				throw error; // Re-throw 404 errors as they are
-			}
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error retrieving user: ${error.message}`,
 					customCode: 'WGE0016',
-					customMessage: customCodes.WGE0016?.description,
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -118,23 +119,25 @@ export class UserController {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
-					customMessage: customCodes.WGE0002?.description,
-					message: 'User not found',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
 			const user = await this.userService.update(id, updateUserDto);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'User updated successfully',
+				customCode: 'WGE0020',
+				customMessage: successCodes.WGE0020?.description,
+				customMessageEs: successCodes.WGE0020?.descriptionEs,
 				data: user,
 			};
 		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error updating user: ${error.message}`,
 					customCode: 'WGE0016',
-					customMessage: customCodes.WGE0016?.description,
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -153,14 +156,16 @@ export class UserController {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
-					customMessage: customCodes.WGE0002?.description,
-					message: 'User not found',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
 			await this.userService.remove(id);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'User deleted successfully',
+				customCode: 'WGE0021',
+				customMessage: successCodes.WGE0021?.description,
+				customMessageEs: successCodes.WGE0021?.descriptionEs,
 			};
 		} catch (error) {
 			if (error.message === 'User not found in database') {
@@ -168,8 +173,8 @@ export class UserController {
 					{
 						statusCode: HttpStatus.NOT_FOUND,
 						customCode: 'WGE0002',
-						customMessage: customCodes.WGE0002?.description,
-						message: error.message,
+						customMessage: errorCodes.WGE0002?.description,
+						customMessageEs: errorCodes.WGE0002?.descriptionEs,
 					},
 					HttpStatus.NOT_FOUND
 				);
@@ -177,9 +182,9 @@ export class UserController {
 				throw new HttpException(
 					{
 						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						message: `Error deleting user: ${error.message}`,
 						customCode: 'WGE0016',
-						customMessage: customCodes.WGE0016?.description,
+						customMessage: errorCodes.WGE0016?.description,
+						customMessageEs: errorCodes.WGE0016?.descriptionEs,
 					},
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);
@@ -199,14 +204,16 @@ export class UserController {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
-					customMessage: customCodes.WGE0002?.description,
-					message: 'User not found',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
 			const result = await this.userService.signin(signinDto);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Sign-in successful',
+				customCode: 'WGE0018',
+				customMessage: successCodes.WGE0018?.description,
+				customMessageEs: successCodes.WGE0018?.descriptionEs,
 				data: result,
 			};
 		} catch (error) {
@@ -214,8 +221,8 @@ export class UserController {
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0001',
-					customMessage: customCodes.WGE0001?.description,
-					message: error.message,
+					customMessage: errorCodes.WGE0001?.description,
+					customMessageEs: errorCodes.WGE0001?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
@@ -232,16 +239,18 @@ export class UserController {
 			const result = await this.userService.verifyOtp(verifyOtpDto);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Sign-in successful',
+				customCode: 'WGE0014',
+				customMessage: successCodes.WGE0014?.description,
+				customMessageEs: successCodes.WGE0014?.descriptionEs,
 				data: result,
 			};
 		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
-					customCode: 'WGE0001',
-					customMessage: customCodes.WGE0001?.description,
-					message: error.message,
+					customCode: 'WGE0005',
+					customMessage: errorCodes.WGE0005?.description,
+					customMessageEs: errorCodes.WGE0005?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
@@ -265,8 +274,8 @@ export class UserController {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
-					customMessage: customCodes.WGE0002?.description,
-					message: 'User not found',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
 			const message = await this.userService.changeUserPassword(
@@ -280,9 +289,9 @@ export class UserController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.BAD_REQUEST,
-					message: error,
 					customCode: 'WGE0016',
-					customMessage: customCodes.WGE0016?.description,
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.BAD_REQUEST
 			);
@@ -306,8 +315,8 @@ export class UserController {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
-					customMessage: customCodes.WGE0002?.description,
-					message: 'User not found',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
 			const message = await this.userService.forgotUserPassword(
@@ -321,9 +330,9 @@ export class UserController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: error,
 					customCode: 'WGE0016',
-					customMessage: customCodes.WGE0016?.description,
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -347,8 +356,8 @@ export class UserController {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
-					customMessage: customCodes.WGE0002?.description,
-					message: 'User not found',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
 			const message = await this.userService.confirmUserPassword(
@@ -362,9 +371,9 @@ export class UserController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: error,
 					customCode: 'WGE0016',
-					customMessage: customCodes.WGE0016?.description,
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -382,9 +391,9 @@ export class UserController {
 			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(getUsersDto.type)) {
 				return {
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: customCodes.WGE0017?.message,
 					customCode: 'WGE0017',
-					customMessage: customCodes.WGE0017?.description,
+					customMessage: errorCodes.WGE0017?.description,
+					customMessageEs: errorCodes.WGE0017?.descriptionEs,
 				};
 			}
 			return {
@@ -396,9 +405,8 @@ export class UserController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: error,
 					customCode: 'WGE0016',
-					customMessage: customCodes.WGE0016?.description,
+					customMessage: errorCodes.WGE0016?.description,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

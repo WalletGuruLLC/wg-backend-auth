@@ -13,11 +13,7 @@ import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto'
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
-import {
-	CreateUserResponse,
-	SignInResponse,
-	getUsersResponse,
-} from '../dto/responses';
+import { CreateUserResponse, getUsersResponse } from '../dto/responses';
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
@@ -91,8 +87,6 @@ export class UserService {
 			const otpRecord = await this.dbOtpInstance.scan(verifyOtp).exec();
 
 			if (!otpRecord || otpRecord.count === 0) {
-				//await this.logAuthAttempt(email, 'failure');
-
 				throw new HttpException(
 					'Invalid or expired OTP',
 					HttpStatus.UNAUTHORIZED
@@ -104,9 +98,10 @@ export class UserService {
 				otp: verifyOtp?.otp,
 			});
 
-			//await this.logAuthAttempt(email, 'success');
-
 			const user = await this.findOneByEmail(verifyOtp.email);
+
+			delete user.PasswordHash;
+			delete user.OtpTimestamp;
 
 			return {
 				user,
@@ -231,9 +226,10 @@ export class UserService {
 		if (!user) {
 			throw new Error('User not found in database');
 		}
-
-		await this.cognitoService.deleteUser(user.Email);
-		await this.dbInstance.delete({ Id: id });
+		await this.dbInstance.update({
+			Id: id,
+			Active: false,
+		});
 	}
 
 	mapUserToCreateUserResponse(user: User): CreateUserResponse {
