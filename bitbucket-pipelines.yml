@@ -6,13 +6,12 @@ pipelines:
           deployment: Dev
           script:
             - pip3 install awscli
-            - IMAGE="975050359967.dkr.ecr.us-east-2.amazonaws.com/backend-auth"
             - TAG=${BITBUCKET_BRANCH:-$BITBUCKET_BUILD_NUMBER}
             - aws configure set aws_access_key_id "${AWS_KEY}"
             - aws configure set aws_secret_access_key "${AWS_SECRET}"
             - eval $(aws ecr get-login --no-include-email --region us-east-2 | sed 's;https://;;g')
-            - docker build -t $IMAGE:$TAG . -e NODE_ENV=production
-            - docker push $IMAGE:$TAG
+            - docker build -t ${IMAGE}:$TAG . -e NODE_ENV=production
+            - docker push ${IMAGE}:$TAG
           caches:
             - pip
           services:
