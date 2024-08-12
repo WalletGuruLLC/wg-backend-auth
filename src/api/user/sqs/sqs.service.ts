@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SQS } from 'aws-sdk';
+import { LoginMessageDto } from './dto/login-message.dto';
 
 @Injectable()
 export class SqsService {
@@ -10,7 +11,10 @@ export class SqsService {
 		this.sqs = new SQS({ region: process.env.AWS_REGION });
 	}
 
-	async sendMessage(queueUrl: string, messageBody: any): Promise<void> {
+	async sendMessage(
+		queueUrl: string,
+		messageBody: LoginMessageDto
+	): Promise<void> {
 		const params = {
 			QueueUrl: queueUrl,
 			MessageBody: JSON.stringify(messageBody),

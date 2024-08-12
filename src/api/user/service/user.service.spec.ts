@@ -1,11 +1,10 @@
 import { CognitoUserPool } from 'amazon-cognito-identity-js';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
 import { UserService } from './user.service';
-
-jest.mock('dynamoose', () => ({
-	model: jest.fn(),
-	Schema: jest.fn(),
-}));
+import { SqsService } from '../sqs/sqs.service';
+import { User } from '../entities/user.entity';
+import { AuthenticateUserResponse } from '../cognito/cognito.types';
+import { CreateOtpResponseDto } from '../../auth/dto/create-otp-response.dto';
 
 const mAdminCreateUser = jest.fn();
 const mForgotPassword = jest.fn().mockReturnValue({ promise: jest.fn() });
@@ -13,6 +12,8 @@ const mChangePassword = jest.fn().mockReturnValue({ promise: jest.fn() });
 const mConfirmForgotPassword = jest
 	.fn()
 	.mockReturnValue({ promise: jest.fn() });
+const mSendMessage = jest.fn().mockReturnValue({ promise: jest.fn() });
+const mDbOtpInstanceDelete = jest.fn().mockReturnValue({ promise: jest.fn() });
 
 jest.mock('aws-sdk', () => {
 	return {
@@ -23,8 +24,18 @@ jest.mock('aws-sdk', () => {
 			confirmForgotPassword: mConfirmForgotPassword,
 			adminInitiateAuth: jest.fn().mockReturnThis(),
 		})),
+		SQS: jest.fn(() => ({
+			sendMessage: mSendMessage,
+		})),
 	};
 });
+
+jest.mock('dynamoose', () => ({
+	model: jest.fn().mockImplementation(() => ({
+		delete: mDbOtpInstanceDelete,
+	})),
+	Schema: jest.fn(),
+}));
 
 jest.mock('amazon-cognito-identity-js', () => {
 	return {
@@ -47,7 +58,7 @@ describe('UserService', () => {
 	let cognitoServiceMock: CognitoIdentityServiceProvider;
 
 	beforeEach(() => {
-		userService = new UserService();
+		userService = new UserService(new SqsService());
 		cognitoServiceMock = new CognitoIdentityServiceProvider();
 	});
 
@@ -99,5 +110,44 @@ describe('UserService', () => {
 		);
 
 		expect(mConfirmForgotPassword).toHaveBeenCalled();
+	});
+
+	test('signin should send a message to SQS with the correct parameters', async () => {
+		const signinDto = { email: 'test@scrummers.co', password: 'password123' };
+		const foundUser = {
+			Id: 'user-id',
+			Email: 'test@scrummers.co',
+			FirstName: 'Test',
+			LastName: 'User',
+			Phone: '1234567890',
+			PasswordHash: 'hashed-password',
+			MfaEnabled: true,
+			RoleId: 1,
+			State: 1,
+		} as unknown as User;
+		const authResult = {
+			AuthenticationResult: {
+				AccessToken: 'fake_token',
+			},
+		} as unknown as AuthenticateUserResponse;
+		const otpResult = { otp: '123456' } as unknown as CreateOtpResponseDto;
+
+		jest.spyOn(userService, 'findOneByEmail').mockResolvedValue(foundUser);
+		jest
+			.spyOn(userService['cognitoService'], 'authenticateUser')
+			.mockResolvedValue(authResult);
+		jest.spyOn(userService, 'generateOtp').mockResolvedValue(otpResult);
+
+		await userService.signin(signinDto);
+
+		expect(mSendMessage).toHaveBeenCalledWith({
+			QueueUrl: process.env.SQS_QUEUE_URL,
+			MessageBody: JSON.stringify({
+				event: 'OTP_SENT',
+				email: foundUser.Email,
+				username: 'Test U.',
+				otp: otpResult.otp,
+			}),
+		});
 	});
 });

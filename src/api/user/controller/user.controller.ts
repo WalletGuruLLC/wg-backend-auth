@@ -25,7 +25,6 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserService } from '../service/user.service';
-import { SqsService } from '../sqs/sqs.service';
 import { errorCodes, successCodes } from '../../../utils/constants';
 import { GetUsersDto } from '../dto/get-user.dto';
 import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
@@ -33,10 +32,7 @@ import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 @ApiTags('user')
 @Controller('user')
 export class UserController {
-	constructor(
-		private readonly userService: UserService,
-		private readonly sqsService: SqsService
-	) {}
+	constructor(private readonly userService: UserService) {}
 
 	@Post()
 	@ApiCreatedResponse({
@@ -204,26 +200,7 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async signin(@Body() signinDto: SignInDto) {
 		try {
-			const userFind = await this.userService.findOneByEmail(signinDto?.email);
-			if (!userFind) {
-				return {
-					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0002',
-					customMessage: errorCodes.WGE0002?.description,
-					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
-			}
 			const result = await this.userService.signin(signinDto);
-
-			const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-			const sqsMessage = {
-				event: 'OTP_SENT',
-				email: signinDto.email,
-				username: result.user?.userName,
-				otp,
-				timestamp: new Date().toISOString(),
-			};
-			await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
 
 			return {
 				statusCode: HttpStatus.OK,
