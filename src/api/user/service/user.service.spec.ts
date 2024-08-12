@@ -1,3 +1,5 @@
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 import { CognitoUserPool } from 'amazon-cognito-identity-js';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
 import { UserService } from './user.service';
@@ -13,7 +15,6 @@ const mConfirmForgotPassword = jest
 	.fn()
 	.mockReturnValue({ promise: jest.fn() });
 const mSendMessage = jest.fn().mockReturnValue({ promise: jest.fn() });
-const mDbOtpInstanceDelete = jest.fn().mockReturnValue({ promise: jest.fn() });
 
 jest.mock('aws-sdk', () => {
 	return {
@@ -32,7 +33,7 @@ jest.mock('aws-sdk', () => {
 
 jest.mock('dynamoose', () => ({
 	model: jest.fn().mockImplementation(() => ({
-		delete: mDbOtpInstanceDelete,
+		delete: jest.fn().mockReturnValue({ promise: jest.fn() }),
 	})),
 	Schema: jest.fn(),
 }));
@@ -55,11 +56,16 @@ jest.mock('amazon-cognito-identity-js', () => {
 
 describe('UserService', () => {
 	let userService: UserService;
-	let cognitoServiceMock: CognitoIdentityServiceProvider;
+	let configService: ConfigService;
 
-	beforeEach(() => {
-		userService = new UserService(new SqsService());
-		cognitoServiceMock = new CognitoIdentityServiceProvider();
+	beforeEach(async () => {
+		const module: TestingModule = await Test.createTestingModule({
+			imports: [ConfigModule.forRoot()],
+			providers: [UserService, SqsService],
+		}).compile();
+
+		userService = module.get<UserService>(UserService);
+		configService = module.get<ConfigService>(ConfigService);
 	});
 
 	test('debe crear una instancia de cognitoService', () => {
@@ -141,7 +147,7 @@ describe('UserService', () => {
 		await userService.signin(signinDto);
 
 		expect(mSendMessage).toHaveBeenCalledWith({
-			QueueUrl: process.env.SQS_QUEUE_URL,
+			QueueUrl: configService.get<string>('SQS_QUEUE_URL'),
 			MessageBody: JSON.stringify({
 				event: 'OTP_SENT',
 				email: foundUser.Email,
