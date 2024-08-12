@@ -7,7 +7,8 @@ import {
 
 export class CreateUserDto {
 	id: string;
-	username: string;
+	firstName: string;
+	lastName: string;
 	email: string;
 	phone: string;
 	passwordHash: string;
@@ -22,4 +23,6 @@ export class CreateUserDto {
 	sendEmails: boolean;
 	serviceProviderId: number;
 	lastLogin: Date;
+	termsConditions: boolean;
+	privacyPolicy: boolean;
 }

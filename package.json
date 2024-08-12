@@ -38,6 +38,7 @@
 		"dynamoose": "^2.8.6",
 		"lint-staged": "^15.2.7",
 		"nodemailer": "^6.9.14",
+		"otp-generator": "^4.0.1",
 		"reflect-metadata": "^0.1.13",
 		"rimraf": "^3.0.2",
 		"rxjs": "^7.2.0"
