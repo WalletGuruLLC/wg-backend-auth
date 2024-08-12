@@ -7,12 +7,13 @@ pipelines:
           name: Build with Docker
           deployment: Dev
           script:
-            - pip3 install awscli
+            - pip3 install awscli docker-compose
             - TAG=${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}
             - TAG_LATEST=${BITBUCKET_BRANCH}-latest
             - aws configure set aws_access_key_id "${AWS_KEY}"
             - aws configure set aws_secret_access_key "${AWS_SECRET}"
             - eval $(aws ecr get-login --no-include-email --region us-east-2 | sed 's;https://;;g')
+            - docker-compose build
             - docker build -t ${IMAGE}:$TAG .
             - docker build -t ${IMAGE}:$TAG_LATEST .
             - docker push ${IMAGE}:$TAG
