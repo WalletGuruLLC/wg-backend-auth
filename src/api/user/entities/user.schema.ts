@@ -1,5 +1,6 @@
 import * as dynamoose from 'dynamoose';
 import { User } from './user.entity';
+import { v4 as uuidv4 } from 'uuid';
 import { MfaTypeUser, RoleUser, StateUser, TypeUser } from '../dto/user.enums';
 
 export const UserSchema = new dynamoose.Schema(
@@ -7,15 +8,20 @@ export const UserSchema = new dynamoose.Schema(
 		Id: {
 			type: String,
 			hashKey: true,
+			default: () => uuidv4(),
 			required: true,
 		},
-		Username: {
+		FirstName: {
 			type: String,
 			required: true,
 			index: {
 				global: true,
-				name: 'UsernameIndex',
+				name: 'FirstNameIndex',
 			},
+		},
+		LastName: {
+			type: String,
+			required: true,
 		},
 		Email: {
 			type: String,
@@ -89,13 +95,17 @@ export const UserSchema = new dynamoose.Schema(
 			type: String,
 			default: '',
 		},
-		AccessLevel: {
-			type: String,
-			default: '',
-		},
 		OtpTimestamp: {
 			type: Date,
 			default: () => new Date(),
+		},
+		TermsConditions: {
+			type: Boolean,
+			default: false,
+		},
+		PrivacyPolicy: {
+			type: Boolean,
+			default: false,
 		},
 	},
 	{
