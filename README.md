@@ -1,32 +1,26 @@
-# Microservicio de Autenticación Paystream
+# Auth Microservice
 
-Este microservicio se encarga de la autenticación de usuarios utilizando Node.js y NestJS como framework de desarrollo, DynamoDB como base de datos NoSQL y Dynamoose como ORM para la interacción con DynamoDB. Proporciona funcionalidades como el registro de usuarios, inicio de sesión, y verificación de tokens JWT.
+This microservice is responsible for user authentication using Node.js and NestJS as the development framework, DynamoDB as the NoSQL database, and Dynamoose as the ORM for interaction with DynamoDB. It provides functionalities such as user registration, login, roles, etc.
 
-### Requisitos
+## Requirements
 
-- Node.js (v14 o superior)
-- NestJS (v7 o superior)
+- Node.js (v14 or higher)
+- NestJS (v7 or higher)
 - AWS DynamoDB
-- Dynamoose (v2 o superior)
-- AWS SDK para Node.js
+- Dynamoose (v2 or higher)
+- AWS SDK for Node.js
 
-### Uso
+## Installation
 
     npm install
 
-#### Configurar las variables de entorno:
+## Configuration
 
-Crear un archivo .env en la raíz del proyecto con el siguiente contenido:
+### Set up the environment variables
 
-### env
+Create a .env file in the root of the project following the content of .env.example.
 
-    AWS_KEY_ID=
-    AWS_SECRET_ACCESS_KEY=
-    AWS_REGION=
-    COGNITO_USER_POOL_ID=
-    COGNITO_CLIENT_ID=
-    AWS_SES_EMAIL=
 
-### Ejecutar
+## Running the Application
 
     npm run start
