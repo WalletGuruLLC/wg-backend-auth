@@ -3,9 +3,8 @@ import { ModuleService } from './module.service';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Module } from './entities/module.entity';
-import { ModuleSchema } from './entities/module.schema'; // Ensure this import is correct
+import { ModuleSchema } from './entities/module.schema';
 
-// Mock the dynamoose model
 jest.mock('dynamoose', () => {
 	const scanMock = jest.fn().mockReturnThis();
 	const attributesMock = jest.fn().mockReturnThis();
@@ -45,7 +44,6 @@ describe('ModuleService', () => {
 				{ Id: '2', Description: 'Module 2' },
 			];
 
-			// Mock the exec method to return the mockModules
 			(
 				model.scan().attributes(['Id', 'Description']).exec as jest.Mock
 			).mockResolvedValue(mockModules);
