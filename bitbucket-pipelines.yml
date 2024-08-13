@@ -34,5 +34,5 @@ pipelines:
                       AWS_DEFAULT_REGION: "us-east-2"
                       CLUSTER_NAME: ${CLUSTER_NAME}
                       KUBECTL_COMMAND: "set"
-                      KUBECTL_COMMAND_ARGS: "--namespace=dev image deployment/backend-auth backend-auth=${IMAGE}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
+                      KUBECTL_COMMAND_ARGS: "image --namespace=dev image deployment/backend-auth backend-auth=${IMAGE}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
                       DEBUG: "true"
