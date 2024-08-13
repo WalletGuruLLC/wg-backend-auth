@@ -1,9 +1,15 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+	HttpException,
+	HttpStatus,
+	Injectable,
+	UnauthorizedException,
+} from '@nestjs/common';
 import {
 	AuthenticationDetails,
 	CognitoUser,
 	CognitoUserPool,
 } from 'amazon-cognito-identity-js';
+import * as AWS from 'aws-sdk';
 import * as otpGenerator from 'otp-generator';
 import * as bcrypt from 'bcrypt';
 import * as dynamoose from 'dynamoose';
@@ -34,6 +40,7 @@ export class UserService {
 	private dbOtpInstance: Model<Otp>;
 	private cognitoService: CognitoService;
 	private userPool: CognitoUserPool;
+	private cognito: AWS.CognitoIdentityServiceProvider;
 
 	constructor(private readonly sqsService: SqsService) {
 		const tableName = 'users';
@@ -43,6 +50,9 @@ export class UserService {
 		this.userPool = new CognitoUserPool({
 			UserPoolId: process.env.COGNITO_USER_POOL_ID,
 			ClientId: process.env.COGNITO_CLIENT_ID,
+		});
+		this.cognito = new AWS.CognitoIdentityServiceProvider({
+			region: process.env.AWS_REGION,
 		});
 	}
 
@@ -294,11 +304,13 @@ export class UserService {
 	}
 
 	async signin(signinDto: SignInDto) {
-		const foundUser = await this.findOneByEmail(signinDto?.email);
 		await this.dbOtpInstance.delete({
 			email: signinDto?.email,
 		});
 
+		const foundUser = await this.findOneByEmail(signinDto?.email);
+
+		console.log('foundUser', foundUser);
 		const authResult = await this.cognitoService.authenticateUser(
 			signinDto.email,
 			signinDto.password
@@ -311,6 +323,11 @@ export class UserService {
 
 		const result = await this.generateOtp({ email: signinDto.email });
 
+		const resultF = {
+			...result,
+			token,
+		};
+
 		const sqsMessage = {
 			event: 'OTP_SENT',
 			email: foundUser.Email,
@@ -320,7 +337,7 @@ export class UserService {
 			otp: result.otp,
 		};
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
-		return result;
+		return resultF;
 	}
 
 	async changeUserPassword(
@@ -511,6 +528,25 @@ export class UserService {
 		} catch (error) {
 			console.error(error.message);
 			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	async getUserInfo(authHeader: string) {
+		if (!authHeader || !authHeader.startsWith('Bearer ')) {
+			throw new UnauthorizedException('No token provided');
+		}
+
+		const accessToken = authHeader.split(' ')[1];
+
+		try {
+			const params = {
+				AccessToken: accessToken,
+			};
+
+			const userData = await this.cognito.getUser(params).promise();
+			return userData;
+		} catch (error) {
+			throw new UnauthorizedException('Invalid access token');
 		}
 	}
 }

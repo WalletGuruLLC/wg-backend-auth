@@ -13,6 +13,7 @@ async function bootstrap() {
 			'Comprehensive documentation for the Paystream API, detailing the Authentication service and its endpoints.'
 		)
 		.addServer('http://localhost:3000/', 'Local environment')
+		.addServer('https://dev.auth.walletguru.co/', 'Dev environment')
 		.setVersion('1.0')
 		.build();
 	const document = SwaggerModule.createDocument(app, config);

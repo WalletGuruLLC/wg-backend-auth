@@ -129,6 +129,13 @@ export const errorCodes = {
 		descriptionEs:
 			'Ocurrió un error durante la operación. Por favor, intente nuevamente más tarde.',
 	},
+	WGE0021: {
+		message: 'Invalid access token',
+		description:
+			'The provided access token is invalid or has expired. Please provide a valid token and try again.',
+		descriptionEs:
+			'El token de acceso proporcionado es inválido o ha expirado. Por favor, proporcione un token válido e inténtelo de nuevo.',
+	},
 };
 
 export const successCodes = {
