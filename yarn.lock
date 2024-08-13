@@ -728,7 +728,7 @@
     dotenv-expand "10.0.0"
     lodash "4.17.21"
 
-"@nestjs/core@^8.0.0 || ^9.0.0 || ^10.0.0", "@nestjs/core@^9.0.0", "@nestjs/core@^9.0.0 || ^10.0.0", "@nestjs/core@^9.4.3":
+"@nestjs/core@^8.0.0 || ^9.0.0 || ^10.0.0", "@nestjs/core@^9.0.0", "@nestjs/core@^9.0.0 || ^10.0.0":
   version "9.4.3"
   resolved "https://registry.npmjs.org/@nestjs/core/-/core-9.4.3.tgz"
   integrity sha512-Qi63+wi55Jh4sDyaj5Hhx2jOpKqT386aeo+VOKsxnd+Ql9VvkO/FjmuwBGUyzkJt29ENYc+P0Sx/k5LtstNpPQ==
