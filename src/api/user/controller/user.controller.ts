@@ -11,6 +11,13 @@ import {
 	UsePipes,
 	ValidationPipe,
 } from '@nestjs/common';
+import {
+	ApiCreatedResponse,
+	ApiForbiddenResponse,
+	ApiOkResponse,
+	ApiTags,
+} from '@nestjs/swagger';
+
 import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
@@ -18,12 +25,6 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserService } from '../service/user.service';
-import {
-	ApiCreatedResponse,
-	ApiForbiddenResponse,
-	ApiOkResponse,
-	ApiTags,
-} from '@nestjs/swagger';
 import { errorCodes, successCodes } from '../../../utils/constants';
 import { GetUsersDto } from '../dto/get-user.dto';
 import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
@@ -257,6 +258,7 @@ export class UserController {
 				};
 			}
 			const result = await this.userService.signin(signinDto);
+
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0018',

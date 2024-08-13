@@ -26,6 +26,7 @@ import { CreateOtpResponseDto } from '../../auth/dto/create-otp-response.dto';
 import { VerifyOtpDto } from '../dto/forgotPassword.dto';
 import { generateStrongPassword } from '../../../utils/helpers/generateRandomPassword';
 import { generateUniqueId } from '../../../utils/helpers/generateUniqueId';
+import { SqsService } from '../sqs/sqs.service';
 
 @Injectable()
 export class UserService {
@@ -34,7 +35,7 @@ export class UserService {
 	private cognitoService: CognitoService;
 	private userPool: CognitoUserPool;
 
-	constructor() {
+	constructor(private readonly sqsService: SqsService) {
 		const tableName = 'users';
 		this.dbInstance = dynamoose.model<User>(tableName, UserSchema);
 		this.dbOtpInstance = dynamoose.model<Otp>('otps', OtpSchema);
@@ -293,16 +294,10 @@ export class UserService {
 	}
 
 	async signin(signinDto: SignInDto) {
+		const foundUser = await this.findOneByEmail(signinDto?.email);
 		await this.dbOtpInstance.delete({
 			email: signinDto?.email,
 		});
-
-		const userFind = await this.findOneByEmailValidationAttributes(
-			signinDto.email
-		);
-		if (!userFind) {
-			throw new Error('User not found');
-		}
 
 		const authResult = await this.cognitoService.authenticateUser(
 			signinDto.email,
@@ -315,6 +310,16 @@ export class UserService {
 		}
 
 		const result = await this.generateOtp({ email: signinDto.email });
+
+		const sqsMessage = {
+			event: 'OTP_SENT',
+			email: foundUser.Email,
+			username:
+				foundUser.FirstName +
+				(foundUser.LastName ? ' ' + foundUser.LastName.charAt(0) + '.' : ''),
+			otp: result.otp,
+		};
+		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
 		return result;
 	}
 
