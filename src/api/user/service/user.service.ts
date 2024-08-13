@@ -143,12 +143,9 @@ export class UserService {
 			uniqueIdValue = generateUniqueId(type);
 
 			// Verificar la unicidad del ID
-			const verifyUnique = await this.dbInstance
-				.query('Id')
-				.eq(uniqueIdValue)
-				.exec();
+			const verifyUnique = await this.findOne(uniqueIdValue);
 
-			while (verifyUnique?.length === 0) {
+			while (verifyUnique) {
 				uniqueIdValue = generateUniqueId(type);
 			}
 
@@ -340,11 +337,11 @@ export class UserService {
 
 		return new Promise((resolve, reject) => {
 			userCognito.authenticateUser(authenticationDetails, {
-				onSuccess: function (result) {
+				onSuccess: function () {
 					userCognito.changePassword(
 						currentPassword,
 						newPassword,
-						async (err, result) => {
+						async err => {
 							if (err) {
 								reject(`Error changing password: ${err.message}`);
 							} else {
@@ -364,7 +361,7 @@ export class UserService {
 				onFailure: function (err) {
 					reject(`Authentication failed: ${err.message}`);
 				},
-				newPasswordRequired: function (userAttributes, requiredAttributes) {
+				newPasswordRequired: function (userAttributes) {
 					delete userAttributes.email_verified;
 					resolve('New password required');
 				},
@@ -386,7 +383,7 @@ export class UserService {
 
 		return new Promise((resolve, reject) => {
 			userCognito.forgotPassword({
-				onSuccess: result => {
+				onSuccess: () => {
 					resolve('Password reset initiated');
 				},
 				onFailure: err => {
