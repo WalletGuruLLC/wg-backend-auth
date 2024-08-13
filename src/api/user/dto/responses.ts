@@ -1,4 +1,4 @@
-import { RoleUser, StateUser, TypeUser } from './user.enums';
+import { StateUser, TypeUser } from './user.enums';
 
 export interface ApiResponse<T> {
 	statusCode: number;
@@ -13,10 +13,10 @@ export interface CreateUserResponse {
 	email: string;
 	phone: string;
 	type: TypeUser;
-	roleId: RoleUser;
+	roleId: string;
 	active: boolean;
 	state: StateUser;
-	serviceProviderId: number;
+	serviceProviderId: string;
 	lastLogin: Date | null;
 	first: boolean;
 	termsConditions: boolean;

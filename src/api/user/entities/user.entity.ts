@@ -1,10 +1,5 @@
 import { Document } from 'dynamoose/dist/Document';
-import {
-	MfaTypeUser,
-	RoleUser,
-	StateUser,
-	TypeUser,
-} from 'src/api/user/dto/user.enums';
+import { MfaTypeUser, StateUser, TypeUser } from 'src/api/user/dto/user.enums';
 
 export class User extends Document {
 	Id = '';
@@ -16,14 +11,14 @@ export class User extends Document {
 	MfaEnabled = false;
 	MfaType: string = MfaTypeUser.TOTP;
 	type: TypeUser = TypeUser.PLATFORM;
-	RoleId: RoleUser = RoleUser.USER;
+	RoleId = '';
 	Active: boolean;
 	First: boolean;
 	State: StateUser = StateUser.VERIFY;
 	Picture = '';
 	SendSms = false;
 	SendEmails = true;
-	ServiceProviderId = 0;
+	ServiceProviderId = '';
 	LastLogin?: Date = null;
 	OtpTimestamp: Date = new Date();
 	TermsConditions = false;

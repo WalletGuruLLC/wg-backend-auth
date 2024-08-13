@@ -1,9 +1,4 @@
-import {
-	MfaTypeUser,
-	RoleUser,
-	StateUser,
-	TypeUser,
-} from 'src/api/user/dto/user.enums';
+import { MfaTypeUser, StateUser, TypeUser } from 'src/api/user/dto/user.enums';
 
 export class CreateUserDto {
 	id: string;
@@ -15,13 +10,13 @@ export class CreateUserDto {
 	mfaEnabled: boolean;
 	mfaType: MfaTypeUser;
 	type: TypeUser;
-	roleId: RoleUser;
+	roleId: string;
 	active: boolean;
 	state: StateUser;
 	picture: string;
 	sendSms: boolean;
 	sendEmails: boolean;
-	serviceProviderId: number;
+	serviceProviderId: string;
 	lastLogin: Date;
 	termsConditions: boolean;
 	privacyPolicy: boolean;
