@@ -25,7 +25,7 @@ pipelines:
                 services:
                   - docker
             - step:
-                name: "Deploy to DEV"
+                name: Deploy to DEV
                 script:
                   - pipe: atlassian/aws-eks-kubectl-run:1.2.0
                     variables:
@@ -34,5 +34,9 @@ pipelines:
                       AWS_DEFAULT_REGION: "us-east-2"
                       CLUSTER_NAME: ${CLUSTER_NAME}
                       KUBECTL_COMMAND: "set"
-                      KUBECTL_COMMAND_ARGS: "image --namespace=dev image deployment/backend-auth backend-auth=${IMAGE}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
+                      KUBECTL_ARGS:
+                      - "image"
+                      - "--namespace=dev"
+                      - "deployment/backend-auth"
+                      - "backend-auth=${IMAGE}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
                       DEBUG: "true"
