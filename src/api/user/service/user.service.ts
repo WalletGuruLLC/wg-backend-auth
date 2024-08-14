@@ -122,6 +122,7 @@ export class UserService {
 
 			delete user.PasswordHash;
 			delete user.OtpTimestamp;
+			delete user.Id;
 
 			return {
 				user,
@@ -519,6 +520,7 @@ export class UserService {
 
 			delete user.PasswordHash;
 			delete user.OtpTimestamp;
+			delete user.Id;
 
 			return {
 				user,
