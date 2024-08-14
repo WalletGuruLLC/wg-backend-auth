@@ -8,6 +8,8 @@ import {
 	Param,
 	Patch,
 	Post,
+	Req,
+	UseGuards,
 	UsePipes,
 	ValidationPipe,
 } from '@nestjs/common';
@@ -28,6 +30,7 @@ import { UserService } from '../service/user.service';
 import { errorCodes, successCodes } from '../../../utils/constants';
 import { GetUsersDto } from '../dto/get-user.dto';
 import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
+import { CognitoAuthGuard } from '../guard/cognito-auth.guard';
 
 @ApiTags('user')
 @Controller('user')
@@ -271,7 +274,7 @@ export class UserController {
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0001',
-					customMessage: errorCodes.WGE0001?.description,
+					customMessage: error?.message,
 					customMessageEs: errorCodes.WGE0001?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
@@ -460,6 +463,37 @@ export class UserController {
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Get('/get/info/access')
+	@ApiOkResponse({
+		description: 'Successfully returned user info',
+	})
+	@ApiForbiddenResponse({ description: 'Invalid access token.' })
+	async getUserInfo(@Req() req) {
+		try {
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+
+			delete userFind?.PasswordHash;
+			delete userFind?.OtpTimestamp;
+
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'Successfully returned user info',
+				data: userFind,
+			};
+		} catch (error) {
+			return {
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0021',
+				customMessage: errorCodes.WGE0021?.description,
+				customMessageEs: errorCodes.WGE0021?.descriptionEs,
+			};
 		}
 	}
 }
