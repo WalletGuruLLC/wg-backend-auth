@@ -184,14 +184,26 @@ export class UserService {
 				PrivacyPolicy: privacyPolicy,
 			};
 
-			// Create user in DynamoDB
 			const dbPromise = this.dbInstance.create(userData);
 
 			// Wait for both Cognito and DynamoDB operations to complete
 			await Promise.all([cognitoPromise, dbPromise]);
 
-			// Generate and return OTP
-			return this.generateOtp({ email });
+			const result = await this.generateOtp({ email });
+			if (type === 'WALLET') {
+				const sqsMessage = {
+					event: 'OTP_SENT',
+					email,
+					username:
+						firstName + (lastName ? ' ' + lastName.charAt(0) + '.' : ''),
+					otp: result.otp,
+				};
+				await this.sqsService.sendMessage(
+					process.env.SQS_QUEUE_URL,
+					sqsMessage
+				);
+			}
+			return result;
 		} catch (error) {
 			console.error('Error creating user:', error.message);
 			throw new Error('Failed to create user. Please try again later.');
