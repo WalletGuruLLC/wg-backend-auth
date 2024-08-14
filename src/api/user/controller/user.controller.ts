@@ -41,7 +41,9 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async create(@Body() createUserDto: CreateUserDto) {
 		try {
-			const userFind = await this.userService.findOne(createUserDto?.id);
+			const userFind = await this.userService.findOneByEmail(
+				createUserDto?.email
+			);
 			if (userFind) {
 				return {
 					statusCode: HttpStatus.FORBIDDEN,
@@ -51,13 +53,31 @@ export class UserController {
 				};
 			}
 
-			const user = await this.userService.create(createUserDto);
+			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
+				return {
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0017',
+					customMessage: errorCodes.WGE0017?.description,
+					customMessageEs: errorCodes.WGE0017?.descriptionEs,
+				};
+			}
+
+			if (createUserDto?.type === 'WALLET' && !createUserDto?.passwordHash) {
+				return {
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE00018',
+					customMessage: errorCodes?.WGE00018?.description,
+					customMessageEs: errorCodes.WGE00018?.descriptionEs,
+				};
+			}
+
+			const result = await this.userService.create(createUserDto);
 			return {
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0013',
-				customMessage: successCodes.WGE0013?.description,
-				customMessageEs: successCodes.WGE0013?.descriptionEs,
-				data: user,
+				customCode: 'WGE0018',
+				customMessage: successCodes.WGE0018?.description,
+				customMessageEs: successCodes.WGE0018?.descriptionEs,
+				data: result,
 			};
 		} catch (error) {
 			throw new HttpException(
@@ -68,6 +88,34 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@Post('/verify/register/user')
+	@ApiOkResponse({
+		description: 'The user has been successfully verified.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async verifySignUp(@Body() verifyOtpDto: VerifyOtpDto) {
+		try {
+			const result = await this.userService.verifySignUp(verifyOtpDto);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0013',
+				customMessage: successCodes.WGE0013?.description,
+				customMessageEs: successCodes.WGE0013?.descriptionEs,
+				data: result,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0005',
+					customMessage: errorCodes.WGE0005?.description,
+					customMessageEs: errorCodes.WGE0005?.descriptionEs,
+				},
+				HttpStatus.UNAUTHORIZED
 			);
 		}
 	}
@@ -200,6 +248,15 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async signin(@Body() signinDto: SignInDto) {
 		try {
+			const userFind = await this.userService.findOneByEmail(signinDto?.email);
+			if (!userFind) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0002',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
+				};
+			}
 			const result = await this.userService.signin(signinDto);
 
 			return {

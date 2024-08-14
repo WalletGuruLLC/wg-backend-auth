@@ -110,6 +110,25 @@ export const errorCodes = {
 		description: 'The type of user entered is invalid or does not correspond.',
 		descriptionEs: 'El tipo de usuario ingresado es inválido o no corresponde.',
 	},
+	WGE00018: {
+		message: 'Incomplete information',
+		description:
+			'The provided information is incomplete or missing required details.',
+		descriptionEs:
+			'La información proporcionada está incompleta o falta algún dato requerido.',
+	},
+	WGE00019: {
+		message: 'Invalid request',
+		description: 'The request contains invalid or unsupported data.',
+		descriptionEs: 'La solicitud contiene datos inválidos o no admitidos.',
+	},
+	WGE00020: {
+		message: 'Operation failed',
+		description:
+			'An error occurred during the operation. Please try again later.',
+		descriptionEs:
+			'Ocurrió un error durante la operación. Por favor, intente nuevamente más tarde.',
+	},
 };
 
 export const successCodes = {

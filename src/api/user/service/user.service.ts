@@ -24,8 +24,9 @@ import { GetUsersDto } from '../dto/get-user.dto';
 import { CreateOtpRequestDto } from '../../auth/dto/create-otp-request.dto';
 import { CreateOtpResponseDto } from '../../auth/dto/create-otp-response.dto';
 import { VerifyOtpDto } from '../dto/forgotPassword.dto';
+import { generateStrongPassword } from '../../../utils/helpers/generateRandomPassword';
+import { generateUniqueId } from '../../../utils/helpers/generateUniqueId';
 import { SqsService } from '../sqs/sqs.service';
-import { errorCodes } from '../../../utils/constants';
 
 @Injectable()
 export class UserService {
@@ -84,7 +85,7 @@ export class UserService {
 		};
 	}
 
-	async verifyOtp(verifyOtp: VerifyOtpDto): Promise<any> {
+	async verifyOtp(verifyOtp: VerifyOtpDto) {
 		try {
 			const otpRecord = await this.dbOtpInstance.scan(verifyOtp).exec();
 
@@ -115,38 +116,77 @@ export class UserService {
 		}
 	}
 
-	async create(createUserDto: CreateUserDto): Promise<CreateUserResponse> {
-		const saltRounds = 8;
-		const hashedPassword = await bcrypt.hash(
-			createUserDto.passwordHash,
-			saltRounds
-		);
+	async create(createUserDto: CreateUserDto) {
+		try {
+			const {
+				email,
+				id,
+				firstName,
+				lastName,
+				type,
+				mfaEnabled,
+				mfaType,
+				roleId,
+				serviceProviderId,
+				termsConditions,
+				privacyPolicy,
+				passwordHash,
+			} = createUserDto;
 
-		// Create user in Cognito
-		await this.cognitoService.createUser(
-			createUserDto.email,
-			createUserDto.passwordHash,
-			createUserDto.email
-		);
+			// Generate password and hash it
+			const password =
+				type === 'WALLET' ? passwordHash : generateStrongPassword();
+			const hashedPassword = await bcrypt.hash(password, 8);
 
-		// Create user in DynamoDB
-		const newUser = await this.dbInstance.create({
-			Id: createUserDto.id,
-			FirstName: createUserDto.firstName,
-			LastName: createUserDto.lastName,
-			Email: createUserDto.email,
-			PasswordHash: hashedPassword,
-			MfaEnabled: createUserDto.mfaEnabled,
-			ServiceProviderId: createUserDto.serviceProviderId,
-			MfaType: createUserDto.mfaType,
-			RoleId: createUserDto.roleId,
-			type: createUserDto.type,
-			Active: createUserDto.active,
-			TermsConditions: createUserDto.termsConditions,
-			PrivacyPolicy: createUserDto.privacyPolicy,
-		});
+			// Generate random id
+			let uniqueIdValue;
 
-		return this.mapUserToCreateUserResponse(newUser);
+			uniqueIdValue = generateUniqueId(type);
+
+			// Verificar la unicidad del ID
+			const verifyUnique = await this.findOne(uniqueIdValue);
+
+			while (verifyUnique) {
+				uniqueIdValue = generateUniqueId(type);
+			}
+
+			// Create user in Cognito
+			const cognitoPromise = this.cognitoService.createUser(
+				email,
+				password,
+				email
+			);
+
+			// Prepare user data for DynamoDB
+			const userData = {
+				Id: id,
+				FirstName: firstName,
+				LastName: lastName,
+				Email: email,
+				PasswordHash: hashedPassword,
+				MfaEnabled: mfaEnabled,
+				ServiceProviderId: type === 'WALLET' ? 'EMPTY' : serviceProviderId,
+				MfaType: mfaType,
+				RoleId: type === 'WALLET' ? 'EMPTY' : roleId,
+				Type: type,
+				State: 0,
+				Active: false,
+				TermsConditions: termsConditions,
+				PrivacyPolicy: privacyPolicy,
+			};
+
+			// Create user in DynamoDB
+			const dbPromise = this.dbInstance.create(userData);
+
+			// Wait for both Cognito and DynamoDB operations to complete
+			await Promise.all([cognitoPromise, dbPromise]);
+
+			// Generate and return OTP
+			return this.generateOtp({ email });
+		} catch (error) {
+			console.error('Error creating user:', error.message);
+			throw new Error('Failed to create user. Please try again later.');
+		}
 	}
 
 	async findOne(id: string): Promise<User | null> {
@@ -255,15 +295,6 @@ export class UserService {
 
 	async signin(signinDto: SignInDto) {
 		const foundUser = await this.findOneByEmail(signinDto?.email);
-		if (!foundUser) {
-			return {
-				statusCode: HttpStatus.NOT_FOUND,
-				customCode: 'WGE0002',
-				customMessage: errorCodes.WGE0002?.description,
-				customMessageEs: errorCodes.WGE0002?.descriptionEs,
-			};
-		}
-
 		await this.dbOtpInstance.delete({
 			email: signinDto?.email,
 		});
@@ -311,11 +342,11 @@ export class UserService {
 
 		return new Promise((resolve, reject) => {
 			userCognito.authenticateUser(authenticationDetails, {
-				onSuccess: function (result) {
+				onSuccess: function () {
 					userCognito.changePassword(
 						currentPassword,
 						newPassword,
-						async (err, result) => {
+						async err => {
 							if (err) {
 								reject(`Error changing password: ${err.message}`);
 							} else {
@@ -335,7 +366,7 @@ export class UserService {
 				onFailure: function (err) {
 					reject(`Authentication failed: ${err.message}`);
 				},
-				newPasswordRequired: function (userAttributes, requiredAttributes) {
+				newPasswordRequired: function (userAttributes) {
 					delete userAttributes.email_verified;
 					resolve('New password required');
 				},
@@ -357,7 +388,7 @@ export class UserService {
 
 		return new Promise((resolve, reject) => {
 			userCognito.forgotPassword({
-				onSuccess: result => {
+				onSuccess: () => {
 					resolve('Password reset initiated');
 				},
 				onFailure: err => {
@@ -392,14 +423,94 @@ export class UserService {
 	}
 
 	async getUsersByType(getUsersDto: GetUsersDto): Promise<getUsersResponse> {
-		const users = await this.dbInstance
-			.query('type')
-			.eq(getUsersDto?.type || 'PLATFORM')
-			.attributes(['Id', 'type', 'Email', 'Username', 'MfaEnabled', 'MfaType'])
-			.exec();
+		let query = this.dbInstance.query('type');
+
+		if (getUsersDto?.type) {
+			query = query.eq(getUsersDto.type);
+		} else {
+			query = query.eq('WALLET');
+		}
+
+		if (getUsersDto?.firstName) {
+			query = query.and().filter('FirstName').eq(getUsersDto.firstName);
+		}
+
+		if (getUsersDto?.lastName) {
+			query = query.and().filter('LastName').eq(getUsersDto.lastName);
+		}
+
+		if (getUsersDto?.email) {
+			query = query.and().filter('Email').eq(getUsersDto.email);
+		}
+
+		if (getUsersDto?.id) {
+			query = query.and().filter('Id').eq(getUsersDto.id);
+		}
+
+		query.attributes([
+			'Id',
+			'type',
+			'Email',
+			'FirstName',
+			'LastName',
+			'Active',
+			'State',
+			'MfaEnabled',
+			'MfaType',
+		]);
+
+		const users = await query.exec();
 
 		return {
 			users,
 		};
+	}
+
+	async verifySignUp(verifyOtp: VerifyOtpDto) {
+		try {
+			const otpRecord = await this.dbOtpInstance.scan(verifyOtp).exec();
+
+			if (!otpRecord || otpRecord.count === 0) {
+				throw new HttpException(
+					'Invalid or expired OTP',
+					HttpStatus.UNAUTHORIZED
+				);
+			}
+
+			await this.dbOtpInstance.delete({
+				email: verifyOtp?.email,
+				otp: verifyOtp?.otp,
+			});
+
+			const userFind = await this.dbInstance
+				.query('Email')
+				.eq(verifyOtp?.email)
+				.exec();
+
+			if (userFind?.length === 0) {
+				throw new Error('User not found.');
+			}
+
+			const userId = userFind?.[0].Id;
+
+			await this.dbInstance.update({
+				Id: userId,
+				State: 3,
+				Active: true,
+			});
+
+			const user = await this.findOneByEmail(verifyOtp.email);
+
+			delete user.PasswordHash;
+			delete user.OtpTimestamp;
+
+			return {
+				user,
+				verified: true,
+			};
+		} catch (error) {
+			console.error(error.message);
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 }

@@ -4,6 +4,7 @@ export enum MfaTypeUser {
 }
 
 export enum StateUser {
+	CREATE = 0,
 	VERIFY = 1,
 	KYC = 2,
 	VALID = 3,

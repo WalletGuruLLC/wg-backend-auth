@@ -1,7 +1,7 @@
 import * as dynamoose from 'dynamoose';
 import { User } from './user.entity';
 import { v4 as uuidv4 } from 'uuid';
-import { MfaTypeUser, RoleUser, StateUser, TypeUser } from '../dto/user.enums';
+import { MfaTypeUser, StateUser, TypeUser } from '../dto/user.enums';
 
 export const UserSchema = new dynamoose.Schema(
 	{
@@ -54,9 +54,8 @@ export const UserSchema = new dynamoose.Schema(
 			},
 		},
 		RoleId: {
-			type: Number,
-			enum: Object.values(RoleUser),
-			default: RoleUser.USER,
+			type: String,
+			default: 'EMPTY',
 		},
 		Active: {
 			type: Boolean,
@@ -84,8 +83,8 @@ export const UserSchema = new dynamoose.Schema(
 			default: true,
 		},
 		ServiceProviderId: {
-			type: Number,
-			default: 0,
+			type: String,
+			default: 'EMPTY',
 		},
 		LastSignIn: {
 			type: Date,
