@@ -33,6 +33,7 @@ import { VerifyOtpDto } from '../dto/forgotPassword.dto';
 import { generateStrongPassword } from '../../../utils/helpers/generateRandomPassword';
 import { generateUniqueId } from '../../../utils/helpers/generateUniqueId';
 import { SqsService } from '../sqs/sqs.service';
+import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 
 @Injectable()
 export class UserService {
@@ -112,6 +113,13 @@ export class UserService {
 
 			const user = await this.findOneByEmail(verifyOtp.email);
 
+			await this.dbInstance.update({
+				Id: user?.Id,
+				State: 3,
+				First: false,
+				Active: true,
+			});
+
 			delete user.PasswordHash;
 			delete user.OtpTimestamp;
 
@@ -174,7 +182,7 @@ export class UserService {
 				Email: email,
 				PasswordHash: hashedPassword,
 				MfaEnabled: mfaEnabled,
-				ServiceProviderId: type === 'WALLET' ? 'EMPTY' : serviceProviderId,
+				ServiceProviderId: type === 'PROVIDER' ? serviceProviderId : 'EMPTY',
 				MfaType: mfaType,
 				RoleId: type === 'WALLET' ? 'EMPTY' : roleId,
 				Type: type,
@@ -309,7 +317,6 @@ export class UserService {
 
 		const foundUser = await this.findOneByEmail(signinDto?.email);
 
-		console.log('foundUser', foundUser);
 		const authResult = await this.cognitoService.authenticateUser(
 			signinDto.email,
 			signinDto.password
@@ -447,14 +454,6 @@ export class UserService {
 			query = query.eq('WALLET');
 		}
 
-		if (getUsersDto?.firstName) {
-			query = query.and().filter('FirstName').eq(getUsersDto.firstName);
-		}
-
-		if (getUsersDto?.lastName) {
-			query = query.and().filter('LastName').eq(getUsersDto.lastName);
-		}
-
 		if (getUsersDto?.email) {
 			query = query.and().filter('Email').eq(getUsersDto.email);
 		}
@@ -512,6 +511,7 @@ export class UserService {
 			await this.dbInstance.update({
 				Id: userId,
 				State: 3,
+				First: false,
 				Active: true,
 			});
 
@@ -546,6 +546,21 @@ export class UserService {
 			return userData;
 		} catch (error) {
 			throw new UnauthorizedException('Invalid access token');
+		}
+	}
+
+	async changeStatusUser(
+		updateUserDto: UpdateStatusUserDto
+	): Promise<User | null> {
+		try {
+			const user = await this.findOneByEmail(updateUserDto?.email);
+
+			return await this.dbInstance.update({
+				Id: user?.Id,
+				Active: updateUserDto?.active,
+			});
+		} catch (error) {
+			throw new Error(`Error updating user: ${error.message}`);
 		}
 	}
 }

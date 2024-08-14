@@ -13,15 +13,9 @@ export const UserSchema = new dynamoose.Schema(
 		},
 		FirstName: {
 			type: String,
-			required: true,
-			index: {
-				global: true,
-				name: 'FirstNameIndex',
-			},
 		},
 		LastName: {
 			type: String,
-			required: true,
 		},
 		Email: {
 			type: String,

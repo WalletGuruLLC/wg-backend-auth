@@ -14,7 +14,7 @@ import {
 import { ProviderService } from '../service/provider.service';
 import { CreateProviderDto, UpdateProviderDto } from '../dto/provider';
 
-@Controller('provider')
+@Controller('api/v1/providers')
 export class ProviderController {
 	constructor(private readonly providerService: ProviderService) {}
 

@@ -31,9 +31,10 @@ import { errorCodes, successCodes } from '../../../utils/constants';
 import { GetUsersDto } from '../dto/get-user.dto';
 import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 import { CognitoAuthGuard } from '../guard/cognito-auth.guard';
+import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 
 @ApiTags('user')
-@Controller('user')
+@Controller('api/v1/users')
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
@@ -494,6 +495,45 @@ export class UserController {
 				customMessage: errorCodes.WGE0021?.description,
 				customMessageEs: errorCodes.WGE0021?.descriptionEs,
 			};
+		}
+	}
+
+	@Patch('/update/status/:id')
+	@ApiOkResponse({
+		description: 'The user has been successfully updated.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async changeStatusUser(@Body() updateUserDto: UpdateStatusUserDto) {
+		try {
+			const userFind = await this.userService.findOneByEmail(
+				updateUserDto?.email
+			);
+			if (!userFind) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0002',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
+				};
+			}
+			const user = await this.userService.changeStatusUser(updateUserDto);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0020',
+				customMessage: successCodes.WGE0020?.description,
+				customMessageEs: successCodes.WGE0020?.descriptionEs,
+				data: user,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0016',
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
 		}
 	}
 }
