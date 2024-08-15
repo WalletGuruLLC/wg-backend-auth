@@ -1,4 +1,5 @@
 import {
+	BadRequestException,
 	HttpException,
 	HttpStatus,
 	Injectable,
@@ -10,6 +11,7 @@ import {
 	CognitoUserPool,
 } from 'amazon-cognito-identity-js';
 import * as AWS from 'aws-sdk';
+import { v4 as uuidv4 } from 'uuid';
 import * as otpGenerator from 'otp-generator';
 import * as bcrypt from 'bcrypt';
 import * as dynamoose from 'dynamoose';
@@ -34,19 +36,25 @@ import { generateStrongPassword } from '../../../utils/helpers/generateRandomPas
 import { generateUniqueId } from '../../../utils/helpers/generateUniqueId';
 import { SqsService } from '../sqs/sqs.service';
 import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
+import { Attempt } from '../../auth/entities/auth-attempt.entity';
+import { AuthAttemptSchema } from '../../auth/entities/auth-attempt.schema';
 
 @Injectable()
 export class UserService {
 	private dbInstance: Model<User>;
 	private dbOtpInstance: Model<Otp>;
+	private dbAttemptInstance: Model<Attempt>;
 	private cognitoService: CognitoService;
 	private userPool: CognitoUserPool;
 	private cognito: AWS.CognitoIdentityServiceProvider;
 
 	constructor(private readonly sqsService: SqsService) {
-		const tableName = 'users';
-		this.dbInstance = dynamoose.model<User>(tableName, UserSchema);
+		this.dbInstance = dynamoose.model<User>('users', UserSchema);
 		this.dbOtpInstance = dynamoose.model<Otp>('otps', OtpSchema);
+		this.dbAttemptInstance = dynamoose.model<Attempt>(
+			'attempts',
+			AuthAttemptSchema
+		);
 		this.cognitoService = new CognitoService();
 		this.userPool = new CognitoUserPool({
 			UserPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -153,7 +161,7 @@ export class UserService {
 
 			// Generate password and hash it
 			const password =
-				type === 'WALLET' ? passwordHash : generateStrongPassword();
+				type === 'WALLET' ? passwordHash : generateStrongPassword(12);
 			const hashedPassword = await bcrypt.hash(password, 8);
 
 			// Generate random id
@@ -323,13 +331,11 @@ export class UserService {
 		};
 	}
 
-	async signin(signinDto: SignInDto) {
-		await this.dbOtpInstance.delete({
-			email: signinDto?.email,
-		});
+	private async deletePreviousOtp(email: string) {
+		await this.dbOtpInstance.delete({ email });
+	}
 
-		const foundUser = await this.findOneByEmail(signinDto?.email);
-
+	private async authenticateUser(signinDto: SignInDto) {
 		const authResult = await this.cognitoService.authenticateUser(
 			signinDto.email,
 			signinDto.password
@@ -337,26 +343,58 @@ export class UserService {
 		const token = authResult.AuthenticationResult?.AccessToken;
 
 		if (!token) {
-			throw new Error('Invalid credentials');
+			throw new BadRequestException('Invalid credentials');
 		}
+		return token;
+	}
 
-		const result = await this.generateOtp({ email: signinDto.email });
-
-		const resultF = {
-			...result,
-			token,
+	private async logAttempt(
+		id: string,
+		email: string,
+		status: 'success' | 'failure'
+	) {
+		const logPayload = {
+			id,
+			email,
+			section: 'login',
+			status,
 		};
+		await this.dbAttemptInstance.create(logPayload);
+	}
 
+	private async sendOtpNotification(foundUser: any, otp: string) {
 		const sqsMessage = {
 			event: 'OTP_SENT',
 			email: foundUser.Email,
 			username:
 				foundUser.FirstName +
 				(foundUser.LastName ? ' ' + foundUser.LastName.charAt(0) + '.' : ''),
-			otp: result.otp,
+			otp,
 		};
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
-		return resultF;
+	}
+
+	async signin(signinDto: SignInDto) {
+		const transactionId = uuidv4();
+		try {
+			await this.deletePreviousOtp(signinDto.email);
+			const foundUser = await this.findOneByEmail(signinDto.email);
+			const token = await this.authenticateUser(signinDto);
+
+			const otpResult = await this.generateOtp({ email: signinDto.email });
+
+			await this.logAttempt(transactionId, signinDto.email, 'success');
+
+			await this.sendOtpNotification(foundUser, otpResult.otp);
+
+			return {
+				...otpResult,
+				token,
+			};
+		} catch (error) {
+			await this.logAttempt(transactionId, signinDto.email, 'failure');
+			throw new BadRequestException('Invalid credentials');
+		}
 	}
 
 	async changeUserPassword(

@@ -38,7 +38,7 @@ import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
-	@Post()
+	@Post('/register')
 	@ApiCreatedResponse({
 		description: 'The record has been successfully created.',
 	})
@@ -332,12 +332,12 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
-			const message = await this.userService.changeUserPassword(
-				authChangePasswordUserDto
-			);
+			await this.userService.changeUserPassword(authChangePasswordUserDto);
 			return {
 				statusCode: HttpStatus.OK,
-				message,
+				customCode: 'WGE0009',
+				customMessage: successCodes.WGE0009?.description,
+				customMessageEs: successCodes.WGE0009?.descriptionEs,
 			};
 		} catch (error) {
 			throw new HttpException(
@@ -373,12 +373,12 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
-			const message = await this.userService.forgotUserPassword(
-				authForgotPasswordUserDto
-			);
+			await this.userService.forgotUserPassword(authForgotPasswordUserDto);
 			return {
 				statusCode: HttpStatus.OK,
-				message,
+				customCode: 'WGE0018',
+				customMessage: successCodes.WGE0018?.description,
+				customMessageEs: successCodes.WGE0018?.descriptionEs,
 			};
 		} catch (error) {
 			throw new HttpException(
@@ -414,12 +414,12 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
-			const message = await this.userService.confirmUserPassword(
-				authConfirmPasswordUserDto
-			);
+			await this.userService.confirmUserPassword(authConfirmPasswordUserDto);
 			return {
 				statusCode: HttpStatus.OK,
-				message,
+				customCode: 'WGE0012',
+				customMessage: successCodes.WGE0012?.description,
+				customMessageEs: successCodes.WGE0012?.descriptionEs,
 			};
 		} catch (error) {
 			throw new HttpException(
@@ -485,7 +485,9 @@ export class UserController {
 
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Successfully returned user info',
+				customCode: 'WGE0022',
+				customMessage: successCodes.WGE0022?.description,
+				customMessageEs: successCodes.WGE0022?.descriptionEs,
 				data: userFind,
 			};
 		} catch (error) {
