@@ -21,10 +21,8 @@ export class RoleService {
 
 	async create(createRoleDto: CreateRoleDto): Promise<Role> {
 		const role = {
-			Id: createRoleDto.id,
 			Name: createRoleDto.name,
 			Description: createRoleDto.description,
-			Belong: createRoleDto.belong,
 			ProviderId: createRoleDto.providerId,
 		};
 
@@ -33,8 +31,8 @@ export class RoleService {
 	}
 
 	async findAll(): Promise<Role[]> {
-		const scanResults = await this.dbInstance.scan().exec();
-		return scanResults;
+		const roles = await this.dbInstance.scan().exec();
+		return roles;
 	}
 
 	async findOne(id: string): Promise<Role> {
