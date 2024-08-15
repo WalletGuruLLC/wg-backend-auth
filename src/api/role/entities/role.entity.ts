@@ -3,4 +3,5 @@ export class Role extends Document {
 	Id: string;
 	Name: string;
 	Description: string;
+	Active: boolean;
 }

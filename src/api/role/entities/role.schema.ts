@@ -8,6 +8,10 @@ export const RoleSchema = new dynamoose.Schema(
 		},
 		Name: String,
 		Description: String,
+		Active: {
+			type: Boolean,
+			default: true,
+		},
 	},
 	{
 		timestamps: {
