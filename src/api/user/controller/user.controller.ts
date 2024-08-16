@@ -562,9 +562,7 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async sendOtpEmail(@Body() sendOtpDto: SendOtpDto) {
 		try {
-			const foundUser = await this.userService.findOneByEmail(
-				sendOtpDto.email
-			);
+			const foundUser = await this.userService.findOneByEmail(sendOtpDto.email);
 			if (!foundUser) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
