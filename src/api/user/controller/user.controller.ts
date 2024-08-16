@@ -274,7 +274,7 @@ export class UserController {
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0001',
-					customMessage: error?.message,
+					customMessage: errorCodes.WGE0001?.description,
 					customMessageEs: errorCodes.WGE0001?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
