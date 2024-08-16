@@ -538,4 +538,44 @@ export class UserController {
 			);
 		}
 	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Post('send-otp')
+	@ApiOkResponse({
+		description: successCodes.WGE0071?.description,
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async sendOtpEmail(@Req() req) {
+		try {
+			const userInfo = req.user;
+			const foundUser = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			if (!foundUser) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0002',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
+				};
+			}
+			await this.userService.resendOtp(foundUser);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0071',
+				customMessage: successCodes.WGE0071?.description,
+				customMessageEs: successCodes.WGE0071?.descriptionEs,
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0070',
+					customMessage: errorCodes.WGE0070?.description,
+					customMessageEs: errorCodes.WGE0070?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
 }
