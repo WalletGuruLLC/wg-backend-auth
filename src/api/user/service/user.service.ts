@@ -100,6 +100,7 @@ export class UserService {
 		return {
 			success: true,
 			message: 'OTP sent successfully',
+			otp,
 		};
 	}
 
@@ -220,6 +221,7 @@ export class UserService {
 					sqsMessage
 				);
 			}
+			delete result.otp;
 			return result;
 		} catch (error) {
 			console.error('Error creating user:', error.message);
@@ -614,5 +616,15 @@ export class UserService {
 		} catch (error) {
 			throw new Error(`Error updating user: ${error.message}`);
 		}
+	}
+	async resendOtp(user: User): Promise<void> {
+		const foundOtp = await this.dbOtpInstance
+			.query('email')
+			.eq(user.Email)
+			.exec();
+		if (foundOtp.count === 0) {
+			throw new Error(`OTP does not exist`);
+		}
+		await this.sendOtpNotification(user, foundOtp[0].otp);
 	}
 }
