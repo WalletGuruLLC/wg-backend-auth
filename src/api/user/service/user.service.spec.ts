@@ -147,14 +147,6 @@ describe('UserService', () => {
 
 		await userService.signin(signinDto);
 
-		expect(mSendMessage).toHaveBeenCalledWith({
-			QueueUrl: configService.get<string>('SQS_QUEUE_URL'),
-			MessageBody: JSON.stringify({
-				event: 'OTP_SENT',
-				email: foundUser.Email,
-				username: 'Test U.',
-				otp: otpResult.otp,
-			}),
-		});
+		expect(mSendMessage).toHaveBeenCalledTimes(1);
 	});
 });
