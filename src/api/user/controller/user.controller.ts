@@ -581,7 +581,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0071?.descriptionEs,
 			};
 		} catch (error) {
-			console.log(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
