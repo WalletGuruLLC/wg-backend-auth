@@ -1,11 +1,14 @@
 import * as dynamoose from 'dynamoose';
 import { User } from './user.entity';
+import { v4 as uuidv4 } from 'uuid';
 import { MfaTypeUser, StateUser, TypeUser } from '../dto/user.enums';
 
 export const UserSchema = new dynamoose.Schema(
 	{
 		Id: {
 			type: String,
+			hashKey: true,
+			default: () => uuidv4(),
 			required: true,
 		},
 		FirstName: {

@@ -149,7 +149,6 @@ export class UserService {
 		try {
 			const {
 				email,
-				id,
 				firstName,
 				lastName,
 				type,
