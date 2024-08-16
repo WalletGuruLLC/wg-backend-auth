@@ -5,11 +5,7 @@ import {
 	Injectable,
 	UnauthorizedException,
 } from '@nestjs/common';
-import {
-	AuthenticationDetails,
-	CognitoUser,
-	CognitoUserPool,
-} from 'amazon-cognito-identity-js';
+import { CognitoUser, CognitoUserPool } from 'amazon-cognito-identity-js';
 import * as AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
 import * as otpGenerator from 'otp-generator';
@@ -153,7 +149,6 @@ export class UserService {
 		try {
 			const {
 				email,
-				id,
 				firstName,
 				lastName,
 				type,
@@ -168,7 +163,7 @@ export class UserService {
 
 			// Generate password and hash it
 			const password =
-				type === 'WALLET' ? passwordHash : generateStrongPassword(12);
+				type === 'WALLET' ? passwordHash : generateStrongPassword(11);
 			const hashedPassword = await bcrypt.hash(password, 8);
 
 			// Generate random id
@@ -188,7 +183,7 @@ export class UserService {
 
 			// Prepare user data for DynamoDB
 			const userData = {
-				Id: id,
+				Id: uniqueIdValue,
 				FirstName: firstName,
 				LastName: lastName,
 				Email: email,
