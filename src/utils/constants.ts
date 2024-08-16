@@ -142,6 +142,11 @@ export const errorCodes = {
 		descriptionEs:
 			'Hubo un error al enviar el correo electrónico con el OTP. Por favor, inténtelo de nuevo.',
 	},
+	WGE0022: {
+		message: 'Inactive user',
+		description: 'The user is inactive.',
+		descriptionEs: 'El usuario se encuentra inactivo.',
+	},
 };
 
 export const successCodes = {

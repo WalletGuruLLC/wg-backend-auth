@@ -261,6 +261,14 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
+			if (!userFind?.Active) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0022',
+					customMessage: errorCodes.WGE0022?.description,
+					customMessageEs: errorCodes.WGE0022?.descriptionEs,
+				};
+			}
 			await this.userService.signin(signinDto);
 
 			return {
