@@ -25,6 +25,7 @@ import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dt
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { SignInDto } from '../dto/signin.dto';
+import { SendOtpDto } from '../dto/send-otp-email.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserService } from '../service/user.service';
 import { errorCodes, successCodes } from '../../../utils/constants';
@@ -554,17 +555,15 @@ export class UserController {
 		}
 	}
 
-	@UseGuards(CognitoAuthGuard)
 	@Post('send-otp')
 	@ApiOkResponse({
 		description: successCodes.WGE0071?.description,
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async sendOtpEmail(@Req() req) {
+	async sendOtpEmail(@Body() sendOtpDto: SendOtpDto) {
 		try {
-			const userInfo = req.user;
 			const foundUser = await this.userService.findOneByEmail(
-				userInfo?.UserAttributes?.[0]?.Value
+				sendOtpDto.email
 			);
 			if (!foundUser) {
 				return {
