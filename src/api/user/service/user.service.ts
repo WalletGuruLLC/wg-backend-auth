@@ -199,7 +199,7 @@ export class UserService {
 				RoleId: type === 'WALLET' ? 'EMPTY' : roleId,
 				Type: type,
 				State: 0,
-				Active: false,
+				Active: true,
 				TermsConditions: termsConditions,
 				PrivacyPolicy: privacyPolicy,
 			};
