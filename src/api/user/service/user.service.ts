@@ -68,7 +68,7 @@ export class UserService {
 	async generateOtp(
 		createOtpRequestDto: CreateOtpRequestDto
 	): Promise<CreateOtpResponseDto> {
-		const { email } = createOtpRequestDto;
+		const { email, token } = createOtpRequestDto;
 
 		const existingOtpEmail = await this.dbOtpInstance
 			.query('email')
@@ -94,7 +94,7 @@ export class UserService {
 			existingOtp = await this.dbOtpInstance.query('otp').eq(otp).exec();
 		}
 
-		const otpPayload = { email, otp };
+		const otpPayload = { email, otp, token };
 		await this.dbOtpInstance.create(otpPayload);
 
 		return {
@@ -114,6 +114,12 @@ export class UserService {
 					HttpStatus.UNAUTHORIZED
 				);
 			}
+
+			const existingToken = await this.dbOtpInstance
+				.query('otp')
+				.eq(verifyOtp?.otp)
+				.attributes(['token'])
+				.exec();
 
 			await this.dbOtpInstance.delete({
 				email: verifyOtp?.email,
@@ -135,7 +141,7 @@ export class UserService {
 
 			return {
 				user,
-				verified: true,
+				token: existingToken?.[0]?.token,
 			};
 		} catch (error) {
 			console.error(error.message);
@@ -207,7 +213,7 @@ export class UserService {
 			// Wait for both Cognito and DynamoDB operations to complete
 			await Promise.all([cognitoPromise, dbPromise]);
 
-			const result = await this.generateOtp({ email });
+			const result = await this.generateOtp({ email, token: '' });
 			if (type === 'WALLET') {
 				const sqsMessage = {
 					event: 'OTP_SENT',
@@ -353,12 +359,13 @@ export class UserService {
 	private async logAttempt(
 		id: string,
 		email: string,
-		status: 'success' | 'failure'
+		status: 'success' | 'failure',
+		section: string
 	) {
 		const logPayload = {
 			id,
 			email,
-			section: 'login',
+			section: section,
 			status,
 		};
 		await this.dbAttemptInstance.create(logPayload);
@@ -381,11 +388,14 @@ export class UserService {
 		try {
 			await this.deletePreviousOtp(signinDto.email);
 			const foundUser = await this.findOneByEmail(signinDto.email);
-			await this.authenticateUser(signinDto);
+			const token = await this.authenticateUser(signinDto);
 
-			const otpResult = await this.generateOtp({ email: signinDto.email });
+			const otpResult = await this.generateOtp({
+				email: signinDto.email,
+				token,
+			});
 
-			await this.logAttempt(transactionId, signinDto.email, 'success');
+			await this.logAttempt(transactionId, signinDto.email, 'success', 'login');
 
 			await this.sendOtpNotification(foundUser, otpResult.otp);
 
@@ -395,7 +405,7 @@ export class UserService {
 				...otpResult,
 			};
 		} catch (error) {
-			await this.logAttempt(transactionId, signinDto.email, 'failure');
+			await this.logAttempt(transactionId, signinDto.email, 'failure', 'login');
 			throw new BadRequestException('Invalid credentials');
 		}
 	}
@@ -486,13 +496,16 @@ export class UserService {
 		};
 
 		const userCognito = new CognitoUser(userData);
+		const transactionId = uuidv4();
 
 		return new Promise((resolve, reject) => {
 			userCognito.confirmPassword(confirmationCode, newPassword, {
-				onSuccess: () => {
+				onSuccess: async () => {
+					await this.logAttempt(transactionId, email, 'success', 'forgot');
 					resolve('Password reset confirmed');
 				},
-				onFailure: err => {
+				onFailure: async err => {
+					await this.logAttempt(transactionId, email, 'failure', 'forgot');
 					reject(`Failed to confirm password reset: ${err.message}`);
 				},
 			});
