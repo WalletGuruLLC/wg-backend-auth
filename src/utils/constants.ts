@@ -28,7 +28,7 @@ export const StatusMessages = {
 
 export const errorCodes = {
 	WGE0001: {
-		message: 'Incorrect password',
+		message: 'Invalid credentials',
 		description:
 			'The entered password does not match the one registered in the system.',
 		descriptionEs:

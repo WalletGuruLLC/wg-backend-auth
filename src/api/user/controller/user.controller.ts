@@ -310,6 +310,7 @@ export class UserController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Post('/change-password')
 	@UsePipes(ValidationPipe)
 	@ApiOkResponse({
@@ -317,11 +318,13 @@ export class UserController {
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async changePassword(
-		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto
+		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto,
+		@Req() req
 	) {
 		try {
+			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
-				authChangePasswordUserDto?.email
+				userInfo?.UserAttributes?.[0]?.Value
 			);
 			if (!userFind) {
 				return {
@@ -331,7 +334,12 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
-			await this.userService.changeUserPassword(authChangePasswordUserDto);
+			const changePassworFormat = {
+				token: req.token,
+				currentPassword: authChangePasswordUserDto?.currentPassword,
+				newPassword: authChangePasswordUserDto?.newPassword,
+			};
+			await this.userService.changeUserPassword(changePassworFormat);
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0009',
