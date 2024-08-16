@@ -615,4 +615,14 @@ export class UserService {
 			throw new Error(`Error updating user: ${error.message}`);
 		}
 	}
+	async resendOtp(user: User): Promise<void> {
+		const foundOtp = await this.dbOtpInstance
+			.query('email')
+			.eq(user.Email)
+			.exec();
+		if (foundOtp.count === 0) {
+			throw new Error(`OTP does not exist`);
+		}
+		await this.sendOtpNotification(user, foundOtp[0].otp);
+	}
 }
