@@ -401,7 +401,6 @@ export class UserService {
 				...otpResult,
 			};
 		} catch (error) {
-			console.log('error', error?.message);
 			await this.logAttempt(transactionId, signinDto.email, 'failure', 'login');
 			throw new BadRequestException('Invalid credentials');
 		}
