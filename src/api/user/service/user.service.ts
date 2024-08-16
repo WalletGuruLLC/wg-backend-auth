@@ -164,7 +164,7 @@ export class UserService {
 
 			// Generate password and hash it
 			const password =
-				type === 'WALLET' ? passwordHash : generateStrongPassword(12);
+				type === 'WALLET' ? passwordHash : generateStrongPassword(11);
 			const hashedPassword = await bcrypt.hash(password, 8);
 
 			// Generate random id
