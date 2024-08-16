@@ -8,6 +8,7 @@ import {
 	Param,
 	Patch,
 	Post,
+	UseGuards,
 } from '@nestjs/common';
 import {
 	ApiCreatedResponse,
@@ -19,12 +20,14 @@ import {
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { RoleService } from '../service/role.service';
+import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 
 @ApiTags('role')
 @Controller('api/v1/roles')
 export class RoleController {
 	constructor(private readonly roleService: RoleService) {}
 
+	@UseGuards(CognitoAuthGuard)
 	@Post()
 	@ApiCreatedResponse({
 		description: 'The role has been successfully created.',
@@ -49,6 +52,7 @@ export class RoleController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Get()
 	@ApiOkResponse({
 		description: 'Roles have been successfully retrieved.',
@@ -72,7 +76,7 @@ export class RoleController {
 			);
 		}
 	}
-
+	@UseGuards(CognitoAuthGuard)
 	@Get(':id')
 	@ApiOkResponse({
 		description: 'The role has been successfully retrieved.',
@@ -103,6 +107,7 @@ export class RoleController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Patch(':id')
 	@ApiOkResponse({
 		description: 'The role has been successfully updated.',
@@ -127,6 +132,7 @@ export class RoleController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Delete(':id')
 	@ApiOkResponse({
 		description: 'The role has been successfully deleted.',

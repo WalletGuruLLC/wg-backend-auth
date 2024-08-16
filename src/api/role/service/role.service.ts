@@ -40,7 +40,10 @@ export class RoleService {
 	}
 
 	async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
-		return this.dbInstance.update({ id }, updateRoleDto) as Promise<Role>;
+		return this.dbInstance.update(
+			{ Id: id },
+			updateRoleDto as Partial<Role>
+		) as Promise<Role>;
 	}
 
 	async remove(id: string): Promise<void> {

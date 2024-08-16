@@ -8,5 +8,6 @@ import { SqsService } from './sqs/sqs.service';
 	imports: [ConfigModule],
 	controllers: [UserController],
 	providers: [UserService, SqsService],
+	exports: [UserService],
 })
 export class UserModule {}
