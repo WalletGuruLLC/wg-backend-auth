@@ -261,6 +261,14 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
+			if (!userFind?.Active) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0022',
+					customMessage: errorCodes.WGE0022?.description,
+					customMessageEs: errorCodes.WGE0022?.descriptionEs,
+				};
+			}
 			await this.userService.signin(signinDto);
 
 			return {
@@ -310,6 +318,7 @@ export class UserController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Post('/change-password')
 	@UsePipes(ValidationPipe)
 	@ApiOkResponse({
@@ -317,11 +326,13 @@ export class UserController {
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async changePassword(
-		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto
+		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto,
+		@Req() req
 	) {
 		try {
+			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
-				authChangePasswordUserDto?.email
+				userInfo?.UserAttributes?.[0]?.Value
 			);
 			if (!userFind) {
 				return {
@@ -331,7 +342,12 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
-			await this.userService.changeUserPassword(authChangePasswordUserDto);
+			const changePassworFormat = {
+				token: req.token,
+				currentPassword: authChangePasswordUserDto?.currentPassword,
+				newPassword: authChangePasswordUserDto?.newPassword,
+			};
+			await this.userService.changeUserPassword(changePassworFormat);
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0009',

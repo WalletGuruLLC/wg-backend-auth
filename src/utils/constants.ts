@@ -28,11 +28,10 @@ export const StatusMessages = {
 
 export const errorCodes = {
 	WGE0001: {
-		message: 'Incorrect password',
-		description:
-			'The entered password does not match the one registered in the system.',
+		message: 'Invalid credentials',
+		description: 'There is an issue with your credentials, please try again',
 		descriptionEs:
-			'La contraseña ingresada no coincide con la registrada en el sistema.',
+			'Ha ocurrido un problema con sus credenciales, por favor intentelo de nuevo',
 	},
 	WGE0002: {
 		message: 'User not found',
@@ -142,6 +141,11 @@ export const errorCodes = {
 			'There was an error while sending the OTP email. Please try again.',
 		descriptionEs:
 			'Hubo un error al enviar el correo electrónico con el OTP. Por favor, inténtelo de nuevo.',
+	},
+	WGE0022: {
+		message: 'Inactive user',
+		description: 'The user is inactive.',
+		descriptionEs: 'El usuario se encuentra inactivo.',
 	},
 };
 

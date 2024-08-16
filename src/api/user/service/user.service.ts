@@ -184,11 +184,7 @@ export class UserService {
 			}
 
 			// Create user in Cognito
-			const cognitoPromise = this.cognitoService.createUser(
-				email,
-				password,
-				email
-			);
+			await this.cognitoService.createUser(email, password, email);
 
 			// Prepare user data for DynamoDB
 			const userData = {
@@ -203,15 +199,12 @@ export class UserService {
 				RoleId: type === 'WALLET' ? 'EMPTY' : roleId,
 				Type: type,
 				State: 0,
-				Active: false,
+				Active: true,
 				TermsConditions: termsConditions,
 				PrivacyPolicy: privacyPolicy,
 			};
 
-			const dbPromise = this.dbInstance.create(userData);
-
-			// Wait for both Cognito and DynamoDB operations to complete
-			await Promise.all([cognitoPromise, dbPromise]);
+			await this.dbInstance.create(userData);
 
 			const result = await this.generateOtp({ email, token: '' });
 			if (type === 'WALLET') {
@@ -412,53 +405,14 @@ export class UserService {
 
 	async changeUserPassword(
 		authChangePasswordUserDto: AuthChangePasswordUserDto
-	): Promise<string> {
-		const { email, currentPassword, newPassword } = authChangePasswordUserDto;
+	) {
+		const { token, currentPassword, newPassword } = authChangePasswordUserDto;
 
-		const userData = {
-			Username: email,
-			Pool: this.userPool,
-		};
-
-		const authenticationDetails = new AuthenticationDetails({
-			Username: email,
-			Password: currentPassword,
-		});
-
-		const userCognito = new CognitoUser(userData);
-
-		return new Promise((resolve, reject) => {
-			userCognito.authenticateUser(authenticationDetails, {
-				onSuccess: function () {
-					userCognito.changePassword(
-						currentPassword,
-						newPassword,
-						async err => {
-							if (err) {
-								reject(`Error changing password: ${err.message}`);
-							} else {
-								const user = await this.findOneByEmail(
-									authChangePasswordUserDto?.email
-								);
-
-								await this.dbInstance.update({
-									Id: user?.Id,
-									First: false,
-								});
-								resolve('Password changed successfully');
-							}
-						}
-					);
-				},
-				onFailure: function (err) {
-					reject(`Authentication failed: ${err.message}`);
-				},
-				newPasswordRequired: function (userAttributes) {
-					delete userAttributes.email_verified;
-					resolve('New password required');
-				},
-			});
-		});
+		await this.cognitoService.changePassword(
+			token?.split(' ')?.[1],
+			currentPassword,
+			newPassword
+		);
 	}
 
 	async forgotUserPassword(
@@ -487,29 +441,14 @@ export class UserService {
 
 	async confirmUserPassword(
 		authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
-	): Promise<string> {
+	) {
 		const { email, confirmationCode, newPassword } = authConfirmPasswordUserDto;
 
-		const userData = {
-			Username: email,
-			Pool: this.userPool,
-		};
-
-		const userCognito = new CognitoUser(userData);
-		const transactionId = uuidv4();
-
-		return new Promise((resolve, reject) => {
-			userCognito.confirmPassword(confirmationCode, newPassword, {
-				onSuccess: async () => {
-					await this.logAttempt(transactionId, email, 'success', 'forgot');
-					resolve('Password reset confirmed');
-				},
-				onFailure: async err => {
-					await this.logAttempt(transactionId, email, 'failure', 'forgot');
-					reject(`Failed to confirm password reset: ${err.message}`);
-				},
-			});
-		});
+		await this.cognitoService.confirmForgotPassword(
+			email,
+			confirmationCode,
+			newPassword
+		);
 	}
 
 	async getUsersByType(getUsersDto: GetUsersDto): Promise<getUsersResponse> {
