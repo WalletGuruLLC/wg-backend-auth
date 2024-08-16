@@ -5,11 +5,7 @@ import {
 	Injectable,
 	UnauthorizedException,
 } from '@nestjs/common';
-import {
-	AuthenticationDetails,
-	CognitoUser,
-	CognitoUserPool,
-} from 'amazon-cognito-identity-js';
+import { CognitoUser, CognitoUserPool } from 'amazon-cognito-identity-js';
 import * as AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
 import * as otpGenerator from 'otp-generator';
@@ -188,7 +184,7 @@ export class UserService {
 
 			// Prepare user data for DynamoDB
 			const userData = {
-				Id: id,
+				Id: uniqueIdValue,
 				FirstName: firstName,
 				LastName: lastName,
 				Email: email,
