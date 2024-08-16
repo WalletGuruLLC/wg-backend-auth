@@ -122,14 +122,22 @@ export class UserService {
 				otp: verifyOtp?.otp,
 			});
 
-			const user = await this.findOneByEmail(verifyOtp.email);
+			const userFind = await this.findOneByEmail(verifyOtp.email);
 
 			await this.dbInstance.update({
-				Id: user?.Id,
+				Id: userFind?.Id,
 				State: 3,
-				First: false,
 				Active: true,
 			});
+
+			if (userFind?.type == 'WALLET') {
+				await this.dbInstance.update({
+					Id: userFind?.Id,
+					First: false,
+				});
+			}
+
+			const user = await this.findOneByEmail(verifyOtp.email);
 
 			delete user.PasswordHash;
 			delete user.OtpTimestamp;
@@ -393,6 +401,7 @@ export class UserService {
 				...otpResult,
 			};
 		} catch (error) {
+			console.log('error', error?.message);
 			await this.logAttempt(transactionId, signinDto.email, 'failure', 'login');
 			throw new BadRequestException('Invalid credentials');
 		}
