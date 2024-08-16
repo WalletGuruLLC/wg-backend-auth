@@ -381,7 +381,7 @@ export class UserService {
 		try {
 			await this.deletePreviousOtp(signinDto.email);
 			const foundUser = await this.findOneByEmail(signinDto.email);
-			const token = await this.authenticateUser(signinDto);
+			await this.authenticateUser(signinDto);
 
 			const otpResult = await this.generateOtp({ email: signinDto.email });
 
@@ -389,9 +389,10 @@ export class UserService {
 
 			await this.sendOtpNotification(foundUser, otpResult.otp);
 
+			delete otpResult.otp;
+
 			return {
 				...otpResult,
-				token,
 			};
 		} catch (error) {
 			await this.logAttempt(transactionId, signinDto.email, 'failure');

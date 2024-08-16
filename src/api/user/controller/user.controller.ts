@@ -261,14 +261,13 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
-			const result = await this.userService.signin(signinDto);
+			await this.userService.signin(signinDto);
 
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0018',
 				customMessage: successCodes.WGE0018?.description,
 				customMessageEs: successCodes.WGE0018?.descriptionEs,
-				data: result,
 			};
 		} catch (error) {
 			throw new HttpException(
