@@ -100,6 +100,7 @@ export class UserService {
 		return {
 			success: true,
 			message: 'OTP sent successfully',
+			otp,
 		};
 	}
 
@@ -220,6 +221,7 @@ export class UserService {
 					sqsMessage
 				);
 			}
+			delete result.otp;
 			return result;
 		} catch (error) {
 			console.error('Error creating user:', error.message);
