@@ -29,10 +29,9 @@ export const StatusMessages = {
 export const errorCodes = {
 	WGE0001: {
 		message: 'Invalid credentials',
-		description:
-			'The entered password does not match the one registered in the system.',
+		description: 'There is an issue with your credentials, please try again',
 		descriptionEs:
-			'La contraseña ingresada no coincide con la registrada en el sistema.',
+			'Ha ocurrido un problema con sus credenciales, por favor intentelo de nuevo',
 	},
 	WGE0002: {
 		message: 'User not found',
