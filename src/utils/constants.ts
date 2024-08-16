@@ -181,4 +181,9 @@ export const successCodes = {
 		description: 'The user has been deleted successfully.',
 		descriptionEs: 'El usuario ha sido eliminado con éxito.',
 	},
+	WGE0022: {
+		message: 'Successfully returned user info',
+		description: 'The user`s information has been successfully obtained.',
+		descriptionEs: 'La información del usuario se ha obtenido con éxito.',
+	},
 };
