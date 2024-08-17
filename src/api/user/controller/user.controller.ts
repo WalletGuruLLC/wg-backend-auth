@@ -33,6 +33,7 @@ import { GetUsersDto } from '../dto/get-user.dto';
 import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 import { CognitoAuthGuard } from '../guard/cognito-auth.guard';
 import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
+import { validatePassword } from '../../../utils/helpers/validatePassword';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -321,7 +322,6 @@ export class UserController {
 
 	@UseGuards(CognitoAuthGuard)
 	@Post('/change-password')
-	@UsePipes(ValidationPipe)
 	@ApiOkResponse({
 		description: 'The password has been successfully changed.',
 	})
@@ -341,6 +341,14 @@ export class UserController {
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
+				};
+			}
+			if (!validatePassword(authChangePasswordUserDto?.newPassword)) {
+				return {
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0008',
+					customMessage: errorCodes.WGE0008?.description,
+					customMessageEs: errorCodes.WGE0008?.descriptionEs,
 				};
 			}
 			const changePassworFormat = {
