@@ -454,7 +454,9 @@ export class UserService {
 		);
 	}
 
-	async getUsersByType(getUsersDto: GetUsersDto): Promise<getUsersResponse> {
+	async getUsersByType(
+		getUsersDto: GetUsersDto
+	): Promise<{ users: User[]; lastKey?: any }> {
 		let query = this.dbInstance.query('type');
 
 		if (getUsersDto?.type) {
@@ -471,22 +473,27 @@ export class UserService {
 			query = query.and().filter('Id').eq(getUsersDto.id);
 		}
 
-		query.attributes([
-			'Id',
-			'type',
-			'Email',
-			'FirstName',
-			'LastName',
-			'Active',
-			'State',
-			'MfaEnabled',
-			'MfaType',
-		]);
+		query
+			.attributes([
+				'Id',
+				'type',
+				'Email',
+				'FirstName',
+				'LastName',
+				'Active',
+				'State',
+				'MfaEnabled',
+				'MfaType',
+			])
+			.limit(getUsersDto.limit)
+			.startAt(getUsersDto.lastKey);
 
-		const users = await query.exec();
+		// Ejecutar la consulta
+		const result = await query.exec();
 
 		return {
-			users,
+			users: result,
+			lastKey: result.lastKey,
 		};
 	}
 
