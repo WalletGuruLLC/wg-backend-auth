@@ -5,11 +5,7 @@ import {
 	Injectable,
 	UnauthorizedException,
 } from '@nestjs/common';
-import {
-	AuthenticationDetails,
-	CognitoUser,
-	CognitoUserPool,
-} from 'amazon-cognito-identity-js';
+import { CognitoUser, CognitoUserPool } from 'amazon-cognito-identity-js';
 import * as AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
 import * as otpGenerator from 'otp-generator';
@@ -68,7 +64,7 @@ export class UserService {
 	async generateOtp(
 		createOtpRequestDto: CreateOtpRequestDto
 	): Promise<CreateOtpResponseDto> {
-		const { email } = createOtpRequestDto;
+		const { email, token } = createOtpRequestDto;
 
 		const existingOtpEmail = await this.dbOtpInstance
 			.query('email')
@@ -94,7 +90,7 @@ export class UserService {
 			existingOtp = await this.dbOtpInstance.query('otp').eq(otp).exec();
 		}
 
-		const otpPayload = { email, otp };
+		const otpPayload = { email, otp, token };
 		await this.dbOtpInstance.create(otpPayload);
 
 		return {
@@ -115,19 +111,33 @@ export class UserService {
 				);
 			}
 
+			const existingToken = await this.dbOtpInstance
+				.query('otp')
+				.eq(verifyOtp?.otp)
+				.attributes(['token'])
+				.exec();
+
 			await this.dbOtpInstance.delete({
 				email: verifyOtp?.email,
 				otp: verifyOtp?.otp,
 			});
 
-			const user = await this.findOneByEmail(verifyOtp.email);
+			const userFind = await this.findOneByEmail(verifyOtp.email);
 
 			await this.dbInstance.update({
-				Id: user?.Id,
+				Id: userFind?.Id,
 				State: 3,
-				First: false,
 				Active: true,
 			});
+
+			if (userFind?.type == 'WALLET') {
+				await this.dbInstance.update({
+					Id: userFind?.Id,
+					First: false,
+				});
+			}
+
+			const user = await this.findOneByEmail(verifyOtp.email);
 
 			delete user.PasswordHash;
 			delete user.OtpTimestamp;
@@ -135,7 +145,7 @@ export class UserService {
 
 			return {
 				user,
-				verified: true,
+				token: existingToken?.[0]?.token,
 			};
 		} catch (error) {
 			console.error(error.message);
@@ -147,7 +157,6 @@ export class UserService {
 		try {
 			const {
 				email,
-				id,
 				firstName,
 				lastName,
 				type,
@@ -162,7 +171,7 @@ export class UserService {
 
 			// Generate password and hash it
 			const password =
-				type === 'WALLET' ? passwordHash : generateStrongPassword(12);
+				type === 'WALLET' ? passwordHash : generateStrongPassword(11);
 			const hashedPassword = await bcrypt.hash(password, 8);
 
 			// Generate random id
@@ -178,15 +187,11 @@ export class UserService {
 			}
 
 			// Create user in Cognito
-			const cognitoPromise = this.cognitoService.createUser(
-				email,
-				password,
-				email
-			);
+			await this.cognitoService.createUser(email, password, email);
 
 			// Prepare user data for DynamoDB
 			const userData = {
-				Id: id,
+				Id: uniqueIdValue,
 				FirstName: firstName,
 				LastName: lastName,
 				Email: email,
@@ -197,17 +202,14 @@ export class UserService {
 				RoleId: type === 'WALLET' ? 'EMPTY' : roleId,
 				Type: type,
 				State: 0,
-				Active: false,
+				Active: true,
 				TermsConditions: termsConditions,
 				PrivacyPolicy: privacyPolicy,
 			};
 
-			const dbPromise = this.dbInstance.create(userData);
+			await this.dbInstance.create(userData);
 
-			// Wait for both Cognito and DynamoDB operations to complete
-			await Promise.all([cognitoPromise, dbPromise]);
-
-			const result = await this.generateOtp({ email });
+			const result = await this.generateOtp({ email, token: '' });
 			if (type === 'WALLET') {
 				const sqsMessage = {
 					event: 'OTP_SENT',
@@ -353,12 +355,13 @@ export class UserService {
 	private async logAttempt(
 		id: string,
 		email: string,
-		status: 'success' | 'failure'
+		status: 'success' | 'failure',
+		section: string
 	) {
 		const logPayload = {
 			id,
 			email,
-			section: 'login',
+			section: section,
 			status,
 		};
 		await this.dbAttemptInstance.create(logPayload);
@@ -383,71 +386,36 @@ export class UserService {
 			const foundUser = await this.findOneByEmail(signinDto.email);
 			const token = await this.authenticateUser(signinDto);
 
-			const otpResult = await this.generateOtp({ email: signinDto.email });
+			const otpResult = await this.generateOtp({
+				email: signinDto.email,
+				token,
+			});
 
-			await this.logAttempt(transactionId, signinDto.email, 'success');
+			await this.logAttempt(transactionId, signinDto.email, 'success', 'login');
 
 			await this.sendOtpNotification(foundUser, otpResult.otp);
 
+			delete otpResult.otp;
+
 			return {
 				...otpResult,
-				token,
 			};
 		} catch (error) {
-			await this.logAttempt(transactionId, signinDto.email, 'failure');
+			await this.logAttempt(transactionId, signinDto.email, 'failure', 'login');
 			throw new BadRequestException('Invalid credentials');
 		}
 	}
 
 	async changeUserPassword(
 		authChangePasswordUserDto: AuthChangePasswordUserDto
-	): Promise<string> {
-		const { email, currentPassword, newPassword } = authChangePasswordUserDto;
+	) {
+		const { token, currentPassword, newPassword } = authChangePasswordUserDto;
 
-		const userData = {
-			Username: email,
-			Pool: this.userPool,
-		};
-
-		const authenticationDetails = new AuthenticationDetails({
-			Username: email,
-			Password: currentPassword,
-		});
-
-		const userCognito = new CognitoUser(userData);
-
-		return new Promise((resolve, reject) => {
-			userCognito.authenticateUser(authenticationDetails, {
-				onSuccess: function () {
-					userCognito.changePassword(
-						currentPassword,
-						newPassword,
-						async err => {
-							if (err) {
-								reject(`Error changing password: ${err.message}`);
-							} else {
-								const user = await this.findOneByEmail(
-									authChangePasswordUserDto?.email
-								);
-
-								await this.dbInstance.update({
-									Id: user?.Id,
-									First: false,
-								});
-								resolve('Password changed successfully');
-							}
-						}
-					);
-				},
-				onFailure: function (err) {
-					reject(`Authentication failed: ${err.message}`);
-				},
-				newPasswordRequired: function (userAttributes) {
-					delete userAttributes.email_verified;
-					resolve('New password required');
-				},
-			});
-		});
+		await this.cognitoService.changePassword(
+			token?.split(' ')?.[1],
+			currentPassword,
+			newPassword
+		);
 	}
 
 	async forgotUserPassword(
@@ -476,26 +444,14 @@ export class UserService {
 
 	async confirmUserPassword(
 		authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
-	): Promise<string> {
+	) {
 		const { email, confirmationCode, newPassword } = authConfirmPasswordUserDto;
 
-		const userData = {
-			Username: email,
-			Pool: this.userPool,
-		};
-
-		const userCognito = new CognitoUser(userData);
-
-		return new Promise((resolve, reject) => {
-			userCognito.confirmPassword(confirmationCode, newPassword, {
-				onSuccess: () => {
-					resolve('Password reset confirmed');
-				},
-				onFailure: err => {
-					reject(`Failed to confirm password reset: ${err.message}`);
-				},
-			});
-		});
+		await this.cognitoService.confirmForgotPassword(
+			email,
+			confirmationCode,
+			newPassword
+		);
 	}
 
 	async getUsersByType(getUsersDto: GetUsersDto): Promise<getUsersResponse> {

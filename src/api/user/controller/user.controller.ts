@@ -25,6 +25,7 @@ import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dt
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { SignInDto } from '../dto/signin.dto';
+import { SendOtpDto } from '../dto/send-otp-email.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserService } from '../service/user.service';
 import { errorCodes, successCodes } from '../../../utils/constants';
@@ -32,6 +33,7 @@ import { GetUsersDto } from '../dto/get-user.dto';
 import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 import { CognitoAuthGuard } from '../guard/cognito-auth.guard';
 import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
+import { validatePassword } from '../../../utils/helpers/validatePassword';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -261,21 +263,28 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
-			const result = await this.userService.signin(signinDto);
+			if (!userFind?.Active) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0022',
+					customMessage: errorCodes.WGE0022?.description,
+					customMessageEs: errorCodes.WGE0022?.descriptionEs,
+				};
+			}
+			await this.userService.signin(signinDto);
 
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0018',
 				customMessage: successCodes.WGE0018?.description,
 				customMessageEs: successCodes.WGE0018?.descriptionEs,
-				data: result,
 			};
 		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0001',
-					customMessage: error?.message,
+					customMessage: errorCodes.WGE0001?.description,
 					customMessageEs: errorCodes.WGE0001?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
@@ -311,18 +320,20 @@ export class UserController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Post('/change-password')
-	@UsePipes(ValidationPipe)
 	@ApiOkResponse({
 		description: 'The password has been successfully changed.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async changePassword(
-		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto
+		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto,
+		@Req() req
 	) {
 		try {
+			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
-				authChangePasswordUserDto?.email
+				userInfo?.UserAttributes?.[0]?.Value
 			);
 			if (!userFind) {
 				return {
@@ -332,7 +343,20 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				};
 			}
-			await this.userService.changeUserPassword(authChangePasswordUserDto);
+			if (!validatePassword(authChangePasswordUserDto?.newPassword)) {
+				return {
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0008',
+					customMessage: errorCodes.WGE0008?.description,
+					customMessageEs: errorCodes.WGE0008?.descriptionEs,
+				};
+			}
+			const changePassworFormat = {
+				token: req.token,
+				currentPassword: authChangePasswordUserDto?.currentPassword,
+				newPassword: authChangePasswordUserDto?.newPassword,
+			};
+			await this.userService.changeUserPassword(changePassworFormat);
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0009',
@@ -539,18 +563,14 @@ export class UserController {
 		}
 	}
 
-	@UseGuards(CognitoAuthGuard)
 	@Post('send-otp')
 	@ApiOkResponse({
 		description: successCodes.WGE0071?.description,
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async sendOtpEmail(@Req() req) {
+	async sendOtpEmail(@Body() sendOtpDto: SendOtpDto) {
 		try {
-			const userInfo = req.user;
-			const foundUser = await this.userService.findOneByEmail(
-				userInfo?.UserAttributes?.[0]?.Value
-			);
+			const foundUser = await this.userService.findOneByEmail(sendOtpDto.email);
 			if (!foundUser) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,

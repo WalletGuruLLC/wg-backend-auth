@@ -18,6 +18,9 @@ export const OtpSchema = new dynamoose.Schema(
 				name: 'otpIndex',
 			},
 		},
+		token: {
+			type: String,
+		},
 		createdAt: {
 			type: Date,
 			required: true,
