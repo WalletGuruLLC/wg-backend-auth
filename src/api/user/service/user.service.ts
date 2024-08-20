@@ -293,7 +293,6 @@ export class UserService {
 				LastName: updateUserDto.lastName,
 				Email: updateUserDto.email,
 				ServiceProviderId: updateUserDto.serviceProviderId,
-				PasswordHash: updateUserDto.passwordHash,
 				MfaEnabled: updateUserDto.mfaEnabled,
 				MfaType: updateUserDto.mfaType,
 				RoleId: updateUserDto.roleId,

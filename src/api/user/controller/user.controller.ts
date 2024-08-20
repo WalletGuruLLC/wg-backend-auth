@@ -164,6 +164,7 @@ export class UserController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Patch('/:id')
 	@ApiOkResponse({
 		description: 'The record has been successfully updated.',
@@ -184,7 +185,18 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
 			}
+			if (!userFind?.First && updateUserDto?.email) {
+				return res.status(HttpStatus.UNAUTHORIZED).send({
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0024',
+					customMessage: errorCodes.WGE0024?.description,
+					customMessageEs: errorCodes.WGE0024?.descriptionEs,
+				});
+			}
+
 			const user = await this.userService.update(id, updateUserDto);
+			delete user.PasswordHash;
+
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0020',
