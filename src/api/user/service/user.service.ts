@@ -17,7 +17,7 @@ import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto'
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { CreateUserResponse, getUsersResponse } from '../dto/responses';
+import { CreateUserResponse } from '../dto/responses';
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
@@ -200,7 +200,7 @@ export class UserService {
 				ServiceProviderId: type === 'PROVIDER' ? serviceProviderId : 'EMPTY',
 				MfaType: mfaType,
 				RoleId: type === 'WALLET' ? 'EMPTY' : roleId,
-				Type: type,
+				type: type,
 				State: 0,
 				Active: true,
 				TermsConditions: termsConditions,
@@ -460,20 +460,16 @@ export class UserService {
 		total: number;
 		totalPages: number;
 	}> {
-		let query = this.dbInstance.query('type');
+		const { type = 'WALLET', email, id, skip = 1, limit = 10 } = getUsersDto;
 
-		if (getUsersDto?.type) {
-			query = query.eq(getUsersDto.type);
-		} else {
-			query = query.eq('WALLET');
+		let query = this.dbInstance.query('type').eq(type);
+
+		if (email) {
+			query = query.and().filter('Email').eq(email);
 		}
 
-		if (getUsersDto?.email) {
-			query = query.and().filter('Email').eq(getUsersDto.email);
-		}
-
-		if (getUsersDto?.id) {
-			query = query.and().filter('Id').eq(getUsersDto.id);
+		if (id) {
+			query = query.and().filter('Id').eq(id);
 		}
 
 		query.attributes([
@@ -491,21 +487,17 @@ export class UserService {
 		]);
 
 		const result = await query.exec();
-
 		const total = result.length;
 
-		// Aplicar slice en memoria
-		const users = result.slice(
-			getUsersDto.skip - 1,
-			getUsersDto.skip - 1 + getUsersDto.limit
-		);
+		// Calculating pagination values
+		const offset = (Number(skip) - 1) * Number(limit);
+		const users = result.slice(offset, offset + Number(limit));
 
-		const currentPage = getUsersDto.skip;
-		const totalPages = Math.round(total / getUsersDto.limit);
+		const totalPages = Math.ceil(total / Number(limit));
 
 		return {
 			users,
-			currentPage,
+			currentPage: Number(skip),
 			total,
 			totalPages,
 		};
