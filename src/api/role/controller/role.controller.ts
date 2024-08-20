@@ -3,6 +3,7 @@ import {
 	Controller,
 	Delete,
 	Get,
+	Query,
 	HttpException,
 	HttpStatus,
 	Param,
@@ -58,9 +59,9 @@ export class RoleController {
 		description: 'Roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findAll() {
+	async findAll(@Query() query: any) {
 		try {
-			const roles = await this.roleService.findAll();
+			const roles = await this.roleService.findAll(query);
 			return {
 				statusCode: HttpStatus.OK,
 				message: 'Roles retrieved successfully',
