@@ -583,4 +583,8 @@ export class UserService {
 		}
 		await this.sendOtpNotification(user, foundOtp[0].otp);
 	}
+
+	async revokeTokenLogout(token: string) {
+		await this.cognitoService.revokeToken(token?.split(' ')?.[1]);
+	}
 }

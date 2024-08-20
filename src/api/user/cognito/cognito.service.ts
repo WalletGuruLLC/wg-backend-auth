@@ -149,4 +149,22 @@ export class CognitoService implements CognitoServiceInterface {
 			);
 		}
 	}
+
+	async revokeToken(token: string): Promise<ForgotPasswordResponse> {
+		const params = {
+			ClientId: process.env.COGNITO_CLIENT_ID,
+			ClientSecret: process.env.COGNITO_CLIENT_SECRET_ID,
+			Token: token,
+		};
+
+		try {
+			await this.cognitoISP.revokeToken(params).promise();
+			return {};
+		} catch (error) {
+			console.log('error.message', error.message);
+			throw new Error(
+				`Error revoke token process in Cognito: ${error.message}`
+			);
+		}
+	}
 }
