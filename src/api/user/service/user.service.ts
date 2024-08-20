@@ -454,9 +454,12 @@ export class UserService {
 		);
 	}
 
-	async getUsersByType(
-		getUsersDto: GetUsersDto
-	): Promise<{ users: User[]; lastKey?: any }> {
+	async getUsersByType(getUsersDto: GetUsersDto): Promise<{
+		users: User[];
+		currentPage: number;
+		total: number;
+		totalPages: number;
+	}> {
 		let query = this.dbInstance.query('type');
 
 		if (getUsersDto?.type) {
@@ -473,27 +476,38 @@ export class UserService {
 			query = query.and().filter('Id').eq(getUsersDto.id);
 		}
 
-		query
-			.attributes([
-				'Id',
-				'type',
-				'Email',
-				'FirstName',
-				'LastName',
-				'Active',
-				'State',
-				'MfaEnabled',
-				'MfaType',
-			])
-			.limit(getUsersDto.limit)
-			.startAt(getUsersDto.lastKey);
+		query.attributes([
+			'Id',
+			'type',
+			'Email',
+			'FirstName',
+			'ServiceProviderId',
+			'RoleId',
+			'LastName',
+			'Active',
+			'State',
+			'MfaEnabled',
+			'MfaType',
+		]);
 
-		// Ejecutar la consulta
 		const result = await query.exec();
 
+		const total = result.length;
+
+		// Aplicar slice en memoria
+		const users = result.slice(
+			getUsersDto.skip - 1,
+			getUsersDto.skip - 1 + getUsersDto.limit
+		);
+
+		const currentPage = getUsersDto.skip;
+		const totalPages = Math.round(total / getUsersDto.limit);
+
 		return {
-			users: result,
-			lastKey: result.lastKey,
+			users,
+			currentPage,
+			total,
+			totalPages,
 		};
 	}
 

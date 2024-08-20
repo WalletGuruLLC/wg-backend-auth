@@ -27,5 +27,5 @@ export class GetUsersDto {
 
 	@IsOptional()
 	@IsString()
-	lastKey?: any;
+	skip?: number;
 }
