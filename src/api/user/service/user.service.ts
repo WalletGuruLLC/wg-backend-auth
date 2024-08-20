@@ -17,7 +17,7 @@ import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto'
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { CreateUserResponse, getUsersResponse } from '../dto/responses';
+import { CreateUserResponse } from '../dto/responses';
 import { SignInDto } from '../dto/signin.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
@@ -210,25 +210,44 @@ export class UserService {
 			await this.dbInstance.create(userData);
 
 			const result = await this.generateOtp({ email, token: '' });
-			if (type === 'WALLET') {
-				const sqsMessage = {
-					event: 'OTP_SENT',
-					email,
-					username:
-						firstName + (lastName ? ' ' + lastName.charAt(0) + '.' : ''),
-					otp: result.otp,
-				};
-				await this.sqsService.sendMessage(
-					process.env.SQS_QUEUE_URL,
-					sqsMessage
-				);
-			}
+
+			await this.sendOtpOrPasswordMessage(
+				type,
+				email,
+				firstName,
+				lastName,
+				result.otp,
+				password
+			);
+
 			delete result.otp;
 			return result;
 		} catch (error) {
 			console.error('Error creating user:', error.message);
 			throw new Error('Failed to create user. Please try again later.');
 		}
+	}
+
+	async sendOtpOrPasswordMessage(
+		type: string,
+		email: string,
+		firstName = '',
+		lastName: string,
+		otp: string,
+		password: string
+	) {
+		const event = type === 'WALLET' ? 'OTP_SENT' : 'TEMPORARY_PASSWORD_SENT';
+		const otpOrPassword = type === 'WALLET' ? otp : password;
+		const username =
+			firstName + (lastName ? ' ' + lastName.charAt(0) + '.' : '');
+		const sqsMessage = {
+			event,
+			email,
+			username,
+			otp: otpOrPassword,
+		};
+
+		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
 	}
 
 	async findOne(id: string): Promise<User | null> {
