@@ -476,7 +476,9 @@ export class UserController {
 			}
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Successfully returned users',
+				customCode: 'WGE0019',
+				customMessage: successCodes.WGE0019?.description,
+				customMessageEs: successCodes.WGE0019?.descriptionEs,
 				data: users,
 			};
 		} catch (error) {
@@ -485,6 +487,7 @@ export class UserController {
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0016',
 					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
