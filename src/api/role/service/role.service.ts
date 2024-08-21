@@ -1,31 +1,52 @@
+import * as dynamoose from 'dynamoose';
+import { Model } from 'dynamoose/dist/Model';
 import { Injectable } from '@nestjs/common';
-import { RoleModel, RoleDocument } from '../entities/role.entity';
-import { CreateRoleDto, UpdateRoleDto } from '../dto/role';
+
+import { RoleSchema } from '../entities/role.schema';
+import { Role } from '../entities/role.entity';
+import { CreateRoleDto } from '../dto/create-role.dto';
+import { UpdateRoleDto } from '../dto/update-role.dto';
 
 @Injectable()
 export class RoleService {
-	async create(createRoleDto: CreateRoleDto): Promise<RoleDocument> {
-		const role = new RoleModel(createRoleDto);
-		return role.save() as Promise<RoleDocument>;
+	private readonly dbInstance: Model<Role>;
+
+	constructor() {
+		const tableName = 'roles';
+		this.dbInstance = dynamoose.model<Role>(tableName, RoleSchema, {
+			create: false,
+			waitForActive: false,
+		});
 	}
 
-	async findAll(): Promise<RoleDocument[]> {
-		const scanResults = await RoleModel.scan().exec();
-		return scanResults as unknown as RoleDocument[];
+	async create(createRoleDto: CreateRoleDto): Promise<Role> {
+		const role = {
+			Name: createRoleDto.name,
+			Description: createRoleDto.description,
+			ProviderId: createRoleDto.providerId,
+		};
+
+		const savedRole = await this.dbInstance.create(role);
+		return savedRole;
 	}
 
-	async findOne(id: string): Promise<RoleDocument> {
-		return RoleModel.get(id) as Promise<RoleDocument>;
+	async findAll(): Promise<Role[]> {
+		const roles = await this.dbInstance.scan().exec();
+		return roles;
 	}
 
-	async update(
-		id: string,
-		updateRoleDto: UpdateRoleDto
-	): Promise<RoleDocument> {
-		return RoleModel.update({ id }, updateRoleDto) as Promise<RoleDocument>;
+	async findOne(id: string): Promise<Role> {
+		return this.dbInstance.get(id) as Promise<Role>;
+	}
+
+	async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
+		return this.dbInstance.update(
+			{ Id: id },
+			updateRoleDto as Partial<Role>
+		) as Promise<Role>;
 	}
 
 	async remove(id: string): Promise<void> {
-		await RoleModel.delete(id);
+		await this.dbInstance.delete(id);
 	}
 }

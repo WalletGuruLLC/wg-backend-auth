@@ -8,6 +8,9 @@ import {
 	Param,
 	Patch,
 	Post,
+	UseGuards,
+	UsePipes,
+	ValidationPipe,
 } from '@nestjs/common';
 import {
 	ApiCreatedResponse,
@@ -15,15 +18,21 @@ import {
 	ApiOkResponse,
 	ApiTags,
 } from '@nestjs/swagger';
-import { CreateRoleDto, UpdateRoleDto } from '../dto/role';
+
+import { errorCodes, successCodes } from '../../../utils/constants';
+import { CreateRoleDto } from '../dto/create-role.dto';
+import { UpdateRoleDto } from '../dto/update-role.dto';
 import { RoleService } from '../service/role.service';
+import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 
 @ApiTags('role')
 @Controller('api/v1/roles')
 export class RoleController {
 	constructor(private readonly roleService: RoleService) {}
 
+	@UseGuards(CognitoAuthGuard)
 	@Post()
+	@UsePipes(new ValidationPipe())
 	@ApiCreatedResponse({
 		description: 'The role has been successfully created.',
 	})
@@ -33,20 +42,25 @@ export class RoleController {
 			const role = await this.roleService.create(createRoleDto);
 			return {
 				statusCode: HttpStatus.CREATED,
-				message: 'Role created successfully',
+				customCode: 'WGE0023',
+				customMessage: successCodes.WGE0023?.description,
+				customMessageEs: successCodes.WGE0023?.descriptionEs,
 				data: role,
 			};
 		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error creating role: ${error.message}`,
+					customCode: 'WGE0025',
+					customMessage: errorCodes.WGE0025?.description,
+					customMessageEs: errorCodes.WGE0025?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Get()
 	@ApiOkResponse({
 		description: 'Roles have been successfully retrieved.',
@@ -70,7 +84,7 @@ export class RoleController {
 			);
 		}
 	}
-
+	@UseGuards(CognitoAuthGuard)
 	@Get(':id')
 	@ApiOkResponse({
 		description: 'The role has been successfully retrieved.',
@@ -101,6 +115,7 @@ export class RoleController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Patch(':id')
 	@ApiOkResponse({
 		description: 'The role has been successfully updated.',
@@ -125,6 +140,7 @@ export class RoleController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Delete(':id')
 	@ApiOkResponse({
 		description: 'The role has been successfully deleted.',
