@@ -9,6 +9,8 @@ import {
 	Patch,
 	Post,
 	UseGuards,
+	UsePipes,
+	ValidationPipe,
 } from '@nestjs/common';
 import {
 	ApiCreatedResponse,
@@ -30,6 +32,7 @@ export class RoleController {
 
 	@UseGuards(CognitoAuthGuard)
 	@Post()
+	@UsePipes(new ValidationPipe())
 	@ApiCreatedResponse({
 		description: 'The role has been successfully created.',
 	})
