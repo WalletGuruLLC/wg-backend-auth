@@ -220,12 +220,12 @@ export const successCodes = {
 		description: 'The user`s information has been successfully obtained.',
 		descriptionEs: 'La información del usuario se ha obtenido con éxito.',
 	},
-	WGE0023: {
+	WGS0023: {
 		message: 'Add role successful',
 		description: 'The role has been added successfully.',
 		descriptionEs: 'El rol ha sido añadido con éxito.',
 	},
-	WGE0031: {
+	WGS0031: {
 		message: 'Success getting roles',
 		description: 'The users was getting succesfully.',
 		descriptionEs: 'Los roles se han obtenido con éxito.',
