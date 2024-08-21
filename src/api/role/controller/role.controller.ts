@@ -39,18 +39,18 @@ export class RoleController {
 			const role = await this.roleService.create(createRoleDto);
 			return {
 				statusCode: HttpStatus.CREATED,
-				customCode: '',
-				customMessage: '', //successCodes.?.description,
-				customMessageEs: '', //successCodes.?.descriptionEs,
+				customCode: 'WGE0023',
+				customMessage: successCodes.WGE0023?.description,
+				customMessageEs: successCodes.WGE0023?.descriptionEs,
 				data: role,
 			};
 		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE016',
-					customMessage: errorCodes.WGE016?.description,
-					customMessageEs: errorCodes.WGE016?.descriptionEs,
+					customCode: 'WGE0025',
+					customMessage: errorCodes.WGE0025?.description,
+					customMessageEs: errorCodes.WGE0025?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

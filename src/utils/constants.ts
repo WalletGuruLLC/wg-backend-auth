@@ -104,12 +104,6 @@ export const errorCodes = {
 		descriptionEs:
 			'Ocurrió un error inesperado en el servidor. Por favor, inténtelo de nuevo más tarde.',
 	},
-	WGE016: {
-		message: 'Add role failed',
-		description: 'Failed to add role. Check info and retry.',
-		descriptionEs:
-			'Error al agregar el rol. Verifique la información y vuelva a intentarlo.',
-	},
 	WGE0017: {
 		message: 'Invalid user type',
 		description: 'The type of user entered is invalid or does not correspond.',
@@ -165,6 +159,12 @@ export const errorCodes = {
 		descriptionEs:
 			'La cuenta ya ha sido validada, no se permite la actualización del correo electrónico.',
 	},
+	WGE0025: {
+		message: 'Add role failed',
+		description: 'Failed to add role. Check info and retry.',
+		descriptionEs:
+			'Error al agregar el rol. Verifique la información y vuelva a intentarlo.',
+	},
 };
 
 export const successCodes = {
@@ -214,6 +214,11 @@ export const successCodes = {
 		message: 'Successfully returned user info',
 		description: 'The user`s information has been successfully obtained.',
 		descriptionEs: 'La información del usuario se ha obtenido con éxito.',
+	},
+	WGE0023: {
+		message: 'Add role successful',
+		description: 'The role has been added successfully.',
+		descriptionEs: 'El rol ha sido añadido con éxito.',
 	},
 	WGE0071: {
 		message: 'OTP email sent successfully',
