@@ -14,7 +14,7 @@ export class RoleService {
 	constructor() {
 		const tableName = 'roles';
 		this.dbInstance = dynamoose.model<Role>(tableName, RoleSchema, {
-			create: false,
+			create: true,
 			waitForActive: false,
 		});
 	}
@@ -39,7 +39,10 @@ export class RoleService {
 		let dbQuery;
 
 		if (providerId) {
-			dbQuery = this.dbInstance.query('ProviderId').eq(providerId);
+			dbQuery = this.dbInstance
+				.query('ProviderId')
+				.eq(providerId)
+				.using('ProviderIdIndex');
 		} else {
 			dbQuery = this.dbInstance.scan();
 		}

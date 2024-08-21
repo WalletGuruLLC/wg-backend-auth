@@ -59,9 +59,17 @@ export class RoleController {
 		description: 'Roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findAll(@Query() query: any) {
+	async findAll(
+		@Query('providerId') providerId?: string,
+		@Query('page') page = 1,
+		@Query('items') items = 10
+	) {
 		try {
-			const roles = await this.roleService.findAll(query);
+			const roles = await this.roleService.findAll(
+				providerId,
+				Number(page),
+				Number(items)
+			);
 			return {
 				statusCode: HttpStatus.OK,
 				message: 'Roles retrieved successfully',
