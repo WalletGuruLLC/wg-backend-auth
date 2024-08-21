@@ -30,9 +30,41 @@ export class RoleService {
 		return savedRole;
 	}
 
-	async findAll(): Promise<Role[]> {
-		const roles = await this.dbInstance.scan().exec();
-		return roles;
+	async findAll(
+		providerId?: string,
+		page = 1,
+		items = 10
+	): Promise<{ roles: Role[]; total: number }> {
+		const skip = (page - 1) * items;
+		let dbQuery;
+
+		if (providerId) {
+			dbQuery = this.dbInstance
+				.query('ProviderId')
+				.eq(providerId)
+				.using('ProviderIdIndex');
+		} else {
+			dbQuery = this.dbInstance.scan();
+		}
+
+		const roles = await dbQuery.exec();
+
+		if (roles.length === 0) {
+			throw new Error();
+		}
+
+		roles.sort((a, b) => {
+			if (a.Active === b.Active) {
+				return a.Name.localeCompare(b.Name);
+			}
+			return a.Active ? -1 : 1;
+		});
+
+		const total = roles.length;
+
+		const paginatedRoles = roles.slice(skip, skip + items);
+
+		return { roles: paginatedRoles, total };
 	}
 
 	async findOne(id: string): Promise<Role> {
