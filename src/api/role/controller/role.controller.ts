@@ -12,6 +12,7 @@ import {
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
+	ValidationError,
 } from '@nestjs/common';
 import {
 	ApiCreatedResponse,
@@ -26,6 +27,21 @@ import { UpdateRoleDto } from '../dto/update-role.dto';
 import { RoleService } from '../service/role.service';
 import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 
+const customValidationPipe = new ValidationPipe({
+	exceptionFactory: (errors: ValidationError[]) => {
+		const message = errors.map(
+			error =>
+				`${error.property} has wrong value ${error.value}, ${Object.values(
+					error.constraints
+				).join(', ')}`
+		);
+		return new HttpException(
+			{ customCode: 'WGE0025', ...errorCodes.WGE0025, message },
+			HttpStatus.BAD_REQUEST
+		);
+	},
+});
+
 @ApiTags('role')
 @Controller('api/v1/roles')
 export class RoleController {
@@ -33,7 +49,7 @@ export class RoleController {
 
 	@UseGuards(CognitoAuthGuard)
 	@Post()
-	@UsePipes(new ValidationPipe())
+	@UsePipes(customValidationPipe)
 	@ApiCreatedResponse({
 		description: 'The role has been successfully created.',
 	})
@@ -51,10 +67,8 @@ export class RoleController {
 		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0025',
-					customMessage: errorCodes.WGE0025?.description,
-					customMessageEs: errorCodes.WGE0025?.descriptionEs,
+					...errorCodes.WGE0025,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
