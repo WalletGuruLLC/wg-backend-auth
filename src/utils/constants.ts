@@ -104,6 +104,12 @@ export const errorCodes = {
 		descriptionEs:
 			'Ocurrió un error inesperado en el servidor. Por favor, inténtelo de nuevo más tarde.',
 	},
+	WGE016: {
+		message: 'Add role failed',
+		description: 'Failed to add role. Check info and retry.',
+		descriptionEs:
+			'Error al agregar el rol. Verifique la información y vuelva a intentarlo.',
+	},
 	WGE0017: {
 		message: 'Invalid user type',
 		description: 'The type of user entered is invalid or does not correspond.',

@@ -17,6 +17,7 @@ import {
 	ApiTags,
 } from '@nestjs/swagger';
 
+import { errorCodes, successCodes } from '../../../utils/constants';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { RoleService } from '../service/role.service';
@@ -38,14 +39,18 @@ export class RoleController {
 			const role = await this.roleService.create(createRoleDto);
 			return {
 				statusCode: HttpStatus.CREATED,
-				message: 'Role created successfully',
+				customCode: '',
+				customMessage: '', //successCodes.?.description,
+				customMessageEs: '', //successCodes.?.descriptionEs,
 				data: role,
 			};
 		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error creating role: ${error.message}`,
+					customCode: 'WGE016',
+					customMessage: errorCodes.WGE016?.description,
+					customMessageEs: errorCodes.WGE016?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
