@@ -153,6 +153,18 @@ export const errorCodes = {
 		description: 'The user is inactive.',
 		descriptionEs: 'El usuario se encuentra inactivo.',
 	},
+	WGE0023: {
+		message: 'Invalid page',
+		description: 'The page is invalid.',
+		descriptionEs: 'La pagina es invalida.',
+	},
+	WGE0024: {
+		message: 'Email update not allowed',
+		description:
+			'The account has already been validated, email update is not permitted.',
+		descriptionEs:
+			'La cuenta ya ha sido validada, no se permite la actualización del correo electrónico.',
+	},
 };
 
 export const successCodes = {
