@@ -18,6 +18,7 @@ import {
 	ApiTags,
 } from '@nestjs/swagger';
 
+import { errorCodes, successCodes } from '../../../utils/constants';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { RoleService } from '../service/role.service';
@@ -72,14 +73,19 @@ export class RoleController {
 			);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Roles retrieved successfully',
+				customCode: '',
+				customMessage: '', //successCodes.?.description,
+				customMessageEs: '', //successCodes.?.descriptionEs,
 				data: roles,
 			};
 		} catch (error) {
+			//TODO: throw error only if no roles are found
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error retrieving roles: ${error.message}`,
+					customCode: 'WGE0019',
+					customMessage: errorCodes.WGE0019?.description,
+					customMessageEs: errorCodes.WGE0019?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

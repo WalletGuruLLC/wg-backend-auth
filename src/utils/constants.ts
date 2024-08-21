@@ -121,6 +121,11 @@ export const errorCodes = {
 		description: 'The request contains invalid or unsupported data.',
 		descriptionEs: 'La solicitud contiene datos inválidos o no admitidos.',
 	},
+	WGE0019: {
+		message: `Doesn't exist roles`,
+		description: `You haven't created any roles yet. Please click 'Add New Role' to get started`,
+		descriptionEs: `Aún no has creado ningún rol. Por favor, haz clic en 'Agregar Nuevo Rol' para comenzar`,
+	},
 	WGE00020: {
 		message: 'Operation failed',
 		description:
