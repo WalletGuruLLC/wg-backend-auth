@@ -210,25 +210,44 @@ export class UserService {
 			await this.dbInstance.create(userData);
 
 			const result = await this.generateOtp({ email, token: '' });
-			if (type === 'WALLET') {
-				const sqsMessage = {
-					event: 'OTP_SENT',
-					email,
-					username:
-						firstName + (lastName ? ' ' + lastName.charAt(0) + '.' : ''),
-					otp: result.otp,
-				};
-				await this.sqsService.sendMessage(
-					process.env.SQS_QUEUE_URL,
-					sqsMessage
-				);
-			}
+
+			await this.sendOtpOrPasswordMessage(
+				type,
+				email,
+				firstName,
+				lastName,
+				result.otp,
+				password
+			);
+
 			delete result.otp;
 			return result;
 		} catch (error) {
 			console.error('Error creating user:', error.message);
 			throw new Error('Failed to create user. Please try again later.');
 		}
+	}
+
+	async sendOtpOrPasswordMessage(
+		type: string,
+		email: string,
+		firstName = '',
+		lastName: string,
+		otp: string,
+		password: string
+	) {
+		const event = type === 'WALLET' ? 'OTP_SENT' : 'TEMPORARY_PASSWORD_SENT';
+		const otpOrPassword = type === 'WALLET' ? otp : password;
+		const username =
+			firstName + (lastName ? ' ' + lastName.charAt(0) + '.' : '');
+		const sqsMessage = {
+			event,
+			email,
+			username,
+			otp: otpOrPassword,
+		};
+
+		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
 	}
 
 	async findOne(id: string): Promise<User | null> {
