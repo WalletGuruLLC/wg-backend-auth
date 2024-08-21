@@ -165,6 +165,11 @@ export const errorCodes = {
 		descriptionEs:
 			'Error al agregar el rol. Verifique la información y vuelva a intentarlo.',
 	},
+	WGE0032: {
+		message: `Doesn't exist roles`,
+		description: `You haven't created any roles yet. Please click 'Add New Role' to get started`,
+		descriptionEs: `Aún no has creado ningún rol. Por favor, haz clic en 'Agregar Nuevo Rol' para comenzar`,
+	},
 };
 
 export const successCodes = {
@@ -197,7 +202,7 @@ export const successCodes = {
 	},
 	WGE0019: {
 		message: 'Success getting users',
-		description: 'The users was getting succesffully.',
+		description: 'The users was getting succesfully.',
 		descriptionEs: 'Los usuarios se han obtenido con éxito.',
 	},
 	WGE0020: {
@@ -215,10 +220,15 @@ export const successCodes = {
 		description: 'The user`s information has been successfully obtained.',
 		descriptionEs: 'La información del usuario se ha obtenido con éxito.',
 	},
-	WGE0023: {
+	WGS0023: {
 		message: 'Add role successful',
 		description: 'The role has been added successfully.',
 		descriptionEs: 'El rol ha sido añadido con éxito.',
+	},
+	WGS0031: {
+		message: 'Success getting roles',
+		description: 'The users was getting succesfully.',
+		descriptionEs: 'Los roles se han obtenido con éxito.',
 	},
 	WGE0071: {
 		message: 'OTP email sent successfully',

@@ -24,6 +24,10 @@ export const RoleSchema = new dynamoose.Schema(
 		ProviderId: {
 			type: String,
 			default: 'EMPTY',
+			index: {
+				global: true,
+				name: 'ProviderIdIndex',
+			},
 		},
 	},
 	{

@@ -3,6 +3,7 @@ import {
 	Controller,
 	Delete,
 	Get,
+	Query,
 	HttpException,
 	HttpStatus,
 	Param,
@@ -42,9 +43,9 @@ export class RoleController {
 			const role = await this.roleService.create(createRoleDto);
 			return {
 				statusCode: HttpStatus.CREATED,
-				customCode: 'WGE0023',
-				customMessage: successCodes.WGE0023?.description,
-				customMessageEs: successCodes.WGE0023?.descriptionEs,
+				customCode: 'WGS0023',
+				customMessage: successCodes.WGS0023?.description,
+				customMessageEs: successCodes.WGS0023?.descriptionEs,
 				data: role,
 			};
 		} catch (error) {
@@ -66,19 +67,32 @@ export class RoleController {
 		description: 'Roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findAll() {
+	async findAll(
+		@Query('providerId') providerId?: string,
+		@Query('page') page = 1,
+		@Query('items') items = 10
+	) {
 		try {
-			const roles = await this.roleService.findAll();
+			const roles = await this.roleService.findAll(
+				providerId,
+				Number(page),
+				Number(items)
+			);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Roles retrieved successfully',
+				customCode: 'WGS0031',
+				customMessage: successCodes.WGS0031?.description,
+				customMessageEs: successCodes.WGS0031?.descriptionEs,
 				data: roles,
 			};
 		} catch (error) {
+			//TODO: throw error only if no roles are found
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error retrieving roles: ${error.message}`,
+					customCode: 'WGE0032',
+					customMessage: errorCodes.WGE0032?.description,
+					customMessageEs: errorCodes.WGE0032?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
