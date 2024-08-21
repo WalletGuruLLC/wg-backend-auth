@@ -147,6 +147,11 @@ export const errorCodes = {
 		description: 'The user is inactive.',
 		descriptionEs: 'El usuario se encuentra inactivo.',
 	},
+	WGE0023: {
+		message: 'Invalid page',
+		description: 'The page is invalid.',
+		descriptionEs: 'La pagina es invalida.',
+	},
 };
 
 export const successCodes = {
