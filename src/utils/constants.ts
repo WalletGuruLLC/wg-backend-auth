@@ -121,11 +121,6 @@ export const errorCodes = {
 		description: 'The request contains invalid or unsupported data.',
 		descriptionEs: 'La solicitud contiene datos inválidos o no admitidos.',
 	},
-	WGE0019: {
-		message: `Doesn't exist roles`,
-		description: `You haven't created any roles yet. Please click 'Add New Role' to get started`,
-		descriptionEs: `Aún no has creado ningún rol. Por favor, haz clic en 'Agregar Nuevo Rol' para comenzar`,
-	},
 	WGE00020: {
 		message: 'Operation failed',
 		description:
@@ -164,6 +159,11 @@ export const errorCodes = {
 		descriptionEs:
 			'La cuenta ya ha sido validada, no se permite la actualización del correo electrónico.',
 	},
+	WGE0032: {
+		message: `Doesn't exist roles`,
+		description: `You haven't created any roles yet. Please click 'Add New Role' to get started`,
+		descriptionEs: `Aún no has creado ningún rol. Por favor, haz clic en 'Agregar Nuevo Rol' para comenzar`,
+	},
 };
 
 export const successCodes = {
@@ -196,7 +196,7 @@ export const successCodes = {
 	},
 	WGE0019: {
 		message: 'Success getting users',
-		description: 'The users was getting succesffully.',
+		description: 'The users was getting succesfully.',
 		descriptionEs: 'Los usuarios se han obtenido con éxito.',
 	},
 	WGE0020: {
@@ -213,6 +213,11 @@ export const successCodes = {
 		message: 'Successfully returned user info',
 		description: 'The user`s information has been successfully obtained.',
 		descriptionEs: 'La información del usuario se ha obtenido con éxito.',
+	},
+	WGE0031: {
+		message: 'Success getting roles',
+		description: 'The users was getting succesfully.',
+		descriptionEs: 'Los roles se han obtenido con éxito.',
 	},
 	WGE0071: {
 		message: 'OTP email sent successfully',

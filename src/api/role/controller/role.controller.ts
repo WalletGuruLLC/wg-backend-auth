@@ -73,9 +73,9 @@ export class RoleController {
 			);
 			return {
 				statusCode: HttpStatus.OK,
-				customCode: '',
-				customMessage: '', //successCodes.?.description,
-				customMessageEs: '', //successCodes.?.descriptionEs,
+				customCode: 'WGE0031',
+				customMessage: successCodes.WGE0031?.description,
+				customMessageEs: successCodes.WGE0031?.descriptionEs,
 				data: roles,
 			};
 		} catch (error) {
@@ -83,9 +83,9 @@ export class RoleController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0019',
-					customMessage: errorCodes.WGE0019?.description,
-					customMessageEs: errorCodes.WGE0019?.descriptionEs,
+					customCode: 'WGE0032',
+					customMessage: errorCodes.WGE0032?.description,
+					customMessageEs: errorCodes.WGE0032?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
