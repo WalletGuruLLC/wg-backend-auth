@@ -81,4 +81,38 @@ export class RoleService {
 	async remove(id: string): Promise<void> {
 		await this.dbInstance.delete(id);
 	}
+
+	async createAccessLevel(
+		roleId: string,
+		moduleId: string,
+		accessLevel: number
+	) {
+		const role = await this.findOne(roleId);
+
+		if (!role.Modules) {
+			role.Modules = {};
+		}
+
+		role.Modules[moduleId] = accessLevel;
+
+		return await this.dbInstance.update(
+			{ Id: roleId },
+			{ Modules: role.Modules }
+		);
+	}
+
+	async updateAccessLevel(
+		roleId: string,
+		moduleId: string,
+		accessLevel: number
+	) {
+		const role = await this.dbInstance.get(roleId);
+		role.Modules[moduleId] = accessLevel;
+		return await role.save();
+	}
+
+	async listAccessLevels(roleId: string) {
+		const role = await this.dbInstance.get(roleId);
+		return role.Modules;
+	}
 }

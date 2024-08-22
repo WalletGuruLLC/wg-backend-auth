@@ -13,11 +13,16 @@ import {
 	UsePipes,
 	ValidationPipe,
 	ValidationError,
+	Put,
 } from '@nestjs/common';
 import {
+	ApiBody,
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
 	ApiOkResponse,
+	ApiOperation,
+	ApiParam,
+	ApiResponse,
 	ApiTags,
 } from '@nestjs/swagger';
 
@@ -200,5 +205,99 @@ export class RoleController {
 				);
 			}
 		}
+	}
+
+	@ApiOperation({ summary: 'Crear un nuevo nivel de acceso para un módulo' })
+	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
+	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
+	@ApiBody({ schema: { example: { accessLevel: 11 } } })
+	@ApiResponse({
+		status: 201,
+		description: 'Nivel de acceso creado con éxito.',
+	})
+	@ApiResponse({ status: 404, description: 'Role not found' })
+	@Post('create/:roleId/:moduleId')
+	async createAccessLevel(
+		@Param('roleId') roleId: string,
+		@Param('moduleId') moduleId: string,
+		@Body('accessLevel') accessLevel: number
+	) {
+		const role = await this.roleService.findOne(roleId);
+		if (!role) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.NOT_FOUND,
+					message: 'Role not found',
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+
+		return this.roleService.createAccessLevel(role?.Id, moduleId, accessLevel);
+	}
+
+	@ApiOperation({ summary: 'Editar un nivel de acceso para un módulo' })
+	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
+	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
+	@ApiBody({ schema: { example: { accessLevel: 15 } } })
+	@ApiResponse({
+		status: 200,
+		description: 'Nivel de acceso actualizado con éxito.',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'Role not found or Module not found in role',
+	})
+	@Put('edit/:roleId/:moduleId')
+	async updateAccessLevel(
+		@Param('roleId') roleId: string,
+		@Param('moduleId') moduleId: string,
+		@Body('accessLevel') accessLevel: number
+	) {
+		const role = await this.roleService.findOne(roleId);
+		if (!role) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.NOT_FOUND,
+					message: 'Role not found',
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+
+		if (!role.Modules || !role.Modules[moduleId]) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.NOT_FOUND,
+					message: 'Module not found in role',
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+
+		return this.roleService.updateAccessLevel(role?.Id, moduleId, accessLevel);
+	}
+
+	@ApiOperation({ summary: 'Listar los niveles de acceso para un rol' })
+	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
+	@ApiResponse({
+		status: 200,
+		description: 'Lista de niveles de acceso obtenida con éxito.',
+	})
+	@ApiResponse({ status: 404, description: 'Role not found' })
+	@Get('list/:roleId')
+	async listAccessLevels(@Param('roleId') roleId: string) {
+		const role = await this.roleService.findOne(roleId);
+		if (!role) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.NOT_FOUND,
+					message: 'Role not found',
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+
+		return this.roleService.listAccessLevels(role?.Id);
 	}
 }

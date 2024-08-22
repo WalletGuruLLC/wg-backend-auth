@@ -4,4 +4,5 @@ export class Role extends Document {
 	Name: string;
 	Description: string;
 	Active: boolean;
+	Modules: object;
 }
