@@ -634,4 +634,33 @@ export class UserController {
 			);
 		}
 	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Post('/logout')
+	@ApiOkResponse({
+		description: 'Logout successfully.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async revokeTokenLogout(@Req() req, @Res() res) {
+		try {
+			const token = req.token;
+			await this.userService.revokeTokenLogout(token);
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0072',
+				customMessage: successCodes.WGE0072?.description,
+				customMessageEs: successCodes.WGE0072?.descriptionEs,
+			});
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0016',
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+				},
+				HttpStatus.BAD_REQUEST
+			);
+		}
+	}
 }
