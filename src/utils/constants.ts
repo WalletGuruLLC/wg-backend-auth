@@ -147,6 +147,29 @@ export const errorCodes = {
 		description: 'The user is inactive.',
 		descriptionEs: 'El usuario se encuentra inactivo.',
 	},
+	WGE0023: {
+		message: 'Invalid page',
+		description: 'The page is invalid.',
+		descriptionEs: 'La pagina es invalida.',
+	},
+	WGE0024: {
+		message: 'Email update not allowed',
+		description:
+			'The account has already been validated, email update is not permitted.',
+		descriptionEs:
+			'La cuenta ya ha sido validada, no se permite la actualización del correo electrónico.',
+	},
+	WGE0025: {
+		message: 'Add role failed',
+		description: 'Failed to add role. Check info and retry.',
+		descriptionEs:
+			'Error al agregar el rol. Verifique la información y vuelva a intentarlo.',
+	},
+	WGE0032: {
+		message: `Doesn't exist roles`,
+		description: `You haven't created any roles yet. Please click 'Add New Role' to get started`,
+		descriptionEs: `Aún no has creado ningún rol. Por favor, haz clic en 'Agregar Nuevo Rol' para comenzar`,
+	},
 };
 
 export const successCodes = {
@@ -179,7 +202,7 @@ export const successCodes = {
 	},
 	WGE0019: {
 		message: 'Success getting users',
-		description: 'The users was getting succesffully.',
+		description: 'The users was getting succesfully.',
 		descriptionEs: 'Los usuarios se han obtenido con éxito.',
 	},
 	WGE0020: {
@@ -196,6 +219,16 @@ export const successCodes = {
 		message: 'Successfully returned user info',
 		description: 'The user`s information has been successfully obtained.',
 		descriptionEs: 'La información del usuario se ha obtenido con éxito.',
+	},
+	WGS0023: {
+		message: 'Add role successful',
+		description: 'The role has been added successfully.',
+		descriptionEs: 'El rol ha sido añadido con éxito.',
+	},
+	WGS0031: {
+		message: 'Success getting roles',
+		description: 'The users was getting succesfully.',
+		descriptionEs: 'Los roles se han obtenido con éxito.',
 	},
 	WGE0071: {
 		message: 'OTP email sent successfully',

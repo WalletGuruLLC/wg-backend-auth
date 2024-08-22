@@ -1,11 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { dynamoConnect } from './config/dbconfig';
+import { AllExceptionsFilter } from './api/all-exceptions.filter';
+
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
 	await dynamoConnect();
 	const app = await NestFactory.create(AppModule);
+	app.useGlobalFilters(new AllExceptionsFilter());
 
 	const config = new DocumentBuilder()
 		.setTitle('Paystream API Documentation')

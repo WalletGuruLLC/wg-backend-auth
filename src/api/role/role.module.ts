@@ -3,10 +3,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { RoleController } from './controller/role.controller';
 import { RoleService } from './service/role.service';
-
+import { CognitoAuthGuard } from '../user/guard/cognito-auth.guard';
+import { UserModule } from '../user/user.module';
 @Module({
-	imports: [ConfigModule],
+	imports: [ConfigModule, UserModule],
 	controllers: [RoleController],
-	providers: [RoleService],
+	providers: [RoleService, CognitoAuthGuard],
 })
 export class RoleModule {}

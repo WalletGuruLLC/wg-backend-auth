@@ -20,4 +20,12 @@ export class GetUsersDto {
 	@IsOptional()
 	@IsString()
 	id?: string;
+
+	@IsOptional()
+	@IsString()
+	limit?: number;
+
+	@IsOptional()
+	@IsString()
+	skip?: number;
 }

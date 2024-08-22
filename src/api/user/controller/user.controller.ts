@@ -8,7 +8,9 @@ import {
 	Param,
 	Patch,
 	Post,
+	Query,
 	Req,
+	Res,
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
@@ -45,46 +47,46 @@ export class UserController {
 		description: 'The record has been successfully created.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async create(@Body() createUserDto: CreateUserDto) {
+	async create(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
 				createUserDto?.email
 			);
 			if (userFind) {
-				return {
+				return res.status(HttpStatus.FORBIDDEN).send({
 					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0003',
 					customMessage: errorCodes?.WGE0003?.description,
 					customMessageEs: errorCodes.WGE0003?.descriptionEs,
-				};
+				});
 			}
 
 			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
-				return {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0017',
 					customMessage: errorCodes.WGE0017?.description,
 					customMessageEs: errorCodes.WGE0017?.descriptionEs,
-				};
+				});
 			}
 
 			if (createUserDto?.type === 'WALLET' && !createUserDto?.passwordHash) {
-				return {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
 					statusCode: HttpStatus.PARTIAL_CONTENT,
 					customCode: 'WGE00018',
 					customMessage: errorCodes?.WGE00018?.description,
 					customMessageEs: errorCodes.WGE00018?.descriptionEs,
-				};
+				});
 			}
 
 			const result = await this.userService.create(createUserDto);
-			return {
-				statusCode: HttpStatus.OK,
+			return res.status(HttpStatus.CREATED).send({
+				statusCode: HttpStatus.CREATED,
 				customCode: 'WGE0018',
 				customMessage: successCodes.WGE0018?.description,
 				customMessageEs: successCodes.WGE0018?.descriptionEs,
 				data: result,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
@@ -98,21 +100,21 @@ export class UserController {
 		}
 	}
 
-	@Post('/verify/register/user')
+	@Post('/verify/register')
 	@ApiOkResponse({
 		description: 'The user has been successfully verified.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async verifySignUp(@Body() verifyOtpDto: VerifyOtpDto) {
+	async verifySignUp(@Body() verifyOtpDto: VerifyOtpDto, @Res() res) {
 		try {
 			const result = await this.userService.verifySignUp(verifyOtpDto);
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0013',
 				customMessage: successCodes.WGE0013?.description,
 				customMessageEs: successCodes.WGE0013?.descriptionEs,
 				data: result,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
@@ -131,24 +133,24 @@ export class UserController {
 		description: 'The record has been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findOne(@Param('id') id: string) {
+	async findOne(@Param('id') id: string, @Res() res) {
 		try {
 			const user = await this.userService.findOne(id);
 			if (!user) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0019',
 				customMessage: successCodes.WGE0019?.description,
 				customMessageEs: successCodes.WGE0019?.descriptionEs,
 				data: user,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
@@ -162,30 +164,46 @@ export class UserController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Patch('/:id')
 	@ApiOkResponse({
 		description: 'The record has been successfully updated.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+	async update(
+		@Param('id') id: string,
+		@Body() updateUserDto: UpdateUserDto,
+		@Res() res
+	) {
 		try {
 			const userFind = await this.userService.findOne(id);
 			if (!userFind) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
+			if (!userFind?.First && updateUserDto?.email) {
+				return res.status(HttpStatus.UNAUTHORIZED).send({
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0024',
+					customMessage: errorCodes.WGE0024?.description,
+					customMessageEs: errorCodes.WGE0024?.descriptionEs,
+				});
+			}
+
 			const user = await this.userService.update(id, updateUserDto);
-			return {
+			delete user.PasswordHash;
+
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0020',
 				customMessage: successCodes.WGE0020?.description,
 				customMessageEs: successCodes.WGE0020?.descriptionEs,
 				data: user,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
@@ -204,24 +222,24 @@ export class UserController {
 		description: 'The record has been successfully deleted.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async remove(@Param('id') id: string) {
+	async remove(@Param('id') id: string, @Res() res) {
 		try {
 			const userFind = await this.userService.findOne(id);
 			if (!userFind) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
 			await this.userService.remove(id);
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0021',
 				customMessage: successCodes.WGE0021?.description,
 				customMessageEs: successCodes.WGE0021?.descriptionEs,
-			};
+			});
 		} catch (error) {
 			if (error.message === 'User not found in database') {
 				throw new HttpException(
@@ -252,7 +270,7 @@ export class UserController {
 		description: 'The user has been successfully signed in.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async signin(@Body() signinDto: SignInDto) {
+	async signin(@Body() signinDto: SignInDto, @Res() res) {
 		try {
 			const userFind = await this.userService.findOneByEmail(signinDto?.email);
 			if (!userFind) {
@@ -272,13 +290,12 @@ export class UserController {
 				};
 			}
 			await this.userService.signin(signinDto);
-
-			return {
+			return res.status(HttpStatus.OK).json({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0018',
 				customMessage: successCodes.WGE0018?.description,
 				customMessageEs: successCodes.WGE0018?.descriptionEs,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
@@ -297,16 +314,16 @@ export class UserController {
 		description: 'The user has been successfully signed in.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+	async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto, @Res() res) {
 		try {
 			const result = await this.userService.verifyOtp(verifyOtpDto);
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0014',
 				customMessage: successCodes.WGE0014?.description,
 				customMessageEs: successCodes.WGE0014?.descriptionEs,
 				data: result,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
@@ -328,7 +345,8 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async changePassword(
 		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto,
-		@Req() req
+		@Req() req,
+		@Res() res
 	) {
 		try {
 			const userInfo = req.user;
@@ -336,20 +354,20 @@ export class UserController {
 				userInfo?.UserAttributes?.[0]?.Value
 			);
 			if (!userFind) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
 			if (!validatePassword(authChangePasswordUserDto?.newPassword)) {
-				return {
+				return res.status(HttpStatus.BAD_REQUEST).send({
 					statusCode: HttpStatus.BAD_REQUEST,
 					customCode: 'WGE0008',
 					customMessage: errorCodes.WGE0008?.description,
 					customMessageEs: errorCodes.WGE0008?.descriptionEs,
-				};
+				});
 			}
 			const changePassworFormat = {
 				token: req.token,
@@ -357,12 +375,12 @@ export class UserController {
 				newPassword: authChangePasswordUserDto?.newPassword,
 			};
 			await this.userService.changeUserPassword(changePassworFormat);
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0009',
 				customMessage: successCodes.WGE0009?.description,
 				customMessageEs: successCodes.WGE0009?.descriptionEs,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
@@ -383,27 +401,28 @@ export class UserController {
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async forgotPassword(
-		@Body() authForgotPasswordUserDto: AuthForgotPasswordUserDto
+		@Body() authForgotPasswordUserDto: AuthForgotPasswordUserDto,
+		@Res() res
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
 				authForgotPasswordUserDto?.email
 			);
 			if (!userFind) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
 			await this.userService.forgotUserPassword(authForgotPasswordUserDto);
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0018',
 				customMessage: successCodes.WGE0018?.description,
 				customMessageEs: successCodes.WGE0018?.descriptionEs,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
@@ -424,27 +443,28 @@ export class UserController {
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async confirmPassword(
-		@Body() authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
+		@Body() authConfirmPasswordUserDto: AuthConfirmPasswordUserDto,
+		@Res() res
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
 				authConfirmPasswordUserDto?.email
 			);
 			if (!userFind) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
 			await this.userService.confirmUserPassword(authConfirmPasswordUserDto);
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0012',
 				customMessage: successCodes.WGE0012?.description,
 				customMessageEs: successCodes.WGE0012?.descriptionEs,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
@@ -458,33 +478,46 @@ export class UserController {
 		}
 	}
 
-	@Post('/get/all')
+	@UseGuards(CognitoAuthGuard)
+	@Get('/')
 	@ApiOkResponse({
 		description: 'Successfully returned users',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async getUsers(@Body() getUsersDto: GetUsersDto) {
+	async getUsers(@Query() getUsersDto: GetUsersDto, @Res() res) {
 		try {
 			const users = await this.userService.getUsersByType(getUsersDto);
 			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(getUsersDto.type)) {
-				return {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0017',
 					customMessage: errorCodes.WGE0017?.description,
 					customMessageEs: errorCodes.WGE0017?.descriptionEs,
-				};
+				});
 			}
-			return {
+			if (getUsersDto?.skip > users?.totalPages) {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0023',
+					customMessage: errorCodes.WGE0023?.description,
+					customMessageEs: errorCodes.WGE0023?.descriptionEs,
+				});
+			}
+
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				message: 'Successfully returned users',
+				customCode: 'WGE0019',
+				customMessage: successCodes.WGE0019?.description,
+				customMessageEs: successCodes.WGE0019?.descriptionEs,
 				data: users,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0016',
 					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -497,7 +530,7 @@ export class UserController {
 		description: 'Successfully returned user info',
 	})
 	@ApiForbiddenResponse({ description: 'Invalid access token.' })
-	async getUserInfo(@Req() req) {
+	async getUserInfo(@Req() req, @Res() res) {
 		try {
 			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
@@ -507,20 +540,20 @@ export class UserController {
 			delete userFind?.PasswordHash;
 			delete userFind?.OtpTimestamp;
 
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0022',
 				customMessage: successCodes.WGE0022?.description,
 				customMessageEs: successCodes.WGE0022?.descriptionEs,
 				data: userFind,
-			};
+			});
 		} catch (error) {
-			return {
+			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				customCode: 'WGE0021',
 				customMessage: errorCodes.WGE0021?.description,
 				customMessageEs: errorCodes.WGE0021?.descriptionEs,
-			};
+			});
 		}
 	}
 
@@ -529,27 +562,30 @@ export class UserController {
 		description: 'The user has been successfully updated.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async changeStatusUser(@Body() updateUserDto: UpdateStatusUserDto) {
+	async changeStatusUser(
+		@Body() updateUserDto: UpdateStatusUserDto,
+		@Res() res
+	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
 				updateUserDto?.email
 			);
 			if (!userFind) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
 			const user = await this.userService.changeStatusUser(updateUserDto);
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0020',
 				customMessage: successCodes.WGE0020?.description,
 				customMessageEs: successCodes.WGE0020?.descriptionEs,
 				data: user,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{

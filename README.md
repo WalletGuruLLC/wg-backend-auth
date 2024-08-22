@@ -1,6 +1,8 @@
 # Auth Microservice
 
-This microservice is responsible for user authentication using Node.js and NestJS as the development framework, DynamoDB as the NoSQL database, and Dynamoose as the ORM for interaction with DynamoDB. It provides functionalities such as user registration, login, roles, etc.
+This microservice is responsible for user authentication using Node.js and NestJS as the development framework, DynamoDB
+as the NoSQL database, and Dynamoose as the ORM for interaction with DynamoDB. It provides functionalities such as user
+registration, login, roles, etc.
 
 ## Requirements
 
@@ -20,7 +22,6 @@ This microservice is responsible for user authentication using Node.js and NestJ
 
 Create a .env file in the root of the project following the content of .env.example.
 
-
 ## Running the Application
 
-    npm run start
+    npm run start:dev

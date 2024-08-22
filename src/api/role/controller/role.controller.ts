@@ -3,11 +3,16 @@ import {
 	Controller,
 	Delete,
 	Get,
+	Query,
 	HttpException,
 	HttpStatus,
 	Param,
 	Patch,
 	Post,
+	UseGuards,
+	UsePipes,
+	ValidationPipe,
+	ValidationError,
 } from '@nestjs/common';
 import {
 	ApiCreatedResponse,
@@ -15,15 +20,36 @@ import {
 	ApiOkResponse,
 	ApiTags,
 } from '@nestjs/swagger';
-import { CreateRoleDto, UpdateRoleDto } from '../dto/role';
+
+import { errorCodes, successCodes } from '../../../utils/constants';
+import { CreateRoleDto } from '../dto/create-role.dto';
+import { UpdateRoleDto } from '../dto/update-role.dto';
 import { RoleService } from '../service/role.service';
+import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
+
+const customValidationPipe = new ValidationPipe({
+	exceptionFactory: (errors: ValidationError[]) => {
+		const message = errors.map(
+			error =>
+				`${error.property} has wrong value ${error.value}, ${Object.values(
+					error.constraints
+				).join(', ')}`
+		);
+		return new HttpException(
+			{ customCode: 'WGE0025', ...errorCodes.WGE0025, message },
+			HttpStatus.BAD_REQUEST
+		);
+	},
+});
 
 @ApiTags('role')
 @Controller('api/v1/roles')
 export class RoleController {
 	constructor(private readonly roleService: RoleService) {}
 
+	@UseGuards(CognitoAuthGuard)
 	@Post()
+	@UsePipes(customValidationPipe)
 	@ApiCreatedResponse({
 		description: 'The role has been successfully created.',
 	})
@@ -33,44 +59,60 @@ export class RoleController {
 			const role = await this.roleService.create(createRoleDto);
 			return {
 				statusCode: HttpStatus.CREATED,
-				message: 'Role created successfully',
+				customCode: 'WGS0023',
+				customMessage: successCodes.WGS0023?.description,
+				customMessageEs: successCodes.WGS0023?.descriptionEs,
 				data: role,
 			};
 		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error creating role: ${error.message}`,
+					customCode: 'WGE0025',
+					...errorCodes.WGE0025,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Get()
 	@ApiOkResponse({
 		description: 'Roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findAll() {
+	async findAll(
+		@Query('providerId') providerId?: string,
+		@Query('page') page = 1,
+		@Query('items') items = 10
+	) {
 		try {
-			const roles = await this.roleService.findAll();
+			const roles = await this.roleService.findAll(
+				providerId,
+				Number(page),
+				Number(items)
+			);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Roles retrieved successfully',
+				customCode: 'WGS0031',
+				customMessage: successCodes.WGS0031?.description,
+				customMessageEs: successCodes.WGS0031?.descriptionEs,
 				data: roles,
 			};
 		} catch (error) {
+			//TODO: throw error only if no roles are found
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error retrieving roles: ${error.message}`,
+					customCode: 'WGE0032',
+					customMessage: errorCodes.WGE0032?.description,
+					customMessageEs: errorCodes.WGE0032?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
 	}
-
+	@UseGuards(CognitoAuthGuard)
 	@Get(':id')
 	@ApiOkResponse({
 		description: 'The role has been successfully retrieved.',
@@ -101,6 +143,7 @@ export class RoleController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Patch(':id')
 	@ApiOkResponse({
 		description: 'The role has been successfully updated.',
@@ -125,6 +168,7 @@ export class RoleController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Delete(':id')
 	@ApiOkResponse({
 		description: 'The role has been successfully deleted.',
