@@ -252,4 +252,9 @@ export const successCodes = {
 		descriptionEs:
 			'El correo electrónico con el OTP ha sido enviado con éxito.',
 	},
+	WGE0072: {
+		message: 'Logout successful',
+		description: 'The user has been logged out successfully.',
+		descriptionEs: 'El usuario ha cerrado sesión con éxito.',
+	},
 };
