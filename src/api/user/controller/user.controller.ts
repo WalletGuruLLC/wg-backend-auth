@@ -641,16 +641,16 @@ export class UserController {
 		description: 'Logout successfully.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async revokeTokenLogout(@Req() req) {
+	async revokeTokenLogout(@Req() req, @Res() res) {
 		try {
 			const token = req.token;
 			await this.userService.revokeTokenLogout(token);
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0072',
 				customMessage: successCodes.WGE0072?.description,
 				customMessageEs: successCodes.WGE0072?.descriptionEs,
-			};
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
