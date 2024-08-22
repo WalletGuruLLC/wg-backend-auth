@@ -25,4 +25,3 @@ Create a .env file in the root of the project following the content of .env.exam
 ## Running the Application
 
     npm run start:dev
-
