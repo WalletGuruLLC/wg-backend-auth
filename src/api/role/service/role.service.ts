@@ -1,3 +1,4 @@
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Injectable } from '@nestjs/common';
@@ -87,18 +88,23 @@ export class RoleService {
 		moduleId: string,
 		accessLevel: number
 	) {
-		const role = await this.findOne(roleId);
+		const docClient = new DocumentClient();
 
-		if (!role.Modules) {
-			role.Modules = {};
-		}
+		const params = {
+			TableName: 'roles',
+			Key: { Id: roleId },
+			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
+			ExpressionAttributeNames: {
+				'#modules': 'Modules',
+				'#moduleId': moduleId,
+			},
+			ExpressionAttributeValues: {
+				':accessLevel': accessLevel,
+			},
+			ReturnValues: 'ALL_NEW',
+		};
 
-		role.Modules[moduleId] = accessLevel;
-
-		return await this.dbInstance.update(
-			{ Id: roleId },
-			{ Modules: role.Modules }
-		);
+		return await docClient.update(params).promise();
 	}
 
 	async updateAccessLevel(
@@ -106,13 +112,46 @@ export class RoleService {
 		moduleId: string,
 		accessLevel: number
 	) {
-		const role = await this.dbInstance.get(roleId);
-		role.Modules[moduleId] = accessLevel;
-		return await role.save();
+		const docClient = new DocumentClient();
+
+		const params = {
+			TableName: 'roles',
+			Key: { Id: roleId },
+			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
+			ExpressionAttributeNames: {
+				'#modules': 'Modules',
+				'#moduleId': moduleId,
+			},
+			ExpressionAttributeValues: {
+				':accessLevel': accessLevel,
+			},
+			ReturnValues: 'ALL_NEW',
+		};
+
+		await docClient.update(params).promise();
+		return this.listAccessLevels(roleId);
 	}
 
 	async listAccessLevels(roleId: string) {
-		const role = await this.dbInstance.get(roleId);
-		return role.Modules;
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'roles',
+			Key: { Id: roleId },
+			ProjectionExpression: 'Modules',
+		};
+
+		const result = await docClient.get(params).promise();
+		return result.Item?.Modules || {};
+	}
+
+	async getRoleInfo(roleId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'roles',
+			Key: { Id: roleId },
+		};
+
+		const result = await docClient.get(params).promise();
+		return result.Item;
 	}
 }

@@ -125,7 +125,7 @@ export class RoleController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async findOne(@Param('id') id: string) {
 		try {
-			const role = await this.roleService.findOne(id);
+			const role = await this.roleService.getRoleInfo(id);
 			if (!role) {
 				throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
 			}
@@ -207,6 +207,7 @@ export class RoleController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@ApiOperation({ summary: 'Crear un nuevo nivel de acceso para un módulo' })
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
@@ -222,20 +223,39 @@ export class RoleController {
 		@Param('moduleId') moduleId: string,
 		@Body('accessLevel') accessLevel: number
 	) {
-		const role = await this.roleService.findOne(roleId);
-		if (!role) {
+		try {
+			const role = await this.roleService.findOne(roleId);
+			if (!role) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0033',
+						...errorCodes.WGE0033,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+
+			await this.roleService.createAccessLevel(roleId, moduleId, accessLevel);
+
+			const roleUpd = await this.roleService.getRoleInfo(roleId);
+
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'Role updated successfully',
+				data: roleUpd,
+			};
+		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.NOT_FOUND,
-					message: 'Role not found',
+					customCode: 'WGE0036',
+					...errorCodes.WGE0036,
 				},
-				HttpStatus.NOT_FOUND
+				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
-
-		return this.roleService.createAccessLevel(role?.Id, moduleId, accessLevel);
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@ApiOperation({ summary: 'Editar un nivel de acceso para un módulo' })
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
@@ -254,30 +274,48 @@ export class RoleController {
 		@Param('moduleId') moduleId: string,
 		@Body('accessLevel') accessLevel: number
 	) {
-		const role = await this.roleService.findOne(roleId);
-		if (!role) {
+		try {
+			const role = await this.roleService.listAccessLevels(roleId);
+			if (!role) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0033',
+						...errorCodes.WGE0033,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+
+			if (!role || !role[moduleId]) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0037',
+						...errorCodes.WGE0037,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+
+			await this.roleService.updateAccessLevel(roleId, moduleId, accessLevel);
+			const roleUpd = await this.roleService.getRoleInfo(roleId);
+
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'Role updated successfully',
+				data: roleUpd,
+			};
+		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.NOT_FOUND,
-					message: 'Role not found',
+					customCode: 'WGE0035',
+					...errorCodes.WGE0035,
 				},
-				HttpStatus.NOT_FOUND
+				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
-
-		if (!role.Modules || !role.Modules[moduleId]) {
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.NOT_FOUND,
-					message: 'Module not found in role',
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
-
-		return this.roleService.updateAccessLevel(role?.Id, moduleId, accessLevel);
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@ApiOperation({ summary: 'Listar los niveles de acceso para un rol' })
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiResponse({
@@ -287,17 +325,32 @@ export class RoleController {
 	@ApiResponse({ status: 404, description: 'Role not found' })
 	@Get('list/:roleId')
 	async listAccessLevels(@Param('roleId') roleId: string) {
-		const role = await this.roleService.findOne(roleId);
-		if (!role) {
+		try {
+			const role = await this.roleService.findOne(roleId);
+			if (!role) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0033',
+						...errorCodes.WGE0033,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+
+			const modulos = await this.roleService.listAccessLevels(role?.Id);
+			return {
+				statusCode: HttpStatus.OK,
+				message: 'Access Levels returned successfully',
+				data: modulos,
+			};
+		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.NOT_FOUND,
-					message: 'Role not found',
+					customCode: 'WGE0037',
+					...errorCodes.WGE0037,
 				},
-				HttpStatus.NOT_FOUND
+				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
-
-		return this.roleService.listAccessLevels(role?.Id);
 	}
 }

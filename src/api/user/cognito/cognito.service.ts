@@ -1,4 +1,5 @@
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { createHmac } from 'crypto';
 import { CognitoServiceInterface } from './cognito.interface';
 import {
 	AuthenticateUserResponse,
@@ -68,6 +69,10 @@ export class CognitoService implements CognitoServiceInterface {
 		username: string,
 		password: string
 	): Promise<AuthenticateUserResponse> {
+		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
+		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
+		const secretHash = hasher.digest('base64');
+
 		const params = {
 			AuthFlow: 'ADMIN_NO_SRP_AUTH',
 			UserPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -75,6 +80,7 @@ export class CognitoService implements CognitoServiceInterface {
 			AuthParameters: {
 				USERNAME: username,
 				PASSWORD: password,
+				SECRET_HASH: secretHash,
 			},
 		};
 

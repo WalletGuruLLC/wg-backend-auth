@@ -170,6 +170,31 @@ export const errorCodes = {
 		description: `You haven't created any roles yet. Please click 'Add New Role' to get started`,
 		descriptionEs: `Aún no has creado ningún rol. Por favor, haz clic en 'Agregar Nuevo Rol' para comenzar`,
 	},
+	WGE0033: {
+		message: `Role not found`,
+		description: `The role you are looking for does not exist. Please verify the role ID.`,
+		descriptionEs: `El rol que estás buscando no existe. Por favor, verifica el ID del rol.`,
+	},
+	WGE0034: {
+		message: `No access levels found`,
+		description: `No access levels were found for the specified role. Please check the role ID.`,
+		descriptionEs: `No se encontraron niveles de acceso para el rol especificado. Por favor, verifica el ID del rol.`,
+	},
+	WGE0035: {
+		message: `Failed to update access level`,
+		description: `An error occurred while trying to update the access level. Please try again later.`,
+		descriptionEs: `Se produjo un error al intentar actualizar el nivel de acceso. Por favor, inténtelo de nuevo más tarde.`,
+	},
+	WGE0036: {
+		message: `Failed to create access level`,
+		description: `An error occurred while trying to create the access level. Please try again later.`,
+		descriptionEs: `Se produjo un error al intentar crear el nivel de acceso. Por favor, inténtelo de nuevo más tarde.`,
+	},
+	WGE0037: {
+		message: `No modules available`,
+		description: `There are no modules available to update for the specified role.`,
+		descriptionEs: `No hay módulos disponibles para actualizar para el rol especificado.`,
+	},
 };
 
 export const successCodes = {
