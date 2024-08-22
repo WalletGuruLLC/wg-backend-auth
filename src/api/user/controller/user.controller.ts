@@ -525,7 +525,7 @@ export class UserController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Get('/current/user')
+	@Get('/current-user')
 	@ApiOkResponse({
 		description: 'Successfully returned user info',
 	})

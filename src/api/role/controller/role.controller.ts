@@ -210,7 +210,7 @@ export class RoleController {
 		description: 'Nivel de acceso creado con éxito.',
 	})
 	@ApiResponse({ status: 404, description: 'Role not found' })
-	@Post('/access/level/:roleId/:moduleId')
+	@Post('/access-level/:roleId/:moduleId')
 	async createAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
@@ -261,7 +261,7 @@ export class RoleController {
 		status: 404,
 		description: 'Role not found or Module not found in role',
 	})
-	@Put('/access/level/:roleId/:moduleId')
+	@Put('/access-level/:roleId/:moduleId')
 	async updateAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
@@ -316,7 +316,7 @@ export class RoleController {
 		description: 'Lista de niveles de acceso obtenida con éxito.',
 	})
 	@ApiResponse({ status: 404, description: 'Role not found' })
-	@Get('/access/level/:roleId')
+	@Get('/access-level/:roleId')
 	async listAccessLevels(@Param('roleId') roleId: string) {
 		try {
 			const role = await this.roleService.findRole(roleId);
