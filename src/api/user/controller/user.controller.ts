@@ -525,7 +525,7 @@ export class UserController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Get('/get/info/access')
+	@Get('/current-user')
 	@ApiOkResponse({
 		description: 'Successfully returned user info',
 	})
@@ -557,7 +557,7 @@ export class UserController {
 		}
 	}
 
-	@Patch('/update/status/:id')
+	@Patch('/update-status/:id')
 	@ApiOkResponse({
 		description: 'The user has been successfully updated.',
 	})

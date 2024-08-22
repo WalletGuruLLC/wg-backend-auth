@@ -1,3 +1,4 @@
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import {
 	BadRequestException,
 	HttpException,
@@ -100,6 +101,18 @@ export class UserService {
 		};
 	}
 
+	async listAccessLevels(roleId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'roles',
+			Key: { Id: roleId },
+			ProjectionExpression: 'Modules',
+		};
+
+		const result = await docClient.get(params).promise();
+		return result.Item?.Modules || {};
+	}
+
 	async verifyOtp(verifyOtp: VerifyOtpDto) {
 		try {
 			const otpRecord = await this.dbOtpInstance.scan(verifyOtp).exec();
@@ -139,9 +152,15 @@ export class UserService {
 
 			const user = await this.findOneByEmail(verifyOtp.email);
 
+			let accessLevel = {};
+			if (user?.RoleId !== 'EMPTY') {
+				accessLevel = await this.listAccessLevels(user?.RoleId);
+			}
+
+			user.AccessLevel = accessLevel;
+
 			delete user.PasswordHash;
 			delete user.OtpTimestamp;
-			delete user.Id;
 
 			return {
 				user,

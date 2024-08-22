@@ -23,4 +23,5 @@ export class User extends Document {
 	OtpTimestamp: Date = new Date();
 	TermsConditions = false;
 	PrivacyPolicy = false;
+	AccessLevel = {};
 }

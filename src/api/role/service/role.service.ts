@@ -1,3 +1,4 @@
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
@@ -94,5 +95,91 @@ export class RoleService {
 
 	async remove(id: string): Promise<void> {
 		await this.dbInstance.delete(id);
+	}
+
+	async createAccessLevel(
+		roleId: string,
+		moduleId: string,
+		accessLevel: number
+	) {
+		const docClient = new DocumentClient();
+
+		const params = {
+			TableName: 'roles',
+			Key: { Id: roleId },
+			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
+			ExpressionAttributeNames: {
+				'#modules': 'Modules',
+				'#moduleId': moduleId,
+			},
+			ExpressionAttributeValues: {
+				':accessLevel': accessLevel,
+			},
+			ReturnValues: 'ALL_NEW',
+		};
+
+		return await docClient.update(params).promise();
+	}
+
+	async updateAccessLevel(
+		roleId: string,
+		moduleId: string,
+		accessLevel: number
+	) {
+		const docClient = new DocumentClient();
+
+		const params = {
+			TableName: 'roles',
+			Key: { Id: roleId },
+			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
+			ExpressionAttributeNames: {
+				'#modules': 'Modules',
+				'#moduleId': moduleId,
+			},
+			ExpressionAttributeValues: {
+				':accessLevel': accessLevel,
+			},
+			ReturnValues: 'ALL_NEW',
+		};
+
+		await docClient.update(params).promise();
+		return this.listAccessLevels(roleId);
+	}
+
+	async listAccessLevels(roleId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'roles',
+			Key: { Id: roleId },
+			ProjectionExpression: 'Modules',
+		};
+
+		const result = await docClient.get(params).promise();
+		return result.Item?.Modules || {};
+	}
+
+	async getRoleInfo(roleId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'roles',
+			Key: { Id: roleId },
+		};
+
+		const result = await docClient.get(params).promise();
+		return result.Item;
+	}
+
+	async findRole(id: string): Promise<Role> {
+		const role = await this.dbInstance.get(id);
+		if (!role) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0027',
+					...errorCodes.WGE0027,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+		return role;
 	}
 }
