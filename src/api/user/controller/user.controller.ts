@@ -100,6 +100,39 @@ export class UserController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
+	@Get('/current-user')
+	@ApiOkResponse({
+		description: 'Successfully returned user info',
+	})
+	@ApiForbiddenResponse({ description: 'Invalid access token.' })
+	async getUserInfo(@Req() req, @Res() res) {
+		try {
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+
+			delete userFind?.PasswordHash;
+			delete userFind?.OtpTimestamp;
+
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0022',
+				customMessage: successCodes.WGE0022?.description,
+				customMessageEs: successCodes.WGE0022?.descriptionEs,
+				data: userFind,
+			});
+		} catch (error) {
+			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0021',
+				customMessage: errorCodes.WGE0021?.description,
+				customMessageEs: errorCodes.WGE0021?.descriptionEs,
+			});
+		}
+	}
+
 	@Post('/verify/register')
 	@ApiOkResponse({
 		description: 'The user has been successfully verified.',
@@ -521,39 +554,6 @@ export class UserController {
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
-		}
-	}
-
-	@UseGuards(CognitoAuthGuard)
-	@Get('/current-user')
-	@ApiOkResponse({
-		description: 'Successfully returned user info',
-	})
-	@ApiForbiddenResponse({ description: 'Invalid access token.' })
-	async getUserInfo(@Req() req, @Res() res) {
-		try {
-			const userInfo = req.user;
-			const userFind = await this.userService.findOneByEmail(
-				userInfo?.UserAttributes?.[0]?.Value
-			);
-
-			delete userFind?.PasswordHash;
-			delete userFind?.OtpTimestamp;
-
-			return res.status(HttpStatus.OK).send({
-				statusCode: HttpStatus.OK,
-				customCode: 'WGE0022',
-				customMessage: successCodes.WGE0022?.description,
-				customMessageEs: successCodes.WGE0022?.descriptionEs,
-				data: userFind,
-			});
-		} catch (error) {
-			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				customCode: 'WGE0021',
-				customMessage: errorCodes.WGE0021?.description,
-				customMessageEs: errorCodes.WGE0021?.descriptionEs,
-			});
 		}
 	}
 
