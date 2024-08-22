@@ -1,8 +1,9 @@
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 
 import { RoleSchema } from '../entities/role.schema';
+import { errorCodes } from '../../../utils/constants';
 import { Role } from '../entities/role.entity';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
@@ -67,15 +68,28 @@ export class RoleService {
 		return { roles: paginatedRoles, total };
 	}
 
-	async findOne(id: string): Promise<Role> {
-		return this.dbInstance.get(id) as Promise<Role>;
+	async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
+		await this.findOne(id);
+
+		return await this.dbInstance.update({
+			Id: id,
+			Name: updateRoleDto.name,
+			Description: updateRoleDto.description,
+		});
 	}
 
-	async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
-		return this.dbInstance.update(
-			{ Id: id },
-			updateRoleDto as Partial<Role>
-		) as Promise<Role>;
+	private async findOne(id: string): Promise<Role> {
+		const role = await this.dbInstance.get(id);
+		if (!role) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0027',
+					...errorCodes.WGE0027,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+		return role;
 	}
 
 	async remove(id: string): Promise<void> {
