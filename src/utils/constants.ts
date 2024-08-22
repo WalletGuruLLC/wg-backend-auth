@@ -165,6 +165,17 @@ export const errorCodes = {
 		descriptionEs:
 			'Error al agregar el rol. Verifique la información y vuelva a intentarlo.',
 	},
+	WGE0026: {
+		message: 'Edit role failed',
+		description: 'Failed to edit role. Check inputs, then retry.',
+		descriptionEs:
+			'Error al editar el rol. Verifica los datos e inténtalo de nuevo.',
+	},
+	WGE0027: {
+		message: 'Role not found',
+		description: 'There is no role with the id provided',
+		descriptionEs: 'No hay ningún rol asociado con el id ingresado.',
+	},
 	WGE0032: {
 		message: `Doesn't exist roles`,
 		description: `You haven't created any roles yet. Please click 'Add New Role' to get started`,
@@ -249,6 +260,11 @@ export const successCodes = {
 		message: 'Add role successful',
 		description: 'The role has been added successfully.',
 		descriptionEs: 'El rol ha sido añadido con éxito.',
+	},
+	WGS0024: {
+		message: 'Edit role successful',
+		description: 'The role has been edited successfully.',
+		descriptionEs: 'El rol ha sido editado con éxito.',
 	},
 	WGS0031: {
 		message: 'Success getting roles',

@@ -1,3 +1,4 @@
+import { message } from './../../../../node_modules/aws-sdk/clients/sns.d';
 import {
 	Body,
 	Controller,
@@ -7,13 +8,10 @@ import {
 	HttpException,
 	HttpStatus,
 	Param,
-	Patch,
+	Put,
 	Post,
 	UseGuards,
 	UsePipes,
-	ValidationPipe,
-	ValidationError,
-	Put,
 } from '@nestjs/common';
 import {
 	ApiBody,
@@ -31,21 +29,7 @@ import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { RoleService } from '../service/role.service';
 import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
-
-const customValidationPipe = new ValidationPipe({
-	exceptionFactory: (errors: ValidationError[]) => {
-		const message = errors.map(
-			error =>
-				`${error.property} has wrong value ${error.value}, ${Object.values(
-					error.constraints
-				).join(', ')}`
-		);
-		return new HttpException(
-			{ customCode: 'WGE0025', ...errorCodes.WGE0025, message },
-			HttpStatus.BAD_REQUEST
-		);
-	},
-});
+import { customValidationPipe } from '../../validation.pipe';
 
 @ApiTags('role')
 @Controller('api/v1/roles')
@@ -54,7 +38,7 @@ export class RoleController {
 
 	@UseGuards(CognitoAuthGuard)
 	@Post()
-	@UsePipes(customValidationPipe)
+	@UsePipes(customValidationPipe('WGE0025', errorCodes.WGE0025))
 	@ApiCreatedResponse({
 		description: 'The role has been successfully created.',
 	})
@@ -149,7 +133,8 @@ export class RoleController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Patch(':id')
+	@Put(':id')
+	@UsePipes(customValidationPipe('WGE0026', errorCodes.WGE0026))
 	@ApiOkResponse({
 		description: 'The role has been successfully updated.',
 	})
@@ -159,17 +144,25 @@ export class RoleController {
 			const role = await this.roleService.update(id, updateRoleDto);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Role updated successfully',
+				customCode: 'WGS0024',
+				customMessage: successCodes.WGS0024?.description,
+				customMessageEs: successCodes.WGS0024?.descriptionEs,
 				data: role,
 			};
 		} catch (error) {
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error updating role: ${error.message}`,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
+			if (
+				error instanceof HttpException &&
+				error.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
+			) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0026',
+						...errorCodes.WGE0026,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+			throw error;
 		}
 	}
 
@@ -224,7 +217,7 @@ export class RoleController {
 		@Body('accessLevel') accessLevel: number
 	) {
 		try {
-			const role = await this.roleService.findOne(roleId);
+			const role = await this.roleService.findRole(roleId);
 			if (!role) {
 				throw new HttpException(
 					{
@@ -326,7 +319,7 @@ export class RoleController {
 	@Get('list/:roleId')
 	async listAccessLevels(@Param('roleId') roleId: string) {
 		try {
-			const role = await this.roleService.findOne(roleId);
+			const role = await this.roleService.findRole(roleId);
 			if (!role) {
 				throw new HttpException(
 					{
@@ -344,6 +337,7 @@ export class RoleController {
 				data: modulos,
 			};
 		} catch (error) {
+			console.log('error', error?.message);
 			throw new HttpException(
 				{
 					customCode: 'WGE0037',
