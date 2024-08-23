@@ -17,10 +17,7 @@ export class ModuleService {
 		});
 	}
 	async findAll() {
-		const modules = await this.dbInstance
-			.scan()
-			.attributes(['Id', 'Description'])
-			.exec();
+		const modules = await this.dbInstance.scan().exec();
 		return modules.map(this.mapModuleToResponse);
 	}
 
