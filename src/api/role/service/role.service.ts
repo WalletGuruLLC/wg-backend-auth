@@ -21,7 +21,7 @@ export class RoleService {
 		});
 	}
 
-	async create(createRoleDto: CreateRoleDto): Promise<Role> {
+	async create(createRoleDto: CreateRoleDto) {
 		const role = {
 			Name: createRoleDto.name,
 			Description: createRoleDto.description,
@@ -29,14 +29,10 @@ export class RoleService {
 		};
 
 		const savedRole = await this.dbInstance.create(role);
-		return savedRole;
+		return this.mapRoleToResponse(savedRole);
 	}
 
-	async findAll(
-		providerId?: string,
-		page = 1,
-		items = 10
-	): Promise<{ roles: Role[]; total: number }> {
+	async findAll(providerId?: string, page = 1, items = 10) {
 		const skip = (page - 1) * items;
 		let dbQuery;
 
@@ -66,17 +62,19 @@ export class RoleService {
 
 		const paginatedRoles = roles.slice(skip, skip + items);
 
-		return { roles: paginatedRoles, total };
+		const transformedRoles = paginatedRoles.map(this.mapRoleToResponse);
+		return { roles: transformedRoles, total };
 	}
 
-	async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
+	async update(id: string, updateRoleDto: UpdateRoleDto) {
 		await this.findOne(id);
 
-		return await this.dbInstance.update({
+		const updatedRole = await this.dbInstance.update({
 			Id: id,
 			Name: updateRoleDto.name,
 			Description: updateRoleDto.description,
 		});
+		return this.mapRoleToResponse(updatedRole);
 	}
 
 	private async findOne(id: string): Promise<Role> {
@@ -181,5 +179,18 @@ export class RoleService {
 			);
 		}
 		return role;
+	}
+
+	private mapRoleToResponse(role: Role) {
+		return {
+			id: role.Id,
+			name: role.Name,
+			description: role.Description,
+			providerId: role.ProviderId,
+			active: role.Active,
+			modules: role.Modules,
+			createDate: role.CreateDate,
+			updateDate: role.UpdateDate,
+		};
 	}
 }

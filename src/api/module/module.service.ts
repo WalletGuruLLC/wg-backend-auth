@@ -16,11 +16,20 @@ export class ModuleService {
 			waitForActive: false,
 		});
 	}
-	async findAll(): Promise<Module[]> {
+	async findAll() {
 		const modules = await this.dbInstance
 			.scan()
 			.attributes(['Id', 'Description'])
 			.exec();
-		return modules;
+		return modules.map(this.mapModuleToResponse);
+	}
+
+	private mapModuleToResponse(module: Module) {
+		return {
+			id: module.Id,
+			description: module.Description,
+			createDate: module.CreateDate,
+			updateDate: module.UpdateDate,
+		};
 	}
 }

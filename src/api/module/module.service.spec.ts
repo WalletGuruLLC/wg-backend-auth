@@ -40,8 +40,8 @@ describe('ModuleService', () => {
 	describe('findAll', () => {
 		it('should return an array of modules', async () => {
 			const mockModules = [
-				{ Id: '1', Description: 'Module 1' },
-				{ Id: '2', Description: 'Module 2' },
+				{ id: '1', description: 'Module 1' },
+				{ id: '2', description: 'Module 2' },
 			];
 
 			(
