@@ -1,8 +1,6 @@
-import { message } from './../../../../node_modules/aws-sdk/clients/sns.d';
 import {
 	Body,
 	Controller,
-	Delete,
 	Get,
 	Query,
 	HttpException,
@@ -72,6 +70,7 @@ export class RoleController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async findAll(
 		@Query('providerId') providerId?: string,
+		@Query('search') search = '',
 		@Query('page') page = 1,
 		@Query('items') items = 10
 	) {
@@ -92,40 +91,8 @@ export class RoleController {
 			//TODO: throw error only if no roles are found
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0032',
-					customMessage: errorCodes.WGE0032?.description,
-					customMessageEs: errorCodes.WGE0032?.descriptionEs,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
-		}
-	}
-	@UseGuards(CognitoAuthGuard)
-	@Get(':id')
-	@ApiOkResponse({
-		description: 'The role has been successfully retrieved.',
-	})
-	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findOne(@Param('id') id: string) {
-		try {
-			const role = await this.roleService.getRoleInfo(id);
-			if (!role) {
-				throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
-			}
-			return {
-				statusCode: HttpStatus.OK,
-				message: 'Role found',
-				data: role,
-			};
-		} catch (error) {
-			if (error.status === HttpStatus.NOT_FOUND) {
-				throw error; // Re-throw 404 errors as they are
-			}
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error retrieving role: ${error.message}`,
+					...errorCodes.WGE0032,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -163,40 +130,6 @@ export class RoleController {
 				);
 			}
 			throw error;
-		}
-	}
-
-	@UseGuards(CognitoAuthGuard)
-	@Delete(':id')
-	@ApiOkResponse({
-		description: 'The role has been successfully deleted.',
-	})
-	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async remove(@Param('id') id: string) {
-		try {
-			await this.roleService.remove(id);
-			return {
-				statusCode: HttpStatus.OK,
-				message: 'Role deleted successfully',
-			};
-		} catch (error) {
-			if (error.message === 'Role not found in database') {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.NOT_FOUND,
-						message: error.message,
-					},
-					HttpStatus.NOT_FOUND
-				);
-			} else {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						message: `Error deleting role: ${error.message}`,
-					},
-					HttpStatus.INTERNAL_SERVER_ERROR
-				);
-			}
 		}
 	}
 
