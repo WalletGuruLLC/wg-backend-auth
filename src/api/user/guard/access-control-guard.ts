@@ -1,11 +1,10 @@
 import {
 	Injectable,
 	NestMiddleware,
-	ForbiddenException,
 	HttpException,
 	HttpStatus,
 } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
+import { Request, NextFunction } from 'express';
 import { RoleService } from 'src/api/role/service/role.service';
 import { UserService } from '../service/user.service';
 import { errorCodes } from 'src/utils/constants';
@@ -17,7 +16,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 		private readonly authService: UserService
 	) {}
 
-	async use(req: Request, res: Response, next: NextFunction): Promise<void> {
+	async use(req: Request, next: NextFunction): Promise<void> {
 		const authHeader = req.headers.authorization;
 
 		if (!authHeader) {
@@ -45,23 +44,35 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const userAccessLevel = role.Modules[requestedModuleId];
 		if (userAccessLevel === undefined) {
-			throw new ForbiddenException(
-				`No tienes permisos en el módulo ${requestedModuleId}.`
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0039',
+					customMessage: errorCodes.WGE0039?.description,
+					customMessageEs: errorCodes.WGE0039?.descriptionEs,
+				},
+				HttpStatus.UNAUTHORIZED
 			);
 		}
 
 		const accessMap = {
-			GET: 1,
-			POST: 2,
-			PUT: 4,
-			DELETE: 8,
+			GET: 8,
+			POST: 4,
+			PUT: 2,
+			DELETE: 1,
 		};
 
 		const requiredAccess = accessMap[requiredMethod];
 
 		if ((userAccessLevel & requiredAccess) !== requiredAccess) {
-			throw new ForbiddenException(
-				'No tienes permiso para realizar esta acción.'
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0038',
+					customMessage: errorCodes.WGE0038?.description,
+					customMessageEs: errorCodes.WGE0038?.descriptionEs,
+				},
+				HttpStatus.UNAUTHORIZED
 			);
 		}
 

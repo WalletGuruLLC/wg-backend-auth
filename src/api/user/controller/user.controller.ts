@@ -528,7 +528,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0017?.descriptionEs,
 				});
 			}
-			if (getUsersDto?.skip > users?.totalPages) {
+			if (getUsersDto?.page > users?.totalPages) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0023',
