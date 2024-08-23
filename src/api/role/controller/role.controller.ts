@@ -1,14 +1,13 @@
-import { message } from './../../../../node_modules/aws-sdk/clients/sns.d';
 import {
 	Body,
 	Controller,
-	Delete,
 	Get,
 	Query,
 	HttpException,
 	HttpStatus,
 	Param,
 	Put,
+	Patch,
 	Post,
 	UseGuards,
 	UsePipes,
@@ -166,37 +165,35 @@ export class RoleController {
 		}
 	}
 
+	@Patch(':id/toggle')
 	@UseGuards(CognitoAuthGuard)
-	@Delete(':id')
-	@ApiOkResponse({
-		description: 'The role has been successfully deleted.',
+	@ApiOperation({ summary: 'Toggle the active status of a role' })
+	@ApiParam({ name: 'id', description: 'ID of the role', type: String })
+	@ApiResponse({
+		status: 200,
+		description: 'Role status toggled successfully.',
 	})
-	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async remove(@Param('id') id: string) {
+	@ApiResponse({
+		status: 404,
+		description: 'Role not found.',
+	})
+	async toggle(@Param('id') id: string) {
 		try {
-			await this.roleService.remove(id);
-			return {
-				statusCode: HttpStatus.OK,
-				message: 'Role deleted successfully',
-			};
+			return this.roleService.toggle(id);
 		} catch (error) {
-			if (error.message === 'Role not found in database') {
+			if (
+				error instanceof HttpException &&
+				error.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
+			) {
 				throw new HttpException(
 					{
-						statusCode: HttpStatus.NOT_FOUND,
-						message: error.message,
-					},
-					HttpStatus.NOT_FOUND
-				);
-			} else {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						message: `Error deleting role: ${error.message}`,
+						customCode: 'WGE0026',
+						...errorCodes.WGE0026,
 					},
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);
 			}
+			throw error;
 		}
 	}
 
