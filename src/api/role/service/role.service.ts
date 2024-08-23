@@ -32,7 +32,7 @@ export class RoleService {
 		return this.mapRoleToResponse(savedRole);
 	}
 
-	async findAll(providerId?: string, page = 1, items = 10) {
+	async findAllPaginated(providerId?: string, page = 1, items = 10) {
 		const skip = (page - 1) * items;
 		let dbQuery;
 
@@ -64,6 +64,17 @@ export class RoleService {
 
 		const transformedRoles = paginatedRoles.map(this.mapRoleToResponse);
 		return { roles: transformedRoles, total };
+	}
+
+	async findAllActive(providerId?: string) {
+		let query = this.dbInstance.scan('Active').eq(true);
+
+		if (providerId) {
+			query = query.and().filter('ProviderId').eq(providerId);
+		}
+
+		const result = await query.exec();
+		return result.map(this.mapRoleToResponse);
 	}
 
 	async update(id: string, updateRoleDto: UpdateRoleDto) {

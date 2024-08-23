@@ -68,14 +68,14 @@ export class RoleController {
 		description: 'Roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findAll(
+	async findAllPaginated(
 		@Query('providerId') providerId?: string,
 		@Query('search') search = '',
 		@Query('page') page = 1,
 		@Query('items') items = 10
 	) {
 		try {
-			const roles = await this.roleService.findAll(
+			const roles = await this.roleService.findAllPaginated(
 				providerId,
 				Number(page),
 				Number(items)
@@ -89,6 +89,33 @@ export class RoleController {
 			};
 		} catch (error) {
 			//TODO: throw error only if no roles are found
+			throw new HttpException(
+				{
+					customCode: 'WGE0032',
+					...errorCodes.WGE0032,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Get('active')
+	@ApiOkResponse({
+		description: 'Active roles have been successfully retrieved.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async findAllActive(@Query('providerId') providerId?: string) {
+		try {
+			const roles = await this.roleService.findAllActive(providerId);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGS0031',
+				customMessage: successCodes.WGS0031?.description,
+				customMessageEs: successCodes.WGS0031?.descriptionEs,
+				data: roles,
+			};
+		} catch (error) {
 			throw new HttpException(
 				{
 					customCode: 'WGE0032',
