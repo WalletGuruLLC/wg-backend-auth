@@ -38,21 +38,11 @@ export class AccessControlMiddleware implements NestMiddleware {
 		);
 		const userRoleId = user.RoleId;
 
-		// Obtener la ruta solicitada
 		const requestedModuleId = this.getModuleIdFromPath(req.route.path);
 		const requiredMethod = req.method;
 
-		console.log(
-			'requestedModuleId',
-			requestedModuleId,
-			'requiredMethod',
-			requiredMethod
-		);
-
-		// Obtener la información del rol del usuario
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		// Verificar si el módulo existe en los permisos del usuario
 		const userAccessLevel = role.Modules[requestedModuleId];
 		if (userAccessLevel === undefined) {
 			throw new ForbiddenException(
