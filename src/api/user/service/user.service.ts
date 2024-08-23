@@ -230,14 +230,7 @@ export class UserService {
 
 			const result = await this.generateOtp({ email, token: '' });
 
-			await this.sendOtpOrPasswordMessage(
-				type,
-				email,
-				firstName,
-				lastName,
-				result.otp,
-				password
-			);
+			await this.sendOtpOrPasswordMessage(userData, result.otp, password);
 
 			delete result.otp;
 			return result;
@@ -255,10 +248,10 @@ export class UserService {
 		otp: string,
 		password: string
 	) {
-		const event = type === 'WALLET' ? 'OTP_SENT' : 'TEMPORARY_PASSWORD_SENT';
+		const event =
+			type === 'WALLET' ? 'FIRST_OTP_SENT' : 'TEMPORARY_PASSWORD_SENT';
 		const otpOrPassword = type === 'WALLET' ? otp : password;
-		const username =
-			firstName + (lastName ? ' ' + lastName.charAt(0) + '.' : '');
+		const username = firstName + (lastName ? ' ' + lastName : '') + ',';
 		const sqsMessage = {
 			event,
 			email,
@@ -408,9 +401,7 @@ export class UserService {
 		const sqsMessage = {
 			event: 'OTP_SENT',
 			email: foundUser.Email,
-			username:
-				foundUser.FirstName +
-				(foundUser.LastName ? ' ' + foundUser.LastName.charAt(0) + '.' : ''),
+			username: firstName + (lastName ? ' ' + lastName : '') + ',',
 			otp,
 		};
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
