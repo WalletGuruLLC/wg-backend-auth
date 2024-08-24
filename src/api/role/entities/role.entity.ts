@@ -3,6 +3,9 @@ export class Role extends Document {
 	Id: string;
 	Name: string;
 	Description: string;
+	ProviderId: string;
 	Active: boolean;
 	Modules: object;
+	CreateDate: string;
+	UpdateDate: string;
 }

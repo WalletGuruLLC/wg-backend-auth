@@ -332,10 +332,9 @@ export class UserController {
 		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0001',
-					customMessage: errorCodes.WGE0001?.description,
-					customMessageEs: errorCodes.WGE0001?.descriptionEs,
+					...errorCodes.WGE0001,
+					message: error.message,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
@@ -528,7 +527,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0017?.descriptionEs,
 				});
 			}
-			if (getUsersDto?.skip > users?.totalPages) {
+			if (getUsersDto?.page > users?.totalPages) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0023',

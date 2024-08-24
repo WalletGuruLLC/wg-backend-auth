@@ -6,7 +6,7 @@ import {
 	Injectable,
 	UnauthorizedException,
 } from '@nestjs/common';
-import { CognitoUser, CognitoUserPool } from 'amazon-cognito-identity-js';
+import { CognitoUserPool } from 'amazon-cognito-identity-js';
 import * as AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
 import * as otpGenerator from 'otp-generator';
@@ -35,6 +35,7 @@ import { SqsService } from '../sqs/sqs.service';
 import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { Attempt } from '../../auth/entities/auth-attempt.entity';
 import { AuthAttemptSchema } from '../../auth/entities/auth-attempt.schema';
+import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 
 @Injectable()
 export class UserService {
@@ -110,7 +111,7 @@ export class UserService {
 		};
 
 		const result = await docClient.get(params).promise();
-		return result.Item?.Modules || {};
+		return convertToCamelCase(result.Item?.Modules) || {};
 	}
 
 	async verifyOtp(verifyOtp: VerifyOtpDto) {
@@ -150,18 +151,19 @@ export class UserService {
 				});
 			}
 
-			const user = await this.findOneByEmail(verifyOtp.email);
+			const userV = await this.findOneByEmail(verifyOtp.email);
 
 			let accessLevel = {};
-			if (user?.RoleId !== 'EMPTY') {
-				accessLevel = await this.listAccessLevels(user?.RoleId);
+			if (userV?.RoleId !== 'EMPTY') {
+				accessLevel = await this.listAccessLevels(userV?.RoleId);
 			}
 
-			user.AccessLevel = accessLevel;
+			userV.AccessLevel = accessLevel;
 
-			delete user.PasswordHash;
-			delete user.OtpTimestamp;
+			delete userV.PasswordHash;
+			delete userV.OtpTimestamp;
 
+			const user = convertToCamelCase(userV);
 			return {
 				user,
 				token: existingToken?.[0]?.token,
@@ -240,7 +242,7 @@ export class UserService {
 			);
 
 			delete result.otp;
-			return result;
+			return convertToCamelCase(result);
 		} catch (error) {
 			console.error('Error creating user:', error.message);
 			throw new Error('Failed to create user. Please try again later.');
@@ -271,7 +273,7 @@ export class UserService {
 
 	async findOne(id: string): Promise<User | null> {
 		try {
-			return await this.dbInstance.get({ Id: id });
+			return await convertToCamelCase(this.dbInstance.get({ Id: id }));
 		} catch (error) {
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
@@ -308,7 +310,7 @@ export class UserService {
 					'MfaType',
 				])
 				.exec();
-			return users[0];
+			return convertToCamelCase(users[0]);
 		} catch (error) {
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
@@ -317,7 +319,7 @@ export class UserService {
 	async findOneByEmail(email: string): Promise<User | null> {
 		try {
 			const users = await this.dbInstance.query('Email').eq(email).exec();
-			return users[0];
+			return convertToCamelCase(users[0]);
 		} catch (error) {
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
@@ -325,18 +327,20 @@ export class UserService {
 
 	async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
 		try {
-			return await this.dbInstance.update({
-				Id: id,
-				FirstName: updateUserDto.firstName,
-				LastName: updateUserDto.lastName,
-				Email: updateUserDto.email,
-				ServiceProviderId: updateUserDto.serviceProviderId,
-				MfaEnabled: updateUserDto.mfaEnabled,
-				MfaType: updateUserDto.mfaType,
-				RoleId: updateUserDto.roleId,
-				TermsConditions: updateUserDto.termsConditions,
-				PrivacyPolicy: updateUserDto.privacyPolicy,
-			});
+			return convertToCamelCase(
+				await this.dbInstance.update({
+					Id: id,
+					FirstName: updateUserDto.firstName,
+					LastName: updateUserDto.lastName,
+					Email: updateUserDto.email,
+					ServiceProviderId: updateUserDto.serviceProviderId,
+					MfaEnabled: updateUserDto.mfaEnabled,
+					MfaType: updateUserDto.mfaType,
+					RoleId: updateUserDto.roleId,
+					TermsConditions: updateUserDto.termsConditions,
+					PrivacyPolicy: updateUserDto.privacyPolicy,
+				})
+			);
 		} catch (error) {
 			throw new Error(`Error updating user: ${error.message}`);
 		}
@@ -347,10 +351,12 @@ export class UserService {
 		if (!user) {
 			throw new Error('User not found in database');
 		}
-		await this.dbInstance.update({
-			Id: id,
-			Active: false,
-		});
+		await convertToCamelCase(
+			this.dbInstance.update({
+				Id: id,
+				Active: false,
+			})
+		);
 	}
 
 	mapUserToCreateUserResponse(user: User): CreateUserResponse {
@@ -434,9 +440,9 @@ export class UserService {
 
 			delete otpResult.otp;
 
-			return {
+			return convertToCamelCase({
 				...otpResult,
-			};
+			});
 		} catch (error) {
 			await this.logAttempt(transactionId, signinDto.email, 'failure', 'login');
 			throw new BadRequestException('Invalid credentials');
@@ -459,24 +465,7 @@ export class UserService {
 		authForgotPasswordUserDto: AuthForgotPasswordUserDto
 	): Promise<string> {
 		const { email } = authForgotPasswordUserDto;
-
-		const userData = {
-			Username: email,
-			Pool: this.userPool,
-		};
-
-		const userCognito = new CognitoUser(userData);
-
-		return new Promise((resolve, reject) => {
-			userCognito.forgotPassword({
-				onSuccess: () => {
-					resolve('Password reset initiated');
-				},
-				onFailure: err => {
-					reject(`Failed to initiate password reset: ${err.message}`);
-				},
-			});
-		});
+		return await convertToCamelCase(this.cognitoService.forgotPassword(email));
 	}
 
 	async confirmUserPassword(
@@ -484,10 +473,12 @@ export class UserService {
 	) {
 		const { email, confirmationCode, newPassword } = authConfirmPasswordUserDto;
 
-		await this.cognitoService.confirmForgotPassword(
-			email,
-			confirmationCode,
-			newPassword
+		await convertToCamelCase(
+			this.cognitoService.confirmForgotPassword(
+				email,
+				confirmationCode,
+				newPassword
+			)
 		);
 	}
 
@@ -497,7 +488,7 @@ export class UserService {
 		total: number;
 		totalPages: number;
 	}> {
-		const { type = 'WALLET', email, id, skip = 1, limit = 10 } = getUsersDto;
+		const { type = 'WALLET', email, id, page = 1, items = 10 } = getUsersDto;
 
 		let query = this.dbInstance.query('type').eq(type);
 
@@ -527,14 +518,14 @@ export class UserService {
 		const total = result.length;
 
 		// Calculating pagination values
-		const offset = (Number(skip) - 1) * Number(limit);
-		const users = result.slice(offset, offset + Number(limit));
+		const offset = (Number(page) - 1) * Number(items);
+		const usersV = result.slice(offset, offset + Number(items));
 
-		const totalPages = Math.ceil(total / Number(limit));
-
+		const totalPages = Math.ceil(total / Number(items));
+		const users = convertToCamelCase(usersV);
 		return {
 			users,
-			currentPage: Number(skip),
+			currentPage: Number(page),
 			total,
 			totalPages,
 		};
@@ -567,12 +558,14 @@ export class UserService {
 
 			const userId = userFind?.[0].Id;
 
-			await this.dbInstance.update({
-				Id: userId,
-				State: 3,
-				First: false,
-				Active: true,
-			});
+			await convertToCamelCase(
+				this.dbInstance.update({
+					Id: userId,
+					State: 3,
+					First: false,
+					Active: true,
+				})
+			);
 
 			const user = await this.findOneByEmail(verifyOtp.email);
 
@@ -603,7 +596,7 @@ export class UserService {
 			};
 
 			const userData = await this.cognito.getUser(params).promise();
-			return userData;
+			return convertToCamelCase(userData);
 		} catch (error) {
 			throw new UnauthorizedException('Invalid access token');
 		}
@@ -615,10 +608,12 @@ export class UserService {
 		try {
 			const user = await this.findOneByEmail(updateUserDto?.email);
 
-			return await this.dbInstance.update({
-				Id: user?.Id,
-				Active: updateUserDto?.active,
-			});
+			return await convertToCamelCase(
+				this.dbInstance.update({
+					Id: user?.Id,
+					Active: updateUserDto?.active,
+				})
+			);
 		} catch (error) {
 			throw new Error(`Error updating user: ${error.message}`);
 		}
@@ -635,6 +630,8 @@ export class UserService {
 	}
 
 	async revokeTokenLogout(token: string) {
-		await this.cognitoService.revokeToken(token?.split(' ')?.[1]);
+		await convertToCamelCase(
+			this.cognitoService.revokeToken(token?.split(' ')?.[1])
+		);
 	}
 }

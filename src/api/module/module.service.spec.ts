@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ModuleService } from './module.service';
 import * as dynamoose from 'dynamoose';
+import { ModuleService } from './module.service';
 import { Model } from 'dynamoose/dist/Model';
 import { Module } from './entities/module.entity';
 import { ModuleSchema } from './entities/module.schema';
@@ -40,16 +40,31 @@ describe('ModuleService', () => {
 	describe('findAll', () => {
 		it('should return an array of modules', async () => {
 			const mockModules = [
-				{ Id: '1', Description: 'Module 1' },
-				{ Id: '2', Description: 'Module 2' },
+				{
+					Id: '1',
+					Description: 'Module 1',
+				},
+				{
+					Id: '2',
+					Description: 'Module 2',
+				},
 			];
 
-			(
-				model.scan().attributes(['Id', 'Description']).exec as jest.Mock
-			).mockResolvedValue(mockModules);
+			(model.scan().exec as jest.Mock).mockResolvedValue(mockModules);
+
+			const expectedModules = [
+				{
+					id: '1',
+					description: 'Module 1',
+				},
+				{
+					id: '2',
+					description: 'Module 2',
+				},
+			];
 
 			const result = await service.findAll();
-			expect(result).toEqual(mockModules);
+			expect(result).toEqual(expectedModules);
 		});
 	});
 });

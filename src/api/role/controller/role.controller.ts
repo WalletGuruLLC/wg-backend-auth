@@ -1,8 +1,7 @@
-import { message } from './../../../../node_modules/aws-sdk/clients/sns.d';
+import { convertToCamelCase } from 'src/utils/helpers/convertCamelCase';
 import {
 	Body,
 	Controller,
-	Delete,
 	Get,
 	Query,
 	HttpException,
@@ -12,6 +11,7 @@ import {
 	Post,
 	UseGuards,
 	UsePipes,
+	Res,
 } from '@nestjs/common';
 import {
 	ApiBody,
@@ -70,13 +70,14 @@ export class RoleController {
 		description: 'Roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findAll(
+	async findAllPaginated(
 		@Query('providerId') providerId?: string,
+		@Query('search') search = '',
 		@Query('page') page = 1,
 		@Query('items') items = 10
 	) {
 		try {
-			const roles = await this.roleService.findAll(
+			const roles = await this.roleService.findAllPaginated(
 				providerId,
 				Number(page),
 				Number(items)
@@ -92,40 +93,35 @@ export class RoleController {
 			//TODO: throw error only if no roles are found
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0032',
-					customMessage: errorCodes.WGE0032?.description,
-					customMessageEs: errorCodes.WGE0032?.descriptionEs,
+					...errorCodes.WGE0032,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
 	}
+
 	@UseGuards(CognitoAuthGuard)
-	@Get(':id')
+	@Get('active')
 	@ApiOkResponse({
-		description: 'The role has been successfully retrieved.',
+		description: 'Active roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findOne(@Param('id') id: string) {
+	async findAllActive(@Query('providerId') providerId?: string) {
 		try {
-			const role = await this.roleService.getRoleInfo(id);
-			if (!role) {
-				throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
-			}
+			const roles = await this.roleService.findAllActive(providerId);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Role found',
-				data: role,
+				customCode: 'WGS0031',
+				customMessage: successCodes.WGS0031?.description,
+				customMessageEs: successCodes.WGS0031?.descriptionEs,
+				data: roles,
 			};
 		} catch (error) {
-			if (error.status === HttpStatus.NOT_FOUND) {
-				throw error; // Re-throw 404 errors as they are
-			}
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error retrieving role: ${error.message}`,
+					customCode: 'WGE0032',
+					...errorCodes.WGE0032,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -167,40 +163,6 @@ export class RoleController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Delete(':id')
-	@ApiOkResponse({
-		description: 'The role has been successfully deleted.',
-	})
-	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async remove(@Param('id') id: string) {
-		try {
-			await this.roleService.remove(id);
-			return {
-				statusCode: HttpStatus.OK,
-				message: 'Role deleted successfully',
-			};
-		} catch (error) {
-			if (error.message === 'Role not found in database') {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.NOT_FOUND,
-						message: error.message,
-					},
-					HttpStatus.NOT_FOUND
-				);
-			} else {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						message: `Error deleting role: ${error.message}`,
-					},
-					HttpStatus.INTERNAL_SERVER_ERROR
-				);
-			}
-		}
-	}
-
-	@UseGuards(CognitoAuthGuard)
 	@ApiOperation({ summary: 'Crear un nuevo nivel de acceso para un módulo' })
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
@@ -214,7 +176,8 @@ export class RoleController {
 	async createAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
-		@Body('accessLevel') accessLevel: number
+		@Body('accessLevel') accessLevel: number,
+		@Res() res
 	) {
 		try {
 			const role = await this.roleService.findRole(roleId);
@@ -232,11 +195,11 @@ export class RoleController {
 
 			const roleUpd = await this.roleService.getRoleInfo(roleId);
 
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				message: 'Role updated successfully',
-				data: roleUpd,
-			};
+				data: convertToCamelCase(roleUpd),
+			});
 		} catch (error) {
 			throw new HttpException(
 				{
