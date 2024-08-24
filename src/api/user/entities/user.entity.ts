@@ -10,7 +10,7 @@ export class User extends Document {
 	PasswordHash = '';
 	MfaEnabled = false;
 	MfaType: string = MfaTypeUser.TOTP;
-	type: TypeUser = TypeUser.PLATFORM;
+	Type: TypeUser = TypeUser.PLATFORM;
 	RoleId = '';
 	Active: boolean;
 	First: boolean;

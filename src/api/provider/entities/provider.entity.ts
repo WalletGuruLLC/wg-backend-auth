@@ -3,14 +3,14 @@ import { Document } from 'dynamoose/dist/Document';
 
 const ProviderSchema = new dynamoose.Schema(
 	{
-		id: {
+		Id: {
 			type: String,
 			hashKey: true,
 		},
-		name: String,
-		description: String,
-		email: String,
-		phone: String,
+		Name: String,
+		Description: String,
+		Email: String,
+		Phone: String,
 	},
 	{
 		timestamps: true,

@@ -10,7 +10,7 @@ export class ModuleService {
 	private readonly dbInstance: Model<Module>;
 
 	constructor() {
-		const tableName = 'modules';
+		const tableName = 'Modules';
 		this.dbInstance = dynamoose.model<Module>(tableName, ModuleSchema, {
 			create: false,
 			waitForActive: false,

@@ -38,7 +38,7 @@ export const UserSchema = new dynamoose.Schema(
 			enum: Object.values(MfaTypeUser),
 			default: MfaTypeUser.TOTP,
 		},
-		type: {
+		Type: {
 			type: String,
 			enum: Object.values(TypeUser),
 			default: TypeUser.PLATFORM,

@@ -14,7 +14,7 @@ export class RoleService {
 	private readonly dbInstance: Model<Role>;
 
 	constructor() {
-		const tableName = 'roles';
+		const tableName = 'Roles';
 		this.dbInstance = dynamoose.model<Role>(tableName, RoleSchema, {
 			create: false,
 			waitForActive: false,
