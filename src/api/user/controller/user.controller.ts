@@ -332,10 +332,9 @@ export class UserController {
 		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0001',
-					customMessage: errorCodes.WGE0001?.description,
-					customMessageEs: errorCodes.WGE0001?.descriptionEs,
+					...errorCodes.WGE0001,
+					message: error.message,
 				},
 				HttpStatus.UNAUTHORIZED
 			);

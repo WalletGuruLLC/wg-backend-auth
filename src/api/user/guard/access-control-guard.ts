@@ -42,7 +42,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		const userAccessLevel = role.Modules[requestedModuleId];
+		const userAccessLevel = role?.Modules[requestedModuleId];
 		if (userAccessLevel === undefined) {
 			throw new HttpException(
 				{
