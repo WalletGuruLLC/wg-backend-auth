@@ -144,7 +144,7 @@ export class UserService {
 				Active: true,
 			});
 
-			if (userFind?.type == 'WALLET') {
+			if (userFind?.Type == 'WALLET') {
 				await this.dbInstance.update({
 					Id: userFind?.Id,
 					First: false,
@@ -221,7 +221,7 @@ export class UserService {
 				ServiceProviderId: type === 'PROVIDER' ? serviceProviderId : 'EMPTY',
 				MfaType: mfaType,
 				RoleId: type === 'WALLET' ? 'EMPTY' : roleId,
-				type: type,
+				Type: type,
 				State: 0,
 				Active: true,
 				TermsConditions: termsConditions,
@@ -366,7 +366,7 @@ export class UserService {
 			lastName: user.LastName,
 			email: user.Email,
 			phone: user.Phone,
-			type: user.type,
+			type: user.Type,
 			roleId: user.RoleId,
 			active: user.PasswordHash !== '',
 			state: user.State,

@@ -2,7 +2,7 @@ import * as dynamoose from 'dynamoose';
 
 export const OtpSchema = new dynamoose.Schema(
 	{
-		email: {
+		Email: {
 			type: String,
 			required: true,
 			index: {
@@ -10,7 +10,7 @@ export const OtpSchema = new dynamoose.Schema(
 				name: 'emailIndex',
 			},
 		},
-		otp: {
+		Otp: {
 			type: String,
 			required: true,
 			index: {
@@ -18,10 +18,10 @@ export const OtpSchema = new dynamoose.Schema(
 				name: 'otpIndex',
 			},
 		},
-		token: {
+		Token: {
 			type: String,
 		},
-		createdAt: {
+		CreatedAt: {
 			type: Date,
 			required: true,
 			default: () => new Date(),
@@ -35,6 +35,6 @@ export const OtpSchema = new dynamoose.Schema(
 	}
 );
 
-export const OtpModel = dynamoose.model('otps', OtpSchema, {
+export const OtpModel = dynamoose.model('Otps', OtpSchema, {
 	expires: 60 * 5,
 });
