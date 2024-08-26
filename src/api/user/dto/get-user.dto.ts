@@ -23,9 +23,9 @@ export class GetUsersDto {
 
 	@IsOptional()
 	@IsString()
-	limit?: number;
+	items?: number;
 
 	@IsOptional()
 	@IsString()
-	skip?: number;
+	page?: number;
 }

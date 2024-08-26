@@ -6,7 +6,6 @@ import {
 	Injectable,
 	UnauthorizedException,
 } from '@nestjs/common';
-import { CognitoUser, CognitoUserPool } from 'amazon-cognito-identity-js';
 import * as AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
 import * as otpGenerator from 'otp-generator';
@@ -35,6 +34,7 @@ import { SqsService } from '../sqs/sqs.service';
 import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { Attempt } from '../../auth/entities/auth-attempt.entity';
 import { AuthAttemptSchema } from '../../auth/entities/auth-attempt.schema';
+import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 
 @Injectable()
 export class UserService {
@@ -42,21 +42,16 @@ export class UserService {
 	private dbOtpInstance: Model<Otp>;
 	private dbAttemptInstance: Model<Attempt>;
 	private cognitoService: CognitoService;
-	private userPool: CognitoUserPool;
 	private cognito: AWS.CognitoIdentityServiceProvider;
 
 	constructor(private readonly sqsService: SqsService) {
-		this.dbInstance = dynamoose.model<User>('users', UserSchema);
-		this.dbOtpInstance = dynamoose.model<Otp>('otps', OtpSchema);
+		this.dbInstance = dynamoose.model<User>('Users', UserSchema);
+		this.dbOtpInstance = dynamoose.model<Otp>('Otps', OtpSchema);
 		this.dbAttemptInstance = dynamoose.model<Attempt>(
-			'attempts',
+			'Attempts',
 			AuthAttemptSchema
 		);
 		this.cognitoService = new CognitoService();
-		this.userPool = new CognitoUserPool({
-			UserPoolId: process.env.COGNITO_USER_POOL_ID,
-			ClientId: process.env.COGNITO_CLIENT_ID,
-		});
 		this.cognito = new AWS.CognitoIdentityServiceProvider({
 			region: process.env.AWS_REGION,
 		});
@@ -68,7 +63,7 @@ export class UserService {
 		const { email, token } = createOtpRequestDto;
 
 		const existingOtpEmail = await this.dbOtpInstance
-			.query('email')
+			.query('Email')
 			.eq(email)
 			.exec();
 
@@ -82,16 +77,18 @@ export class UserService {
 			specialChars: false,
 		});
 
-		let existingOtp = await this.dbOtpInstance.query('otp').eq(otp).exec();
+		let existingOtp = await this.dbOtpInstance.query('Otp').eq(otp).exec();
 
 		while (existingOtp.count > 0) {
 			otp = otpGenerator.generate(6, {
 				upperCaseAlphabets: false,
 			});
-			existingOtp = await this.dbOtpInstance.query('otp').eq(otp).exec();
+			existingOtp = await this.dbOtpInstance.query('Otp').eq(otp).exec();
 		}
 
-		const otpPayload = { email, otp, token };
+		const ttl = Math.floor(Date.now() / 1000) + 60 * 5;
+
+		const otpPayload = { Email: email, Otp: otp, Token: token, TTL: ttl };
 		await this.dbOtpInstance.create(otpPayload);
 
 		return {
@@ -104,7 +101,7 @@ export class UserService {
 	async listAccessLevels(roleId: string) {
 		const docClient = new DocumentClient();
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 			ProjectionExpression: 'Modules',
 		};
@@ -115,9 +112,12 @@ export class UserService {
 
 	async verifyOtp(verifyOtp: VerifyOtpDto) {
 		try {
-			const otpRecord = await this.dbOtpInstance.scan(verifyOtp).exec();
+			const otpRecord = await this.dbOtpInstance
+				.query('Email')
+				.eq(verifyOtp?.email)
+				.exec();
 
-			if (!otpRecord || otpRecord.count === 0) {
+			if (!otpRecord?.[0]?.Otp) {
 				throw new HttpException(
 					'Invalid or expired OTP',
 					HttpStatus.UNAUTHORIZED
@@ -125,27 +125,27 @@ export class UserService {
 			}
 
 			const existingToken = await this.dbOtpInstance
-				.query('otp')
+				.query('Otp')
 				.eq(verifyOtp?.otp)
-				.attributes(['token'])
+				.attributes(['Token'])
 				.exec();
 
 			await this.dbOtpInstance.delete({
-				email: verifyOtp?.email,
-				otp: verifyOtp?.otp,
+				Email: verifyOtp?.email,
+				Otp: verifyOtp?.otp,
 			});
 
 			const userFind = await this.findOneByEmail(verifyOtp.email);
 
 			await this.dbInstance.update({
-				Id: userFind?.Id,
+				Id: userFind?.id,
 				State: 3,
 				Active: true,
 			});
 
-			if (userFind?.type == 'WALLET') {
+			if (userFind?.Type == 'WALLET') {
 				await this.dbInstance.update({
-					Id: userFind?.Id,
+					Id: userFind?.id,
 					First: false,
 				});
 			}
@@ -153,18 +153,18 @@ export class UserService {
 			const user = await this.findOneByEmail(verifyOtp.email);
 
 			let accessLevel = {};
-			if (user?.RoleId !== 'EMPTY') {
-				accessLevel = await this.listAccessLevels(user?.RoleId);
+			if (user?.roleId !== 'EMPTY') {
+				accessLevel = await this.listAccessLevels(user?.roleId);
 			}
 
-			user.AccessLevel = accessLevel;
+			user.accessLevel = accessLevel;
 
-			delete user.PasswordHash;
-			delete user.OtpTimestamp;
+			delete user.passwordHash;
+			delete user.otpTimestamp;
 
 			return {
 				user,
-				token: existingToken?.[0]?.token,
+				token: existingToken?.[0]?.Token,
 			};
 		} catch (error) {
 			console.error(error.message);
@@ -201,7 +201,7 @@ export class UserService {
 			// Verificar la unicidad del ID
 			const verifyUnique = await this.findOne(uniqueIdValue);
 
-			while (verifyUnique) {
+			while (verifyUnique?.Id) {
 				uniqueIdValue = generateUniqueId(type);
 			}
 
@@ -219,7 +219,7 @@ export class UserService {
 				ServiceProviderId: type === 'PROVIDER' ? serviceProviderId : 'EMPTY',
 				MfaType: mfaType,
 				RoleId: type === 'WALLET' ? 'EMPTY' : roleId,
-				type: type,
+				Type: type,
 				State: 0,
 				Active: true,
 				TermsConditions: termsConditions,
@@ -240,7 +240,7 @@ export class UserService {
 			);
 
 			delete result.otp;
-			return result;
+			return convertToCamelCase(result);
 		} catch (error) {
 			console.error('Error creating user:', error.message);
 			throw new Error('Failed to create user. Please try again later.');
@@ -271,7 +271,7 @@ export class UserService {
 
 	async findOne(id: string): Promise<User | null> {
 		try {
-			return await this.dbInstance.get({ Id: id });
+			return await convertToCamelCase(this.dbInstance.get({ Id: id }));
 		} catch (error) {
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
@@ -308,16 +308,16 @@ export class UserService {
 					'MfaType',
 				])
 				.exec();
-			return users[0];
+			return convertToCamelCase(users[0]);
 		} catch (error) {
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
 	}
 
-	async findOneByEmail(email: string): Promise<User | null> {
+	async findOneByEmail(email: string) {
 		try {
 			const users = await this.dbInstance.query('Email').eq(email).exec();
-			return users[0];
+			return convertToCamelCase(users[0]);
 		} catch (error) {
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
@@ -325,18 +325,20 @@ export class UserService {
 
 	async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
 		try {
-			return await this.dbInstance.update({
-				Id: id,
-				FirstName: updateUserDto.firstName,
-				LastName: updateUserDto.lastName,
-				Email: updateUserDto.email,
-				ServiceProviderId: updateUserDto.serviceProviderId,
-				MfaEnabled: updateUserDto.mfaEnabled,
-				MfaType: updateUserDto.mfaType,
-				RoleId: updateUserDto.roleId,
-				TermsConditions: updateUserDto.termsConditions,
-				PrivacyPolicy: updateUserDto.privacyPolicy,
-			});
+			return convertToCamelCase(
+				await this.dbInstance.update({
+					Id: id,
+					FirstName: updateUserDto.firstName,
+					LastName: updateUserDto.lastName,
+					Email: updateUserDto.email,
+					ServiceProviderId: updateUserDto.serviceProviderId,
+					MfaEnabled: updateUserDto.mfaEnabled,
+					MfaType: updateUserDto.mfaType,
+					RoleId: updateUserDto.roleId,
+					TermsConditions: updateUserDto.termsConditions,
+					PrivacyPolicy: updateUserDto.privacyPolicy,
+				})
+			);
 		} catch (error) {
 			throw new Error(`Error updating user: ${error.message}`);
 		}
@@ -347,10 +349,12 @@ export class UserService {
 		if (!user) {
 			throw new Error('User not found in database');
 		}
-		await this.dbInstance.update({
-			Id: id,
-			Active: false,
-		});
+		await convertToCamelCase(
+			this.dbInstance.update({
+				Id: id,
+				Active: false,
+			})
+		);
 	}
 
 	mapUserToCreateUserResponse(user: User): CreateUserResponse {
@@ -360,7 +364,7 @@ export class UserService {
 			lastName: user.LastName,
 			email: user.Email,
 			phone: user.Phone,
-			type: user.type,
+			type: user.Type,
 			roleId: user.RoleId,
 			active: user.PasswordHash !== '',
 			state: user.State,
@@ -373,7 +377,17 @@ export class UserService {
 	}
 
 	private async deletePreviousOtp(email: string) {
-		await this.dbOtpInstance.delete({ email });
+		try {
+			const otpRecord = await this.dbOtpInstance.scan({ Email: email }).exec();
+			if (otpRecord && otpRecord.length > 0) {
+				await this.dbOtpInstance.delete({
+					Email: otpRecord[0].Email,
+					Otp: otpRecord[0].Otp,
+				});
+			}
+		} catch (error) {
+			console.error('Error during delete operation:', error);
+		}
 	}
 
 	private async authenticateUser(signinDto: SignInDto) {
@@ -390,16 +404,16 @@ export class UserService {
 	}
 
 	private async logAttempt(
-		id: string,
-		email: string,
-		status: 'success' | 'failure',
-		section: string
+		Id: string,
+		Email: string,
+		Status: 'success' | 'failure',
+		Section: string
 	) {
 		const logPayload = {
-			id,
-			email,
-			section: section,
-			status,
+			Id,
+			Email,
+			Section,
+			Status,
 		};
 		await this.dbAttemptInstance.create(logPayload);
 	}
@@ -407,10 +421,10 @@ export class UserService {
 	private async sendOtpNotification(foundUser: any, otp: string) {
 		const sqsMessage = {
 			event: 'OTP_SENT',
-			email: foundUser.Email,
+			email: foundUser.email,
 			username:
-				foundUser.FirstName +
-				(foundUser.LastName ? ' ' + foundUser.LastName.charAt(0) + '.' : ''),
+				foundUser.firstName +
+				(foundUser.lastName ? ' ' + foundUser.lastName.charAt(0) + '.' : ''),
 			otp,
 		};
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
@@ -434,9 +448,9 @@ export class UserService {
 
 			delete otpResult.otp;
 
-			return {
+			return convertToCamelCase({
 				...otpResult,
-			};
+			});
 		} catch (error) {
 			await this.logAttempt(transactionId, signinDto.email, 'failure', 'login');
 			throw new BadRequestException('Invalid credentials');
@@ -459,24 +473,7 @@ export class UserService {
 		authForgotPasswordUserDto: AuthForgotPasswordUserDto
 	): Promise<string> {
 		const { email } = authForgotPasswordUserDto;
-
-		const userData = {
-			Username: email,
-			Pool: this.userPool,
-		};
-
-		const userCognito = new CognitoUser(userData);
-
-		return new Promise((resolve, reject) => {
-			userCognito.forgotPassword({
-				onSuccess: () => {
-					resolve('Password reset initiated');
-				},
-				onFailure: err => {
-					reject(`Failed to initiate password reset: ${err.message}`);
-				},
-			});
-		});
+		return await convertToCamelCase(this.cognitoService.forgotPassword(email));
 	}
 
 	async confirmUserPassword(
@@ -484,10 +481,12 @@ export class UserService {
 	) {
 		const { email, confirmationCode, newPassword } = authConfirmPasswordUserDto;
 
-		await this.cognitoService.confirmForgotPassword(
-			email,
-			confirmationCode,
-			newPassword
+		await convertToCamelCase(
+			this.cognitoService.confirmForgotPassword(
+				email,
+				confirmationCode,
+				newPassword
+			)
 		);
 	}
 
@@ -497,7 +496,7 @@ export class UserService {
 		total: number;
 		totalPages: number;
 	}> {
-		const { type = 'WALLET', email, id, skip = 1, limit = 10 } = getUsersDto;
+		const { type = 'WALLET', email, id, page = 1, items = 10 } = getUsersDto;
 
 		let query = this.dbInstance.query('type').eq(type);
 
@@ -527,14 +526,14 @@ export class UserService {
 		const total = result.length;
 
 		// Calculating pagination values
-		const offset = (Number(skip) - 1) * Number(limit);
-		const users = result.slice(offset, offset + Number(limit));
+		const offset = (Number(page) - 1) * Number(items);
+		const usersV = result.slice(offset, offset + Number(items));
 
-		const totalPages = Math.ceil(total / Number(limit));
-
+		const totalPages = Math.ceil(total / Number(items));
+		const users = convertToCamelCase(usersV);
 		return {
 			users,
-			currentPage: Number(skip),
+			currentPage: Number(page),
 			total,
 			totalPages,
 		};
@@ -552,8 +551,8 @@ export class UserService {
 			}
 
 			await this.dbOtpInstance.delete({
-				email: verifyOtp?.email,
-				otp: verifyOtp?.otp,
+				Email: verifyOtp?.email,
+				Otp: verifyOtp?.otp,
 			});
 
 			const userFind = await this.dbInstance
@@ -567,12 +566,14 @@ export class UserService {
 
 			const userId = userFind?.[0].Id;
 
-			await this.dbInstance.update({
-				Id: userId,
-				State: 3,
-				First: false,
-				Active: true,
-			});
+			await convertToCamelCase(
+				this.dbInstance.update({
+					Id: userId,
+					State: 3,
+					First: false,
+					Active: true,
+				})
+			);
 
 			const user = await this.findOneByEmail(verifyOtp.email);
 
@@ -615,26 +616,30 @@ export class UserService {
 		try {
 			const user = await this.findOneByEmail(updateUserDto?.email);
 
-			return await this.dbInstance.update({
-				Id: user?.Id,
-				Active: updateUserDto?.active,
-			});
+			return await convertToCamelCase(
+				this.dbInstance.update({
+					Id: user?.Id,
+					Active: updateUserDto?.active,
+				})
+			);
 		} catch (error) {
 			throw new Error(`Error updating user: ${error.message}`);
 		}
 	}
-	async resendOtp(user: User): Promise<void> {
+	async resendOtp(user): Promise<void> {
 		const foundOtp = await this.dbOtpInstance
-			.query('email')
-			.eq(user.Email)
+			.query('Email')
+			.eq(user.email)
 			.exec();
 		if (foundOtp.count === 0) {
 			throw new Error(`OTP does not exist`);
 		}
-		await this.sendOtpNotification(user, foundOtp[0].otp);
+		await this.sendOtpNotification(user, foundOtp[0].Otp);
 	}
 
 	async revokeTokenLogout(token: string) {
-		await this.cognitoService.revokeToken(token?.split(' ')?.[1]);
+		await convertToCamelCase(
+			this.cognitoService.revokeToken(token?.split(' ')?.[1])
+		);
 	}
 }

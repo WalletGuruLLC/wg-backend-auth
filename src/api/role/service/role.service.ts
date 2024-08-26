@@ -3,6 +3,7 @@ import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 
+import { ProviderService } from '../../provider/service/provider.service';
 import { RoleSchema } from '../entities/role.schema';
 import { errorCodes } from '../../../utils/constants';
 import { Role } from '../entities/role.entity';
@@ -13,15 +14,34 @@ import { UpdateRoleDto } from '../dto/update-role.dto';
 export class RoleService {
 	private readonly dbInstance: Model<Role>;
 
-	constructor() {
-		const tableName = 'roles';
+	constructor(private readonly providerService: ProviderService) {
+		const tableName = 'Roles';
 		this.dbInstance = dynamoose.model<Role>(tableName, RoleSchema, {
 			create: false,
 			waitForActive: false,
 		});
 	}
 
-	async create(createRoleDto: CreateRoleDto): Promise<Role> {
+	async create(createRoleDto: CreateRoleDto) {
+		if (createRoleDto.providerId !== 'EMPTY') {
+			await this.providerService.findOne(createRoleDto.providerId);
+		}
+
+		const existingRole = await this.dbInstance
+			.scan('Name')
+			.eq(createRoleDto.name)
+			.and()
+			.filter('ProviderId')
+			.eq(createRoleDto.providerId)
+			.exec();
+
+		if (existingRole.count > 0) {
+			throw new HttpException(
+				'Role with the same name already exists for this provider',
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+
 		const role = {
 			Name: createRoleDto.name,
 			Description: createRoleDto.description,
@@ -29,14 +49,10 @@ export class RoleService {
 		};
 
 		const savedRole = await this.dbInstance.create(role);
-		return savedRole;
+		return this.mapRoleToResponse(savedRole);
 	}
 
-	async findAll(
-		providerId?: string,
-		page = 1,
-		items = 10
-	): Promise<{ roles: Role[]; total: number }> {
+	async findAllPaginated(providerId?: string, page = 1, items = 10) {
 		const skip = (page - 1) * items;
 		let dbQuery;
 
@@ -66,17 +82,30 @@ export class RoleService {
 
 		const paginatedRoles = roles.slice(skip, skip + items);
 
-		return { roles: paginatedRoles, total };
+		const transformedRoles = paginatedRoles.map(this.mapRoleToResponse);
+		return { roles: transformedRoles, total };
 	}
 
-	async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
+	async findAllActive(providerId?: string) {
+		let query = this.dbInstance.scan('Active').eq(true);
+
+		if (providerId) {
+			query = query.and().filter('ProviderId').eq(providerId);
+		}
+
+		const result = await query.exec();
+		return result.map(this.mapRoleToResponse);
+	}
+
+	async update(id: string, updateRoleDto: UpdateRoleDto) {
 		await this.findOne(id);
 
-		return await this.dbInstance.update({
+		const updatedRole = await this.dbInstance.update({
 			Id: id,
 			Name: updateRoleDto.name,
 			Description: updateRoleDto.description,
 		});
+		return this.mapRoleToResponse(updatedRole);
 	}
 
 	private async findOne(id: string): Promise<Role> {
@@ -105,7 +134,7 @@ export class RoleService {
 		const docClient = new DocumentClient();
 
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
 			ExpressionAttributeNames: {
@@ -129,7 +158,7 @@ export class RoleService {
 		const docClient = new DocumentClient();
 
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
 			ExpressionAttributeNames: {
@@ -149,7 +178,7 @@ export class RoleService {
 	async listAccessLevels(roleId: string) {
 		const docClient = new DocumentClient();
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 			ProjectionExpression: 'Modules',
 		};
@@ -161,7 +190,7 @@ export class RoleService {
 	async getRoleInfo(roleId: string) {
 		const docClient = new DocumentClient();
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 		};
 
@@ -181,5 +210,18 @@ export class RoleService {
 			);
 		}
 		return role;
+	}
+
+	private mapRoleToResponse(role: Role) {
+		return {
+			id: role.Id,
+			name: role.Name,
+			description: role.Description,
+			providerId: role.ProviderId,
+			active: role.Active,
+			modules: role.Modules,
+			createDate: role.CreateDate,
+			updateDate: role.UpdateDate,
+		};
 	}
 }

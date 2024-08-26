@@ -113,8 +113,15 @@ export class UserController {
 				userInfo?.UserAttributes?.[0]?.Value
 			);
 
-			delete userFind?.PasswordHash;
-			delete userFind?.OtpTimestamp;
+			let accessLevel = {};
+			if (userFind?.roleId !== 'EMPTY') {
+				accessLevel = await this.userService.listAccessLevels(userFind?.roleId);
+			}
+
+			userFind.accessLevel = accessLevel;
+
+			delete userFind?.passwordHash;
+			delete userFind?.otpTimestamp;
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
@@ -307,20 +314,20 @@ export class UserController {
 		try {
 			const userFind = await this.userService.findOneByEmail(signinDto?.email);
 			if (!userFind) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
-			if (!userFind?.Active) {
-				return {
+			if (!userFind?.active) {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0022',
 					customMessage: errorCodes.WGE0022?.description,
 					customMessageEs: errorCodes.WGE0022?.descriptionEs,
-				};
+				});
 			}
 			await this.userService.signin(signinDto);
 			return res.status(HttpStatus.OK).json({
@@ -332,10 +339,9 @@ export class UserController {
 		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0001',
-					customMessage: errorCodes.WGE0001?.description,
-					customMessageEs: errorCodes.WGE0001?.descriptionEs,
+					...errorCodes.WGE0001,
+					message: error.message,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
@@ -528,7 +534,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0017?.descriptionEs,
 				});
 			}
-			if (getUsersDto?.skip > users?.totalPages) {
+			if (getUsersDto?.page > users?.totalPages) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0023',

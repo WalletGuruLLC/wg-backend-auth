@@ -92,7 +92,7 @@ export class ProviderController {
 		@Body() updateProviderDto: UpdateProviderDto
 	) {
 		try {
-			const provider = await this.providerService.update(id, updateProviderDto);
+			const provider = {}; //await this.providerService.update(id, updateProviderDto);
 			return {
 				statusCode: HttpStatus.OK,
 				message: 'Provider updated successfully',

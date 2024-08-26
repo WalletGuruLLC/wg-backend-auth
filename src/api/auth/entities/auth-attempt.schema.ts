@@ -3,19 +3,19 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const AuthAttemptSchema = new dynamoose.Schema(
 	{
-		id: {
+		Id: {
 			type: String,
 			default: () => uuidv4(),
 		},
-		email: {
+		Email: {
 			type: String,
 			required: true,
 		},
-		section: {
+		Section: {
 			type: String,
 			required: true,
 		},
-		status: {
+		Status: {
 			type: String,
 			enum: ['success', 'failure'],
 			required: true,
@@ -29,4 +29,4 @@ export const AuthAttemptSchema = new dynamoose.Schema(
 	}
 );
 
-export const AuthAttemptModel = dynamoose.model('attempts', AuthAttemptSchema);
+export const AuthAttemptModel = dynamoose.model('Attempts', AuthAttemptSchema);

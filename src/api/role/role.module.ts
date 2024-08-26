@@ -6,8 +6,9 @@ import { RoleService } from './service/role.service';
 import { CognitoAuthGuard } from '../user/guard/cognito-auth.guard';
 import { UserModule } from '../user/user.module';
 import { AccessControlMiddleware } from '../user/guard/access-control-guard';
+import { ProviderModule } from '../provider/provider.module';
 @Module({
-	imports: [ConfigModule, UserModule],
+	imports: [ConfigModule, UserModule, ProviderModule],
 	controllers: [RoleController],
 	providers: [RoleService, CognitoAuthGuard],
 })

@@ -10,17 +10,23 @@ export class ModuleService {
 	private readonly dbInstance: Model<Module>;
 
 	constructor() {
-		const tableName = 'modules';
+		const tableName = 'Modules';
 		this.dbInstance = dynamoose.model<Module>(tableName, ModuleSchema, {
 			create: false,
 			waitForActive: false,
 		});
 	}
-	async findAll(): Promise<Module[]> {
-		const modules = await this.dbInstance
-			.scan()
-			.attributes(['Id', 'Description'])
-			.exec();
-		return modules;
+	async findAll() {
+		const modules = await this.dbInstance.scan().exec();
+		return modules.map(this.mapModuleToResponse);
+	}
+
+	private mapModuleToResponse(module: Module) {
+		return {
+			id: module.Id,
+			description: module.Description,
+			createDate: module.CreateDate,
+			updateDate: module.UpdateDate,
+		};
 	}
 }

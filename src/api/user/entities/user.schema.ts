@@ -38,13 +38,13 @@ export const UserSchema = new dynamoose.Schema(
 			enum: Object.values(MfaTypeUser),
 			default: MfaTypeUser.TOTP,
 		},
-		type: {
+		Type: {
 			type: String,
 			enum: Object.values(TypeUser),
 			default: TypeUser.PLATFORM,
 			index: {
 				global: true,
-				name: 'userTypeIndex',
+				name: 'UserTypeIndex',
 			},
 		},
 		RoleId: {
@@ -110,7 +110,7 @@ export const UserSchema = new dynamoose.Schema(
 );
 
 // Asocia el modelo con la clase User
-export const UserModel = dynamoose.model<User>('users', UserSchema, {
+export const UserModel = dynamoose.model<User>('Users', UserSchema, {
 	create: false,
 	update: false,
 	waitForActive: false,
