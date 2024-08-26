@@ -114,7 +114,7 @@ export class RoleService {
 		const docClient = new DocumentClient();
 
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
 			ExpressionAttributeNames: {
@@ -138,7 +138,7 @@ export class RoleService {
 		const docClient = new DocumentClient();
 
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
 			ExpressionAttributeNames: {
@@ -158,7 +158,7 @@ export class RoleService {
 	async listAccessLevels(roleId: string) {
 		const docClient = new DocumentClient();
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 			ProjectionExpression: 'Modules',
 		};
@@ -170,7 +170,7 @@ export class RoleService {
 	async getRoleInfo(roleId: string) {
 		const docClient = new DocumentClient();
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 		};
 

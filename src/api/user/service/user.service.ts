@@ -101,7 +101,7 @@ export class UserService {
 	async listAccessLevels(roleId: string) {
 		const docClient = new DocumentClient();
 		const params = {
-			TableName: 'roles',
+			TableName: 'Roles',
 			Key: { Id: roleId },
 			ProjectionExpression: 'Modules',
 		};
