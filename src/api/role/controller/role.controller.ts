@@ -54,13 +54,20 @@ export class RoleController {
 				data: role,
 			};
 		} catch (error) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0025',
-					...errorCodes.WGE0025,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
+			if (
+				error instanceof HttpException &&
+				error.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
+			) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0025',
+						...errorCodes.WGE0025,
+						message: error.message,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+			throw error;
 		}
 	}
 
