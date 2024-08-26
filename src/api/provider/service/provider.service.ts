@@ -39,8 +39,8 @@ export class ProviderService {
 		if (!provider) {
 			throw new HttpException(
 				{
-					customCode: 'WGE0027',
-					...errorCodes.WGE0027,
+					customCode: 'WGE0040',
+					...errorCodes.WGE0040,
 				},
 				HttpStatus.NOT_FOUND
 			);

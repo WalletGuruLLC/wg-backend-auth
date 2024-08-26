@@ -23,7 +23,9 @@ export class RoleService {
 	}
 
 	async create(createRoleDto: CreateRoleDto) {
-		await this.providerService.findOne(createRoleDto.providerId);
+		if (createRoleDto.providerId !== 'EMPTY') {
+			await this.providerService.findOne(createRoleDto.providerId);
+		}
 
 		const existingRole = await this.dbInstance
 			.scan('Name')

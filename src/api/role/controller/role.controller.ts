@@ -67,6 +67,7 @@ export class RoleController {
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);
 			}
+			throw error;
 		}
 	}
 

@@ -211,11 +211,15 @@ export const errorCodes = {
 		description: `You do not have permission to perform this action.`,
 		descriptionEs: `No tienes permiso para realizar esta acción.`,
 	},
-
 	WGE0039: {
 		message: `No permission in the specified module`,
 		description: `You do not have permission in the specified module.`,
 		descriptionEs: `No tienes permisos en el módulo especificado.`,
+	},
+	WGE0040: {
+		message: `Provider not found`,
+		description: `There is no provider with the id provided.`,
+		descriptionEs: `No hay ningún provider asociado con el id ingresado.`,
 	},
 };
 

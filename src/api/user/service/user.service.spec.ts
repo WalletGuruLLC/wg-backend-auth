@@ -35,6 +35,7 @@ jest.mock('dynamoose', () => ({
 	model: jest.fn().mockImplementation(() => ({
 		delete: jest.fn().mockReturnValue({ promise: jest.fn() }),
 		create: jest.fn().mockReturnValue({ promise: jest.fn() }),
+		scan: jest.fn().mockReturnValue({ promise: jest.fn() }),
 	})),
 	Schema: jest.fn(),
 }));
