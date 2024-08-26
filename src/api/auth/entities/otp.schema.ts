@@ -15,7 +15,7 @@ export const OtpSchema = new dynamoose.Schema(
 			required: true,
 			index: {
 				global: true,
-				name: 'otpIndex',
+				name: 'OtpIndex',
 			},
 		},
 		Token: {
@@ -26,6 +26,9 @@ export const OtpSchema = new dynamoose.Schema(
 			required: true,
 			default: () => new Date(),
 		},
+		TTL: {
+			type: Number,
+		},
 	},
 	{
 		timestamps: {
@@ -35,6 +38,4 @@ export const OtpSchema = new dynamoose.Schema(
 	}
 );
 
-export const OtpModel = dynamoose.model('Otps', OtpSchema, {
-	expires: 60 * 5,
-});
+export const OtpModel = dynamoose.model('Otps', OtpSchema);

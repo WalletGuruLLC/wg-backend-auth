@@ -6,7 +6,6 @@ import {
 	Injectable,
 	UnauthorizedException,
 } from '@nestjs/common';
-import { CognitoUserPool } from 'amazon-cognito-identity-js';
 import * as AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
 import * as otpGenerator from 'otp-generator';
@@ -43,21 +42,16 @@ export class UserService {
 	private dbOtpInstance: Model<Otp>;
 	private dbAttemptInstance: Model<Attempt>;
 	private cognitoService: CognitoService;
-	private userPool: CognitoUserPool;
 	private cognito: AWS.CognitoIdentityServiceProvider;
 
 	constructor(private readonly sqsService: SqsService) {
-		this.dbInstance = dynamoose.model<User>('users', UserSchema);
-		this.dbOtpInstance = dynamoose.model<Otp>('otps', OtpSchema);
+		this.dbInstance = dynamoose.model<User>('Users', UserSchema);
+		this.dbOtpInstance = dynamoose.model<Otp>('Otps', OtpSchema);
 		this.dbAttemptInstance = dynamoose.model<Attempt>(
-			'attempts',
+			'Attempts',
 			AuthAttemptSchema
 		);
 		this.cognitoService = new CognitoService();
-		this.userPool = new CognitoUserPool({
-			UserPoolId: process.env.COGNITO_USER_POOL_ID,
-			ClientId: process.env.COGNITO_CLIENT_ID,
-		});
 		this.cognito = new AWS.CognitoIdentityServiceProvider({
 			region: process.env.AWS_REGION,
 		});
@@ -69,7 +63,7 @@ export class UserService {
 		const { email, token } = createOtpRequestDto;
 
 		const existingOtpEmail = await this.dbOtpInstance
-			.query('email')
+			.query('Email')
 			.eq(email)
 			.exec();
 
@@ -83,16 +77,18 @@ export class UserService {
 			specialChars: false,
 		});
 
-		let existingOtp = await this.dbOtpInstance.query('otp').eq(otp).exec();
+		let existingOtp = await this.dbOtpInstance.query('Otp').eq(otp).exec();
 
 		while (existingOtp.count > 0) {
 			otp = otpGenerator.generate(6, {
 				upperCaseAlphabets: false,
 			});
-			existingOtp = await this.dbOtpInstance.query('otp').eq(otp).exec();
+			existingOtp = await this.dbOtpInstance.query('Otp').eq(otp).exec();
 		}
 
-		const otpPayload = { email, otp, token };
+		const ttl = Math.floor(Date.now() / 1000) + 60 * 5;
+
+		const otpPayload = { Email: email, Otp: otp, Token: token, TTL: ttl };
 		await this.dbOtpInstance.create(otpPayload);
 
 		return {
@@ -166,7 +162,7 @@ export class UserService {
 			const user = convertToCamelCase(userV);
 			return {
 				user,
-				token: existingToken?.[0]?.token,
+				token: existingToken?.[0]?.Token,
 			};
 		} catch (error) {
 			console.error(error.message);
@@ -203,7 +199,7 @@ export class UserService {
 			// Verificar la unicidad del ID
 			const verifyUnique = await this.findOne(uniqueIdValue);
 
-			while (verifyUnique) {
+			while (verifyUnique?.Id) {
 				uniqueIdValue = generateUniqueId(type);
 			}
 
@@ -316,7 +312,7 @@ export class UserService {
 		}
 	}
 
-	async findOneByEmail(email: string): Promise<User | null> {
+	async findOneByEmail(email: string) {
 		try {
 			const users = await this.dbInstance.query('Email').eq(email).exec();
 			return convertToCamelCase(users[0]);
@@ -379,7 +375,17 @@ export class UserService {
 	}
 
 	private async deletePreviousOtp(email: string) {
-		await this.dbOtpInstance.delete({ email });
+		try {
+			const otpRecord = await this.dbOtpInstance.scan({ Email: email }).exec();
+			if (otpRecord && otpRecord.length > 0) {
+				await this.dbOtpInstance.delete({
+					Email: otpRecord[0].Email,
+					Otp: otpRecord[0].Otp,
+				});
+			}
+		} catch (error) {
+			console.error('Error during delete operation:', error);
+		}
 	}
 
 	private async authenticateUser(signinDto: SignInDto) {
@@ -396,16 +402,16 @@ export class UserService {
 	}
 
 	private async logAttempt(
-		id: string,
-		email: string,
-		status: 'success' | 'failure',
-		section: string
+		Id: string,
+		Email: string,
+		Status: 'success' | 'failure',
+		Section: string
 	) {
 		const logPayload = {
-			id,
-			email,
-			section: section,
-			status,
+			Id,
+			Email,
+			Section,
+			Status,
 		};
 		await this.dbAttemptInstance.create(logPayload);
 	}
@@ -543,8 +549,8 @@ export class UserService {
 			}
 
 			await this.dbOtpInstance.delete({
-				email: verifyOtp?.email,
-				otp: verifyOtp?.otp,
+				Email: verifyOtp?.email,
+				Otp: verifyOtp?.otp,
 			});
 
 			const userFind = await this.dbInstance
@@ -626,7 +632,7 @@ export class UserService {
 		if (foundOtp.count === 0) {
 			throw new Error(`OTP does not exist`);
 		}
-		await this.sendOtpNotification(user, foundOtp[0].otp);
+		await this.sendOtpNotification(user, foundOtp[0].Otp);
 	}
 
 	async revokeTokenLogout(token: string) {

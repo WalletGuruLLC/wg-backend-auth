@@ -307,20 +307,20 @@ export class UserController {
 		try {
 			const userFind = await this.userService.findOneByEmail(signinDto?.email);
 			if (!userFind) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
-			if (!userFind?.Active) {
-				return {
+			if (!userFind?.active) {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0022',
 					customMessage: errorCodes.WGE0022?.description,
 					customMessageEs: errorCodes.WGE0022?.descriptionEs,
-				};
+				});
 			}
 			await this.userService.signin(signinDto);
 			return res.status(HttpStatus.OK).json({
