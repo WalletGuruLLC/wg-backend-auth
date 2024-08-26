@@ -3,6 +3,7 @@ import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 
+import { ProviderService } from '../../provider/service/provider.service';
 import { RoleSchema } from '../entities/role.schema';
 import { errorCodes } from '../../../utils/constants';
 import { Role } from '../entities/role.entity';
@@ -13,8 +14,8 @@ import { UpdateRoleDto } from '../dto/update-role.dto';
 export class RoleService {
 	private readonly dbInstance: Model<Role>;
 
-	constructor() {
-		const tableName = 'roles';
+	constructor(private readonly providerService: ProviderService) {
+		const tableName = 'Roles';
 		this.dbInstance = dynamoose.model<Role>(tableName, RoleSchema, {
 			create: false,
 			waitForActive: false,
@@ -22,6 +23,23 @@ export class RoleService {
 	}
 
 	async create(createRoleDto: CreateRoleDto) {
+		await this.providerService.findOne(createRoleDto.providerId);
+
+		const existingRole = await this.dbInstance
+			.scan('Name')
+			.eq(createRoleDto.name)
+			.and()
+			.filter('ProviderId')
+			.eq(createRoleDto.providerId)
+			.exec();
+
+		if (existingRole.count > 0) {
+			throw new HttpException(
+				'Role with the same name already exists for this provider',
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+
 		const role = {
 			Name: createRoleDto.name,
 			Description: createRoleDto.description,

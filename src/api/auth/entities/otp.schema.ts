@@ -35,6 +35,6 @@ export const OtpSchema = new dynamoose.Schema(
 	}
 );
 
-export const OtpModel = dynamoose.model('otps', OtpSchema, {
+export const OtpModel = dynamoose.model('Otps', OtpSchema, {
 	expires: 60 * 5,
 });

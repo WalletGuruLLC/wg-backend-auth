@@ -1,36 +1,65 @@
-import { Injectable } from '@nestjs/common';
-import { ProviderModel, ProviderDocument } from '../entities/provider.entity';
+import * as dynamoose from 'dynamoose';
+import { Model } from 'dynamoose/dist/Model';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+
+import { errorCodes } from '../../../utils/constants';
+import { Provider } from '../entities/provider.entity';
+import { ProviderSchema } from '../entities/provider.schema';
 import { CreateProviderDto, UpdateProviderDto } from '../dto/provider';
 
 @Injectable()
 export class ProviderService {
-	async create(
-		createProviderDto: CreateProviderDto
-	): Promise<ProviderDocument> {
-		const provider = new ProviderModel(createProviderDto);
-		return provider.save() as Promise<ProviderDocument>;
+	private readonly dbInstance: Model<Provider>;
+
+	constructor() {
+		const tableName = 'Providers';
+		this.dbInstance = dynamoose.model<Provider>(tableName, ProviderSchema, {
+			create: false,
+			waitForActive: false,
+		});
 	}
 
-	async findAll(): Promise<ProviderDocument[]> {
-		const scanResults = await ProviderModel.scan().exec();
-		return scanResults as unknown as ProviderDocument[];
+	async create(createProviderDto: CreateProviderDto): Promise<Provider> {
+		const provider = {
+			Name: createProviderDto.name,
+			Description: createProviderDto.description,
+			Email: createProviderDto.email,
+			Phone: createProviderDto.phone,
+		};
+		return this.dbInstance.create(provider);
 	}
 
-	async findOne(id: string): Promise<ProviderDocument> {
-		return ProviderModel.get(id) as Promise<ProviderDocument>;
+	async findAll(): Promise<Provider[]> {
+		const scanResults = await this.dbInstance.scan().exec();
+		return scanResults as unknown as Provider[];
+	}
+
+	async findOne(id: string) {
+		const provider = await this.dbInstance.get(id);
+		if (!provider) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0027',
+					...errorCodes.WGE0027,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+		return provider;
 	}
 
 	async update(
 		id: string,
 		updateProviderDto: UpdateProviderDto
-	): Promise<ProviderDocument> {
-		return ProviderModel.update(
-			{ id },
-			updateProviderDto
-		) as Promise<ProviderDocument>;
+	): Promise<Provider> {
+		// return this.dbInstance.update(
+		// 	{ id },
+		// 	updateProviderDto
+		// ) as Promise<Provider>;
+		return null;
 	}
 
 	async remove(id: string): Promise<void> {
-		await ProviderModel.delete(id);
+		await this.dbInstance.delete(id);
 	}
 }

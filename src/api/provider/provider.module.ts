@@ -8,5 +8,6 @@ import { ProviderService } from './service/provider.service';
 	imports: [ConfigModule],
 	controllers: [ProviderController],
 	providers: [ProviderService],
+	exports: [ProviderService],
 })
 export class ProviderModule {}

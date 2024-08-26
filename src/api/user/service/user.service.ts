@@ -46,10 +46,10 @@ export class UserService {
 	private cognito: AWS.CognitoIdentityServiceProvider;
 
 	constructor(private readonly sqsService: SqsService) {
-		this.dbInstance = dynamoose.model<User>('users', UserSchema);
-		this.dbOtpInstance = dynamoose.model<Otp>('otps', OtpSchema);
+		this.dbInstance = dynamoose.model<User>('Users', UserSchema);
+		this.dbOtpInstance = dynamoose.model<Otp>('Otps', OtpSchema);
 		this.dbAttemptInstance = dynamoose.model<Attempt>(
-			'attempts',
+			'Attempts',
 			AuthAttemptSchema
 		);
 		this.cognitoService = new CognitoService();
