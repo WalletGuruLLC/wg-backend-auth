@@ -17,7 +17,7 @@ const ProviderSchema = new dynamoose.Schema(
 	}
 );
 
-export const ProviderModel = dynamoose.model('Provider', ProviderSchema);
+export const ProviderModel = dynamoose.model('Providers', ProviderSchema);
 
 export interface ProviderDocument extends Document {
 	id: string;
