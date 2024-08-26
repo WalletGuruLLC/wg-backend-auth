@@ -184,7 +184,14 @@ export class RoleController {
 	})
 	async toggle(@Param('id') id: string) {
 		try {
-			return this.roleService.toggle(id);
+			const role = await this.roleService.toggle(id);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGS0024',
+				customMessage: successCodes.WGS0024?.description,
+				customMessageEs: successCodes.WGS0024?.descriptionEs,
+				data: role,
+			};
 		} catch (error) {
 			if (
 				error instanceof HttpException &&

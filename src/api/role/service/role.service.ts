@@ -108,6 +108,16 @@ export class RoleService {
 		return this.mapRoleToResponse(updatedRole);
 	}
 
+	async toggle(id: string) {
+		const role = await this.findOne(id);
+
+		role.Active = !role.Active;
+		const updatedRole = await this.dbInstance.update(id, {
+			Active: role.Active,
+		});
+		return this.mapRoleToResponse(updatedRole);
+	}
+
 	private async findOne(id: string): Promise<Role> {
 		const role = await this.dbInstance.get(id);
 		if (!role) {
