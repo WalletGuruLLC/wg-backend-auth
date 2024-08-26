@@ -8,6 +8,7 @@ import {
 	HttpStatus,
 	Param,
 	Put,
+	Patch,
 	Post,
 	UseGuards,
 	UsePipes,
@@ -145,6 +146,45 @@ export class RoleController {
 	async update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
 		try {
 			const role = await this.roleService.update(id, updateRoleDto);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGS0024',
+				customMessage: successCodes.WGS0024?.description,
+				customMessageEs: successCodes.WGS0024?.descriptionEs,
+				data: role,
+			};
+		} catch (error) {
+			if (
+				error instanceof HttpException &&
+				error.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
+			) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0026',
+						...errorCodes.WGE0026,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+			throw error;
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Patch(':id/toggle')
+	@ApiOperation({ summary: 'Toggle the active status of a role' })
+	@ApiParam({ name: 'id', description: 'ID of the role', type: String })
+	@ApiResponse({
+		status: 200,
+		description: 'Role status toggled successfully.',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'Role not found.',
+	})
+	async toggle(@Param('id') id: string) {
+		try {
+			const role = await this.roleService.toggle(id);
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0024',
