@@ -20,9 +20,9 @@ const ProviderSchema = new dynamoose.Schema(
 export const ProviderModel = dynamoose.model('Providers', ProviderSchema);
 
 export interface ProviderDocument extends Document {
-	id: string;
-	name: string;
-	description: string;
-	email: string;
-	phone: string;
+	Id: string;
+	Name: string;
+	Description: string;
+	Email: string;
+	Phone: string;
 }
