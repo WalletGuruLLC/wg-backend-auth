@@ -16,7 +16,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 		private readonly authService: UserService
 	) {}
 
-	async use(req: Request, next: NextFunction): Promise<void> {
+	async use(req: Request, res, next: NextFunction): Promise<void> {
 		const authHeader = req.headers.authorization;
 
 		if (!authHeader) {

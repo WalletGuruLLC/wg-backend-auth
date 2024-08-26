@@ -12,5 +12,5 @@ export class CreateRoleDto {
 	description: string;
 
 	@IsString()
-	providerId: string;
+	providerId? = 'EMPTY';
 }
