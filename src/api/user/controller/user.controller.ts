@@ -79,6 +79,36 @@ export class UserController {
 				});
 			}
 
+			if (['PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
+				if (
+					!createUserDto?.firstName ||
+					!createUserDto?.lastName ||
+					!createUserDto?.email ||
+					!createUserDto?.type ||
+					!createUserDto?.roleId
+				) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00018',
+						customMessage: errorCodes?.WGE00018?.description,
+						customMessageEs: errorCodes.WGE00018?.descriptionEs,
+					});
+				}
+			} else {
+				if (
+					!createUserDto?.email ||
+					!createUserDto?.passwordHash ||
+					!createUserDto?.type
+				) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00018',
+						customMessage: errorCodes?.WGE00018?.description,
+						customMessageEs: errorCodes.WGE00018?.descriptionEs,
+					});
+				}
+			}
+
 			const result = await this.userService.create(createUserDto);
 			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
