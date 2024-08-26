@@ -35,7 +35,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 		const user = await this.authService.findOneByEmail(
 			userCognito?.UserAttributes?.[0]?.Value
 		);
-		const userRoleId = user.RoleId;
+		const userRoleId = user.roleId;
 
 		const requestedModuleId = this.getModuleIdFromPath(req.route.path);
 		const requiredMethod = req.method;

@@ -419,10 +419,10 @@ export class UserService {
 	private async sendOtpNotification(foundUser: any, otp: string) {
 		const sqsMessage = {
 			event: 'OTP_SENT',
-			email: foundUser.Email,
+			email: foundUser.email,
 			username:
-				foundUser.FirstName +
-				(foundUser.LastName ? ' ' + foundUser.LastName.charAt(0) + '.' : ''),
+				foundUser.firstName +
+				(foundUser.lastName ? ' ' + foundUser.lastName.charAt(0) + '.' : ''),
 			otp,
 		};
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
@@ -624,10 +624,10 @@ export class UserService {
 			throw new Error(`Error updating user: ${error.message}`);
 		}
 	}
-	async resendOtp(user: User): Promise<void> {
+	async resendOtp(user): Promise<void> {
 		const foundOtp = await this.dbOtpInstance
-			.query('email')
-			.eq(user.Email)
+			.query('Email')
+			.eq(user.email)
 			.exec();
 		if (foundOtp.count === 0) {
 			throw new Error(`OTP does not exist`);
