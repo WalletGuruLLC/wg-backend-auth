@@ -107,7 +107,7 @@ export class UserService {
 		};
 
 		const result = await docClient.get(params).promise();
-		return convertToCamelCase(result.Item?.Modules) || {};
+		return result.Item?.Modules || {};
 	}
 
 	async verifyOtp(verifyOtp: VerifyOtpDto) {
