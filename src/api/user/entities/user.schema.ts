@@ -44,7 +44,7 @@ export const UserSchema = new dynamoose.Schema(
 			default: TypeUser.PLATFORM,
 			index: {
 				global: true,
-				name: 'userTypeIndex',
+				name: 'UserTypeIndex',
 			},
 		},
 		RoleId: {
