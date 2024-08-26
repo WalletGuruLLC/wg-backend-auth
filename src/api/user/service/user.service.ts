@@ -604,7 +604,7 @@ export class UserService {
 			};
 
 			const userData = await this.cognito.getUser(params).promise();
-			return convertToCamelCase(userData);
+			return userData;
 		} catch (error) {
 			throw new UnauthorizedException('Invalid access token');
 		}
