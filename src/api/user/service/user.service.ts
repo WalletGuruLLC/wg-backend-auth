@@ -112,9 +112,12 @@ export class UserService {
 
 	async verifyOtp(verifyOtp: VerifyOtpDto) {
 		try {
-			const otpRecord = await this.dbOtpInstance.scan(verifyOtp).exec();
+			const otpRecord = await this.dbOtpInstance
+				.query('Email')
+				.eq(verifyOtp?.email)
+				.exec();
 
-			if (!otpRecord || otpRecord.count === 0) {
+			if (!otpRecord?.[0]?.Otp) {
 				throw new HttpException(
 					'Invalid or expired OTP',
 					HttpStatus.UNAUTHORIZED
@@ -122,44 +125,43 @@ export class UserService {
 			}
 
 			const existingToken = await this.dbOtpInstance
-				.query('otp')
+				.query('Otp')
 				.eq(verifyOtp?.otp)
-				.attributes(['token'])
+				.attributes(['Token'])
 				.exec();
 
 			await this.dbOtpInstance.delete({
-				email: verifyOtp?.email,
-				otp: verifyOtp?.otp,
+				Email: verifyOtp?.email,
+				Otp: verifyOtp?.otp,
 			});
 
 			const userFind = await this.findOneByEmail(verifyOtp.email);
 
 			await this.dbInstance.update({
-				Id: userFind?.Id,
+				Id: userFind?.id,
 				State: 3,
 				Active: true,
 			});
 
 			if (userFind?.Type == 'WALLET') {
 				await this.dbInstance.update({
-					Id: userFind?.Id,
+					Id: userFind?.id,
 					First: false,
 				});
 			}
 
-			const userV = await this.findOneByEmail(verifyOtp.email);
+			const user = await this.findOneByEmail(verifyOtp.email);
 
 			let accessLevel = {};
-			if (userV?.RoleId !== 'EMPTY') {
-				accessLevel = await this.listAccessLevels(userV?.RoleId);
+			if (user?.roleId !== 'EMPTY') {
+				accessLevel = await this.listAccessLevels(user?.roleId);
 			}
 
-			userV.AccessLevel = accessLevel;
+			user.accessLevel = accessLevel;
 
-			delete userV.PasswordHash;
-			delete userV.OtpTimestamp;
+			delete user.passwordHash;
+			delete user.otpTimestamp;
 
-			const user = convertToCamelCase(userV);
 			return {
 				user,
 				token: existingToken?.[0]?.Token,
