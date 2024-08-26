@@ -1,3 +1,4 @@
+import { convertToCamelCase } from 'src/utils/helpers/convertCamelCase';
 import {
 	Body,
 	Controller,
@@ -10,6 +11,7 @@ import {
 	Post,
 	UseGuards,
 	UsePipes,
+	Res,
 } from '@nestjs/common';
 import {
 	ApiBody,
@@ -180,7 +182,8 @@ export class RoleController {
 	async createAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
-		@Body('accessLevel') accessLevel: number
+		@Body('accessLevel') accessLevel: number,
+		@Res() res
 	) {
 		try {
 			const role = await this.roleService.findRole(roleId);
@@ -198,11 +201,11 @@ export class RoleController {
 
 			const roleUpd = await this.roleService.getRoleInfo(roleId);
 
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				message: 'Role updated successfully',
-				data: roleUpd,
-			};
+				data: convertToCamelCase(roleUpd),
+			});
 		} catch (error) {
 			throw new HttpException(
 				{

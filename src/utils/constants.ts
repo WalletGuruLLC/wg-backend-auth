@@ -206,6 +206,17 @@ export const errorCodes = {
 		description: `There are no modules available to update for the specified role.`,
 		descriptionEs: `No hay módulos disponibles para actualizar para el rol especificado.`,
 	},
+	WGE0038: {
+		message: `No permission to perform this action`,
+		description: `You do not have permission to perform this action.`,
+		descriptionEs: `No tienes permiso para realizar esta acción.`,
+	},
+
+	WGE0039: {
+		message: `No permission in the specified module`,
+		description: `You do not have permission in the specified module.`,
+		descriptionEs: `No tienes permisos en el módulo especificado.`,
+	},
 };
 
 export const successCodes = {
