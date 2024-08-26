@@ -113,8 +113,15 @@ export class UserController {
 				userInfo?.UserAttributes?.[0]?.Value
 			);
 
-			delete userFind?.PasswordHash;
-			delete userFind?.OtpTimestamp;
+			let accessLevel = {};
+			if (userFind?.roleId !== 'EMPTY') {
+				accessLevel = await this.userService.listAccessLevels(userFind?.roleId);
+			}
+
+			userFind.accessLevel = accessLevel;
+
+			delete userFind?.passwordHash;
+			delete userFind?.otpTimestamp;
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
