@@ -7,6 +7,7 @@ import {
 	HttpStatus,
 	Param,
 	Patch,
+	Put,
 	Post,
 	Query,
 	Req,
@@ -45,6 +46,7 @@ import * as Sentry from "@sentry/nestjs";
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
+	@UseGuards(CognitoAuthGuard)
 	@Post('/register')
 	@ApiCreatedResponse({
 		description: 'The record has been successfully created.',
@@ -122,6 +124,94 @@ export class UserController {
 			});
 		} catch (error) {
 			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0016',
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@Post('/register-app')
+	@ApiCreatedResponse({
+		description: 'The record has been successfully created.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async createApp(@Body() createUserDto: CreateUserDto, @Res() res) {
+		try {
+			const userFind = await this.userService.findOneByEmail(
+				createUserDto?.email
+			);
+			if (userFind) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0003',
+					customMessage: errorCodes?.WGE0003?.description,
+					customMessageEs: errorCodes.WGE0003?.descriptionEs,
+				});
+			}
+
+			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0017',
+					customMessage: errorCodes.WGE0017?.description,
+					customMessageEs: errorCodes.WGE0017?.descriptionEs,
+				});
+			}
+
+			if (createUserDto?.type === 'WALLET' && !createUserDto?.passwordHash) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE00018',
+					customMessage: errorCodes?.WGE00018?.description,
+					customMessageEs: errorCodes.WGE00018?.descriptionEs,
+				});
+			}
+
+			if (['PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
+				if (
+					!createUserDto?.firstName ||
+					!createUserDto?.lastName ||
+					!createUserDto?.email ||
+					!createUserDto?.type ||
+					!createUserDto?.roleId
+				) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00018',
+						customMessage: errorCodes?.WGE00018?.description,
+						customMessageEs: errorCodes.WGE00018?.descriptionEs,
+					});
+				}
+			} else {
+				if (
+					!createUserDto?.email ||
+					!createUserDto?.passwordHash ||
+					!createUserDto?.type
+				) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00018',
+						customMessage: errorCodes?.WGE00018?.description,
+						customMessageEs: errorCodes.WGE00018?.descriptionEs,
+					});
+				}
+			}
+
+			const result = await this.userService.create(createUserDto);
+			return res.status(HttpStatus.CREATED).send({
+				statusCode: HttpStatus.CREATED,
+				customCode: 'WGE0018',
+				customMessage: successCodes.WGE0018?.description,
+				customMessageEs: successCodes.WGE0018?.descriptionEs,
+				data: result,
+			});
+		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -242,7 +332,7 @@ export class UserController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Patch('/:id')
+	@Put('/:id')
 	@ApiOkResponse({
 		description: 'The record has been successfully updated.',
 	})
@@ -608,6 +698,7 @@ export class UserController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Patch('/update-status/:id')
 	@ApiOkResponse({
 		description: 'The user has been successfully updated.',

@@ -425,6 +425,7 @@ export class UserService {
 	}
 
 	private async sendOtpNotification(foundUser: any, otp: string) {
+		foundUser.firstName = foundUser.firstName || '';
 		const sqsMessage = {
 			event: 'OTP_SENT',
 			email: foundUser.email,
