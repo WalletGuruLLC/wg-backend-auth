@@ -37,7 +37,7 @@ import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 import { CognitoAuthGuard } from '../guard/cognito-auth.guard';
 import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { validatePassword } from '../../../utils/helpers/validatePassword';
-import * as Sentry from "@sentry/nestjs";
+import * as Sentry from '@sentry/nestjs';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -595,6 +595,7 @@ export class UserController {
 				data: users,
 			});
 		} catch (error) {
+			console.log('error', error?.message);
 			Sentry.captureException(error);
 			throw new HttpException(
 				{

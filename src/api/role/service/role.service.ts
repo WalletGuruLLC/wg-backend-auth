@@ -26,13 +26,9 @@ export class RoleService {
 			await this.providerService.findOne(createRoleDto.providerId);
 		}
 
-		const normalizedName = createRoleDto.name
-			.normalize('NFD')
-			.replace(/[\u0300-\u036f]/g, '');
-
 		const existingRole = await this.dbInstance
 			.scan('Name')
-			.eq(normalizedName)
+			.eq(createRoleDto.name)
 			.and()
 			.filter('ProviderId')
 			.eq(createRoleDto.providerId)
@@ -46,7 +42,7 @@ export class RoleService {
 		}
 
 		const role = {
-			Name: normalizedName,
+			Name: createRoleDto.name,
 			Description: createRoleDto.description,
 			ProviderId: createRoleDto.providerId,
 		};
