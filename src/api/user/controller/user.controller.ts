@@ -46,6 +46,7 @@ import * as Sentry from "@sentry/nestjs";
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
+	@UseGuards(CognitoAuthGuard)
 	@Post('/register')
 	@ApiCreatedResponse({
 		description: 'The record has been successfully created.',
@@ -697,6 +698,7 @@ export class UserController {
 		}
 	}
 
+	@UseGuards(CognitoAuthGuard)
 	@Patch('/update-status/:id')
 	@ApiOkResponse({
 		description: 'The user has been successfully updated.',
