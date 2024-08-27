@@ -13,30 +13,11 @@ export class SettingService {
 	constructor() {
 		const tableName = 'Settings';
 		this.dbInstance = dynamoose.model<Setting>(tableName, SettingSchema, {
-			create: true,
+			create: false,
 			waitForActive: false,
 		});
 	}
 	async findAll(belongs: string) {
-		const records = [
-			{
-				Id: 'SWG001',
-				Belongs: 'app',
-				Key: 'terms-condition',
-				Value: 'https://www.mywalletguru.com/',
-			},
-			{
-				Id: 'SWG002',
-				Belong: 'app',
-				Key: 'privacy-police',
-				Value: 'https://www.mywalletguru.com/',
-			},
-		];
-
-		for (const record of records) {
-			await this.dbInstance.create(record);
-		}
-
 		let settings;
 		if (belongs) {
 			settings = await this.dbInstance.query('Belongs').eq(belongs).exec();

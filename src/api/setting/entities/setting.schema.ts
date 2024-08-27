@@ -10,7 +10,7 @@ export const SettingSchema = new dynamoose.Schema(
 		Belongs: {
 			type: String,
 			index: {
-				name: 'BelongIndex',
+				name: 'BelongsIndex',
 				global: true,
 			},
 		},
