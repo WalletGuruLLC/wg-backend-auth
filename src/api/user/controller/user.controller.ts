@@ -16,6 +16,7 @@ import {
 	ValidationPipe,
 } from '@nestjs/common';
 import {
+	ApiBearerAuth,
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
 	ApiOkResponse,
@@ -36,9 +37,11 @@ import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 import { CognitoAuthGuard } from '../guard/cognito-auth.guard';
 import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { validatePassword } from '../../../utils/helpers/validatePassword';
+import * as Sentry from "@sentry/nestjs";
 
 @ApiTags('user')
 @Controller('api/v1/users')
+@ApiBearerAuth('JWT')
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
@@ -118,6 +121,7 @@ export class UserController {
 				data: result,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -161,6 +165,7 @@ export class UserController {
 				data: userFind,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				customCode: 'WGE0021',
@@ -186,6 +191,7 @@ export class UserController {
 				data: result,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
@@ -222,6 +228,7 @@ export class UserController {
 				data: user,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -275,6 +282,7 @@ export class UserController {
 				data: user,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -311,6 +319,7 @@ export class UserController {
 				customMessageEs: successCodes.WGE0021?.descriptionEs,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			if (error.message === 'User not found in database') {
 				throw new HttpException(
 					{
@@ -367,6 +376,7 @@ export class UserController {
 				customMessageEs: successCodes.WGE0018?.descriptionEs,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					customCode: 'WGE0001',
@@ -394,6 +404,7 @@ export class UserController {
 				data: result,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
@@ -451,6 +462,7 @@ export class UserController {
 				customMessageEs: successCodes.WGE0009?.descriptionEs,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.BAD_REQUEST,
@@ -493,6 +505,7 @@ export class UserController {
 				customMessageEs: successCodes.WGE0018?.descriptionEs,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -535,6 +548,7 @@ export class UserController {
 				customMessageEs: successCodes.WGE0012?.descriptionEs,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -581,6 +595,7 @@ export class UserController {
 				data: users,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -623,6 +638,7 @@ export class UserController {
 				data: user,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -659,6 +675,7 @@ export class UserController {
 				customMessageEs: successCodes.WGE0071?.descriptionEs,
 			};
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -688,6 +705,7 @@ export class UserController {
 				customMessageEs: successCodes.WGE0072?.descriptionEs,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.BAD_REQUEST,
