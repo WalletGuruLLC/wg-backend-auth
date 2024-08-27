@@ -8,6 +8,7 @@ import {
 	CreateUserResponse,
 	ForgotPasswordResponse,
 } from './cognito.types';
+import * as Sentry from "@sentry/nestjs";
 
 export class CognitoService implements CognitoServiceInterface {
 	private cognitoISP: CognitoIdentityServiceProvider;
@@ -48,6 +49,7 @@ export class CognitoService implements CognitoServiceInterface {
 
 			return user as CreateUserResponse;
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error creating user in Cognito: ${error.message}`);
 		}
 	}
@@ -61,6 +63,7 @@ export class CognitoService implements CognitoServiceInterface {
 		try {
 			await this.cognitoISP.adminDeleteUser(params).promise();
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error deleting user in Cognito: ${error.message}`);
 		}
 	}
@@ -89,6 +92,7 @@ export class CognitoService implements CognitoServiceInterface {
 				.adminInitiateAuth(params)
 				.promise()) as AuthenticateUserResponse;
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error authenticating user in Cognito: ${error.message}`);
 		}
 	}
@@ -110,6 +114,7 @@ export class CognitoService implements CognitoServiceInterface {
 				.promise()) as ChangePasswordResponse;
 			return {};
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error changing password in Cognito: ${error.message}`);
 		}
 	}
@@ -131,6 +136,7 @@ export class CognitoService implements CognitoServiceInterface {
 				.promise()) as ForgotPasswordResponse;
 			return {};
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(
 				`Error in forgot password process in Cognito: ${error.message}`
 			);
@@ -155,6 +161,7 @@ export class CognitoService implements CognitoServiceInterface {
 				.promise()) as ConfirmForgotPasswordResponse;
 			return {};
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(
 				`Error confirming new password in Cognito: ${error.message}`
 			);
@@ -172,6 +179,7 @@ export class CognitoService implements CognitoServiceInterface {
 			await this.cognitoISP.revokeToken(params).promise();
 			return {};
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(
 				`Error revoke token process in Cognito: ${error.message}`
 			);

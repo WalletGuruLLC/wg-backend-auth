@@ -5,10 +5,12 @@ import {
 	HttpException,
 	HttpStatus,
 } from '@nestjs/common';
+import * as Sentry from "@sentry/nestjs"
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
 	catch(exception: any, host: ArgumentsHost) {
+		Sentry.captureException(exception);
 		const ctx = host.switchToHttp();
 		const response = ctx.getResponse();
 		let status = HttpStatus.INTERNAL_SERVER_ERROR;

@@ -35,6 +35,7 @@ import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { Attempt } from '../../auth/entities/auth-attempt.entity';
 import { AuthAttemptSchema } from '../../auth/entities/auth-attempt.schema';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
+import * as Sentry from "@sentry/nestjs";
 
 @Injectable()
 export class UserService {
@@ -167,7 +168,7 @@ export class UserService {
 				token: existingToken?.[0]?.Token,
 			};
 		} catch (error) {
-			console.error(error.message);
+			Sentry.captureException(error);
 			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -242,7 +243,7 @@ export class UserService {
 			delete result.otp;
 			return convertToCamelCase(result);
 		} catch (error) {
-			console.error('Error creating user:', error.message);
+			Sentry.captureException(error);
 			throw new Error('Failed to create user. Please try again later.');
 		}
 	}
@@ -273,6 +274,7 @@ export class UserService {
 		try {
 			return await convertToCamelCase(this.dbInstance.get({ Id: id }));
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
 	}
@@ -288,6 +290,7 @@ export class UserService {
 				.exec();
 			return users[0];
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
 	}
@@ -310,6 +313,7 @@ export class UserService {
 				.exec();
 			return convertToCamelCase(users[0]);
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
 	}
@@ -319,6 +323,7 @@ export class UserService {
 			const users = await this.dbInstance.query('Email').eq(email).exec();
 			return convertToCamelCase(users[0]);
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error retrieving user: ${error.message}`);
 		}
 	}
@@ -340,6 +345,7 @@ export class UserService {
 				})
 			);
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error updating user: ${error.message}`);
 		}
 	}
@@ -452,6 +458,7 @@ export class UserService {
 				...otpResult,
 			});
 		} catch (error) {
+			Sentry.captureException(error);
 			await this.logAttempt(transactionId, signinDto.email, 'failure', 'login');
 			throw new BadRequestException('Invalid credentials');
 		}
@@ -586,7 +593,7 @@ export class UserService {
 				verified: true,
 			};
 		} catch (error) {
-			console.error(error.message);
+			Sentry.captureException(error);
 			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -606,6 +613,7 @@ export class UserService {
 			const userData = await this.cognito.getUser(params).promise();
 			return userData;
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new UnauthorizedException('Invalid access token');
 		}
 	}
@@ -623,6 +631,7 @@ export class UserService {
 				})
 			);
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new Error(`Error updating user: ${error.message}`);
 		}
 	}

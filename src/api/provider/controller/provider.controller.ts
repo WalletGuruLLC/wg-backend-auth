@@ -13,7 +13,11 @@ import {
 } from '@nestjs/common';
 import { ProviderService } from '../service/provider.service';
 import { CreateProviderDto, UpdateProviderDto } from '../dto/provider';
+import * as Sentry from "@sentry/nestjs";
+import {ApiBearerAuth, ApiTags} from "@nestjs/swagger";
 
+@ApiTags('provider')
+@ApiBearerAuth('JWT')
 @Controller('api/v1/providers')
 export class ProviderController {
 	constructor(private readonly providerService: ProviderService) {}
@@ -29,6 +33,7 @@ export class ProviderController {
 				data: provider,
 			};
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -49,6 +54,7 @@ export class ProviderController {
 				data: providers,
 			};
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -72,6 +78,7 @@ export class ProviderController {
 				data: provider,
 			};
 		} catch (error) {
+			Sentry.captureException(error);
 			if (error.status === HttpStatus.NOT_FOUND) {
 				throw error; // Re-throw 404 errors as they are
 			}
@@ -99,6 +106,7 @@ export class ProviderController {
 				data: provider,
 			};
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -118,6 +126,7 @@ export class ProviderController {
 				message: 'Provider deleted successfully',
 			};
 		} catch (error) {
+			Sentry.captureException(error);
 			if (error.message === 'Provider not found in database') {
 				throw new HttpException(
 					{

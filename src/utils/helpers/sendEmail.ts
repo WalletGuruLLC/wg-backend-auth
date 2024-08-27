@@ -1,4 +1,5 @@
 import * as AWS from 'aws-sdk';
+import * as Sentry from "@sentry/nestjs";
 
 export const sendEmail = async (
 	toAddresses: string[],
@@ -31,6 +32,7 @@ export const sendEmail = async (
 	try {
 		await ses.sendEmail(params).promise();
 	} catch (error) {
+		Sentry.captureException(error);
 		throw new Error(error.message);
 	}
 };
