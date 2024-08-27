@@ -506,7 +506,7 @@ export class UserService {
 	}> {
 		const { type = 'WALLET', email, id, page = 1, items = 10 } = getUsersDto;
 
-		let query = this.dbInstance.query('type').eq(type);
+		let query = this.dbInstance.query('Type').eq(type);
 
 		if (email) {
 			query = query.and().filter('Email').eq(email);
