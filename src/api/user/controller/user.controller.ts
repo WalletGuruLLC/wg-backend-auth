@@ -42,6 +42,7 @@ import { validatePassword } from '../../../utils/helpers/validatePassword';
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
+	//TODO: discusss since should have different endpoints for each type of user (ADD access level)
 	@Post('/register')
 	@ApiCreatedResponse({
 		description: 'The record has been successfully created.',
