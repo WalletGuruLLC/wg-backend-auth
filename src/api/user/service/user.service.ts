@@ -35,7 +35,7 @@ import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { Attempt } from '../../auth/entities/auth-attempt.entity';
 import { AuthAttemptSchema } from '../../auth/entities/auth-attempt.schema';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
-import * as Sentry from "@sentry/nestjs";
+import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class UserService {
@@ -529,17 +529,31 @@ export class UserService {
 			'MfaType',
 		]);
 
+		// Execute the query
 		const result = await query.exec();
-		const total = result.length;
+		let users = convertToCamelCase(result);
 
-		// Calculating pagination values
+		// Apply regex search client-side if 'search' is provided
+		if (getUsersDto?.search) {
+			const regex = new RegExp(getUsersDto?.search, 'i'); // 'i' for case-insensitive
+			users = users.filter(
+				user =>
+					regex.test(user.email) ||
+					regex.test(user.firstName) ||
+					regex.test(user.lastName) ||
+					regex.test(user.id) ||
+					regex.test(`${user.firstName} ${user.lastName}`)
+			);
+		}
+
+		// Pagination
+		const total = users.length;
 		const offset = (Number(page) - 1) * Number(items);
-		const usersV = result.slice(offset, offset + Number(items));
-
+		const paginatedUsers = users.slice(offset, offset + Number(items));
 		const totalPages = Math.ceil(total / Number(items));
-		const users = convertToCamelCase(usersV);
+
 		return {
-			users,
+			users: paginatedUsers,
 			currentPage: Number(page),
 			total,
 			totalPages,

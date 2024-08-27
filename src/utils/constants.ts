@@ -297,4 +297,9 @@ export const successCodes = {
 		description: 'The user has been logged out successfully.',
 		descriptionEs: 'El usuario ha cerrado sesión con éxito.',
 	},
+	WGE0073: {
+		message: 'Success getting providers',
+		description: 'The providers was getting succesfully.',
+		descriptionEs: 'Los proveedores se han obtenido con éxito.',
+	},
 };
