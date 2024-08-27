@@ -22,9 +22,8 @@ export class UserModule implements NestModule {
 	usersPath = 'api/v1/users';
 	configure(consumer: MiddlewareConsumer) {
 		consumer.apply(AccessControlMiddleware).forRoutes(
-			{ path: `${this.usersPath}/:id`, method: RequestMethod.GET },
-			{ path: `${this.usersPath}/:id`, method: RequestMethod.PATCH },
-			{ path: `${this.usersPath}/:id`, method: RequestMethod.DELETE },
+			{ path: `${this.usersPath}/register`, method: RequestMethod.POST },
+			{ path: `${this.usersPath}/:id`, method: RequestMethod.PUT },
 			{ path: `${this.usersPath}/`, method: RequestMethod.GET },
 			{
 				path: `${this.usersPath}/update-status/:id`,
