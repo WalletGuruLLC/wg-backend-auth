@@ -29,9 +29,19 @@ export class ProviderService {
 		return this.dbInstance.create(provider);
 	}
 
-	async findAll(): Promise<Provider[]> {
+	async findAll(search?: string): Promise<Provider[]> {
 		const scanResults = await this.dbInstance.scan().exec();
-		return scanResults as unknown as Provider[];
+
+		let providers = scanResults as unknown as Provider[];
+
+		if (search) {
+			const regex = new RegExp(search, 'i');
+			providers = providers.filter(
+				provider => regex.test(provider.Email) || regex.test(provider.Name)
+			);
+		}
+
+		return providers;
 	}
 
 	async findOne(id: string) {

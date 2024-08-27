@@ -13,8 +13,9 @@ import {
 } from '@nestjs/common';
 import { ProviderService } from '../service/provider.service';
 import { CreateProviderDto, UpdateProviderDto } from '../dto/provider';
-import * as Sentry from "@sentry/nestjs";
-import {ApiBearerAuth, ApiTags} from "@nestjs/swagger";
+import * as Sentry from '@sentry/nestjs';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { errorCodes, successCodes } from 'src/utils/constants';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -50,15 +51,19 @@ export class ProviderController {
 			const providers = await this.providerService.findAll();
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Providers retrieved successfully',
+				customCode: 'WGE0073',
+				customMessage: successCodes.WGE0073?.description,
+				customMessageEs: successCodes.WGE0073?.descriptionEs,
 				data: providers,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error retrieving providers: ${error.message}`,
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0040',
+					customMessage: errorCodes?.WGE0040?.description,
+					customMessageEs: errorCodes.WGE0040?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from '../service/user.service';
 import { errorCodes } from '../../../utils/constants';
-import * as Sentry from "@sentry/nestjs";
+import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class CognitoAuthGuard implements CanActivate {

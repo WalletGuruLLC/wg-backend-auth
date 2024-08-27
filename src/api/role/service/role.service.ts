@@ -2,7 +2,6 @@ import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-
 import { ProviderService } from '../../provider/service/provider.service';
 import { RoleSchema } from '../entities/role.schema';
 import { errorCodes } from '../../../utils/constants';
@@ -52,7 +51,12 @@ export class RoleService {
 		return this.mapRoleToResponse(savedRole);
 	}
 
-	async findAllPaginated(providerId?: string, page = 1, items = 10) {
+	async findAllPaginated(
+		providerId?: string,
+		page = 1,
+		items = 10,
+		search = ''
+	) {
 		const skip = (page - 1) * items;
 		let dbQuery;
 
@@ -65,10 +69,15 @@ export class RoleService {
 			dbQuery = this.dbInstance.scan();
 		}
 
-		const roles = await dbQuery.exec();
+		let roles = await dbQuery.exec();
 
 		if (roles.length === 0) {
 			throw new Error();
+		}
+
+		if (search) {
+			const regex = new RegExp(search, 'i');
+			roles = roles.filter(role => regex.test(role.Name));
 		}
 
 		roles.sort((a, b) => {

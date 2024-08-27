@@ -7,6 +7,10 @@ export class GetUsersDto {
 
 	@IsOptional()
 	@IsString()
+	search?: string;
+
+	@IsOptional()
+	@IsString()
 	firstName?: string;
 
 	@IsOptional()
