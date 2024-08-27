@@ -595,7 +595,6 @@ export class UserController {
 				data: users,
 			});
 		} catch (error) {
-			console.log('error', error?.message);
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
