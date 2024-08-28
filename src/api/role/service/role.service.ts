@@ -231,6 +231,24 @@ export class RoleService {
 		return role;
 	}
 
+	async getRolesByIds(ids) {
+		const roles = await Promise.all(
+			ids.map(async id => {
+				try {
+					const role = await this.findRole(id);
+					return role;
+				} catch (error) {
+					if (error.status === HttpStatus.NOT_FOUND) {
+						return id;
+					}
+					throw error;
+				}
+			})
+		);
+
+		return roles;
+	}
+
 	private mapRoleToResponse(role: Role) {
 		return {
 			id: role.Id,
