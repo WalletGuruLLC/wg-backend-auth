@@ -8,7 +8,7 @@ import {
 	CreateUserResponse,
 	ForgotPasswordResponse,
 } from './cognito.types';
-import * as Sentry from "@sentry/nestjs";
+import * as Sentry from '@sentry/nestjs';
 
 export class CognitoService implements CognitoServiceInterface {
 	private cognitoISP: CognitoIdentityServiceProvider;
