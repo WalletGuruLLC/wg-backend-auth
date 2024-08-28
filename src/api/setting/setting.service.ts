@@ -4,7 +4,6 @@ import { Injectable } from '@nestjs/common';
 
 import { SettingSchema } from './entities/setting.schema';
 import { Setting } from './entities/setting.entity';
-import { convertToCamelCase } from '../../utils/helpers/convertCamelCase';
 
 @Injectable()
 export class SettingService {
@@ -25,6 +24,17 @@ export class SettingService {
 			settings = await this.dbInstance.scan().exec();
 		}
 
-		return convertToCamelCase(settings);
+		return settings.map(this.mapSettingToResponse);
+	}
+
+	private mapSettingToResponse(setting: Setting) {
+		return {
+			id: setting.Id,
+			belongs: setting.Belongs,
+			key: setting.Key,
+			value: setting.Value,
+			createDate: setting.CreateDate,
+			updateDate: setting.UpdateDate,
+		};
 	}
 }
