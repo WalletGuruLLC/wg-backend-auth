@@ -19,6 +19,10 @@ export class GetUsersDto {
 
 	@IsOptional()
 	@IsString()
+	serviceProviderId?: string;
+
+	@IsOptional()
+	@IsString()
 	email?: string;
 
 	@IsOptional()
