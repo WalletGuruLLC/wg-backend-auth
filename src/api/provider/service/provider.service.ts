@@ -1,3 +1,4 @@
+import { GetProvidersDto } from './../dto/getProviderDto';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
@@ -30,19 +31,36 @@ export class ProviderService {
 		return this.dbInstance.create(provider);
 	}
 
-	async findAll(search = '') {
-		const scanResults = await this.dbInstance.scan().exec();
+	async findAll(getProvidersDto: GetProvidersDto): Promise<{
+		providers: [];
+		currentPage: number;
+		total: number;
+		totalPages: number;
+	}> {
+		const { page = 1, items = 10 } = getProvidersDto;
 
-		let providers = scanResults as unknown as Provider[];
+		const query = await this.dbInstance.scan().exec();
 
-		if (search) {
-			const regex = new RegExp(search, 'i');
+		let providers = convertToCamelCase(query);
+
+		if (getProvidersDto?.search) {
+			const regex = new RegExp(getProvidersDto?.search, 'i');
 			providers = providers.filter(
-				provider => regex.test(provider.Email) || regex.test(provider.Name)
+				provider => regex.test(provider.email) || regex.test(provider.name)
 			);
 		}
 
-		return providers;
+		const total = providers.length;
+		const offset = (Number(page) - 1) * Number(items);
+		const paginatedProviders = providers.slice(offset, offset + Number(items));
+		const totalPages = Math.ceil(total / Number(items));
+
+		return {
+			providers: paginatedProviders,
+			currentPage: Number(page),
+			total,
+			totalPages,
+		};
 	}
 
 	async findOne(id: string) {

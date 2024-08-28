@@ -19,6 +19,8 @@ import { CreateProviderDto, UpdateProviderDto } from '../dto/provider';
 import * as Sentry from '@sentry/nestjs';
 import {
 	ApiBearerAuth,
+	ApiForbiddenResponse,
+	ApiOkResponse,
 	ApiOperation,
 	ApiParam,
 	ApiResponse,
@@ -45,7 +47,9 @@ export class ProviderController {
 			const provider = await this.providerService.create(createProviderDto);
 			return {
 				statusCode: HttpStatus.CREATED,
-				message: 'Provider created successfully',
+				customCode: 'WGS0077',
+				customMessage: successCodes.WGS0077?.description,
+				customMessageEs: successCodes.WGS0077?.descriptionEs,
 				data: provider,
 			};
 		} catch (error) {
@@ -53,7 +57,9 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error creating provider: ${error.message}`,
+					customCode: 'WGE0043',
+					customMessage: errorCodes.WGE0043?.description,
+					customMessageEs: errorCodes.WGE0043?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -61,18 +67,16 @@ export class ProviderController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Get()
+	@Get('')
 	@ApiOperation({ summary: 'Retrieve a list of providers' })
-	@ApiResponse({
+	@ApiOkResponse({
 		status: 200,
 		description: 'Providers retrieved successfully.',
 	})
-	@ApiResponse({ status: 403, description: 'Access forbidden.' })
+	@ApiForbiddenResponse({ status: 403, description: 'Access forbidden.' })
 	async findAll(@Query() getProvidersDto: GetProvidersDto, @Res() res) {
 		try {
-			const { search } = getProvidersDto;
-
-			const providers = await this.providerService.findAll(search);
+			const providers = await this.providerService.findAll(getProvidersDto);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0073',
@@ -108,7 +112,9 @@ export class ProviderController {
 			}
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Provider found',
+				customCode: 'WGE0074',
+				customMessage: successCodes?.WGE0074?.description,
+				customMessageEs: successCodes.WGE0074?.descriptionEs,
 				data: provider,
 			};
 		} catch (error) {
@@ -119,7 +125,9 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error retrieving provider: ${error.message}`,
+					customCode: 'WGE0040',
+					customMessage: errorCodes?.WGE0040?.description,
+					customMessageEs: errorCodes.WGE0040?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -141,7 +149,9 @@ export class ProviderController {
 			const provider = await this.providerService.update(id, updateProviderDto);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Provider updated successfully',
+				customCode: 'WGE0075',
+				customMessage: successCodes?.WGE0075?.description,
+				customMessageEs: successCodes.WGE0075?.descriptionEs,
 				data: provider,
 			};
 		} catch (error) {
@@ -149,7 +159,9 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error updating provider: ${error.message}`,
+					customCode: 'WGE0041',
+					customMessage: errorCodes?.WGE0041?.description,
+					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -168,7 +180,9 @@ export class ProviderController {
 			await this.providerService.remove(id);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Provider deleted successfully',
+				customCode: 'WGE0076',
+				customMessage: successCodes?.WGE0076?.description,
+				customMessageEs: successCodes.WGE0076?.descriptionEs,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
@@ -176,7 +190,9 @@ export class ProviderController {
 				throw new HttpException(
 					{
 						statusCode: HttpStatus.NOT_FOUND,
-						message: error.message,
+						customCode: 'WGE0040',
+						customMessage: errorCodes?.WGE0040?.description,
+						customMessageEs: errorCodes.WGE0040?.descriptionEs,
 					},
 					HttpStatus.NOT_FOUND
 				);
@@ -184,7 +200,9 @@ export class ProviderController {
 				throw new HttpException(
 					{
 						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						message: `Error deleting provider: ${error.message}`,
+						customCode: 'WGE0042',
+						customMessage: errorCodes?.WGE0042?.description,
+						customMessageEs: errorCodes.WGE0042?.descriptionEs,
 					},
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);

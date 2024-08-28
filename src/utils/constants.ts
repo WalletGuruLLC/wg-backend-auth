@@ -221,6 +221,23 @@ export const errorCodes = {
 		description: `There is no provider with the id provided.`,
 		descriptionEs: `No hay ningún provider asociado con el id ingresado.`,
 	},
+	WGE0041: {
+		message: 'Edit provider failed',
+		description: 'Failed to edit provider. Check inputs, then retry.',
+		descriptionEs:
+			'Error al editar el proveedor. Verifica los datos e inténtalo de nuevo.',
+	},
+	WGE0042: {
+		message: 'Delete provider failed',
+		description: 'Failed to delete provider. Check inputs, then retry.',
+		descriptionEs:
+			'Error al eliminar el proveedor. Verifica los datos e inténtalo de nuevo.',
+	},
+	WGE0043: {
+		message: `Failed to create provider`,
+		description: `An error occurred while trying to create the provider. Please try again later.`,
+		descriptionEs: `Se produjo un error al intentar crear el proveedor. Por favor, inténtelo de nuevo más tarde.`,
+	},
 };
 
 export const successCodes = {
@@ -301,5 +318,25 @@ export const successCodes = {
 		message: 'Success getting providers',
 		description: 'The providers was getting succesfully.',
 		descriptionEs: 'Los proveedores se han obtenido con éxito.',
+	},
+	WGE0074: {
+		message: 'Success getting provider',
+		description: 'The provider was getting succesfully.',
+		descriptionEs: 'El proveedor se han obtenido con éxito.',
+	},
+	WGE0075: {
+		message: 'Edit provider successful',
+		description: 'The provider has been edited successfully.',
+		descriptionEs: 'El proveedor ha sido editado con éxito.',
+	},
+	WGE0076: {
+		message: 'Provider deleted successfully',
+		description: 'The provider has been deleted successfully.',
+		descriptionEs: 'El proveedor ha sido eliminado con éxito.',
+	},
+	WGS0077: {
+		message: 'Add provider successful',
+		description: 'The provider has been added successfully.',
+		descriptionEs: 'El proveedor ha sido añadido con éxito.',
 	},
 };
