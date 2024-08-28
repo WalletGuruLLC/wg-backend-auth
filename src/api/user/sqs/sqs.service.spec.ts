@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SqsService } from './sqs.service';
 import { Logger } from '@nestjs/common';
-import { SQS } from 'aws-sdk';
 import { LoginMessageDto } from './dto/login-message.dto';
 
 const mSendMessage = jest.fn();

@@ -5,7 +5,7 @@ import {
 	HttpException,
 	HttpStatus,
 } from '@nestjs/common';
-import * as Sentry from "@sentry/nestjs"
+import * as Sentry from '@sentry/nestjs';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {

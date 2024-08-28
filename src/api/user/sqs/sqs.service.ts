@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SQS } from 'aws-sdk';
 import { LoginMessageDto } from './dto/login-message.dto';
-import * as Sentry from "@sentry/nestjs";
+import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class SqsService {

@@ -1,5 +1,5 @@
 import { createTransport } from 'nodemailer';
-import * as Sentry from "@sentry/nestjs";
+import * as Sentry from '@sentry/nestjs';
 
 export const sendEmailNodemailer = async (to, subject, text, html) => {
 	const transporter = createTransport({

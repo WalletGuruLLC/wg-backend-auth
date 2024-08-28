@@ -27,7 +27,9 @@ export interface AuthenticationResult {
 export interface AuthenticateUserResponse {
 	AuthenticationResult?: AuthenticationResult;
 }
-
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ChangePasswordResponse {}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ForgotPasswordResponse {}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ConfirmForgotPasswordResponse {}

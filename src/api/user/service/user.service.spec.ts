@@ -1,6 +1,5 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CognitoUserPool } from 'amazon-cognito-identity-js';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
 import { UserService } from './user.service';
 import { SqsService } from '../sqs/sqs.service';

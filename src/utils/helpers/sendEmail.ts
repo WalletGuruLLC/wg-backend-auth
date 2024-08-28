@@ -1,5 +1,5 @@
 import * as AWS from 'aws-sdk';
-import * as Sentry from "@sentry/nestjs";
+import * as Sentry from '@sentry/nestjs';
 
 export const sendEmail = async (
 	toAddresses: string[],
