@@ -12,3 +12,8 @@ export class UpdateProviderDto {
 	email?: string;
 	phone?: string;
 }
+
+export class DeleteProviderDto {
+	email?: string;
+	active?: boolean;
+}

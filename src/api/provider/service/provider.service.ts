@@ -1,11 +1,13 @@
+import { GetProvidersDto } from './../dto/getProviderDto';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-
+import * as Sentry from '@sentry/nestjs';
 import { errorCodes } from '../../../utils/constants';
 import { Provider } from '../entities/provider.entity';
 import { ProviderSchema } from '../entities/provider.schema';
 import { CreateProviderDto, UpdateProviderDto } from '../dto/provider';
+import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 
 @Injectable()
 export class ProviderService {
@@ -29,19 +31,36 @@ export class ProviderService {
 		return this.dbInstance.create(provider);
 	}
 
-	async findAll(search?: string): Promise<Provider[]> {
-		const scanResults = await this.dbInstance.scan().exec();
+	async findAll(getProvidersDto: GetProvidersDto): Promise<{
+		providers: [];
+		currentPage: number;
+		total: number;
+		totalPages: number;
+	}> {
+		const { page = 1, items = 10 } = getProvidersDto;
 
-		let providers = scanResults as unknown as Provider[];
+		const query = await this.dbInstance.scan().exec();
 
-		if (search) {
-			const regex = new RegExp(search, 'i');
+		let providers = convertToCamelCase(query);
+
+		if (getProvidersDto?.search) {
+			const regex = new RegExp(getProvidersDto?.search, 'i');
 			providers = providers.filter(
-				provider => regex.test(provider.Email) || regex.test(provider.Name)
+				provider => regex.test(provider.email) || regex.test(provider.name)
 			);
 		}
 
-		return providers;
+		const total = providers.length;
+		const offset = (Number(page) - 1) * Number(items);
+		const paginatedProviders = providers.slice(offset, offset + Number(items));
+		const totalPages = Math.ceil(total / Number(items));
+
+		return {
+			providers: paginatedProviders,
+			currentPage: Number(page),
+			total,
+			totalPages,
+		};
 	}
 
 	async findOne(id: string) {
@@ -58,18 +77,28 @@ export class ProviderService {
 		return provider;
 	}
 
-	async update(
-		id: string,
-		updateProviderDto: UpdateProviderDto
-	): Promise<Provider> {
-		// return this.dbInstance.update(
-		// 	{ id },
-		// 	updateProviderDto
-		// ) as Promise<Provider>;
-		return null;
+	async update(id: string, updateProviderDto: UpdateProviderDto) {
+		try {
+			return convertToCamelCase(
+				await this.dbInstance.update({
+					Id: id,
+					Email: updateProviderDto.email,
+					Description: updateProviderDto.description,
+					Name: updateProviderDto.name,
+				})
+			);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error updating user: ${error.message}`);
+		}
 	}
 
 	async remove(id: string): Promise<void> {
-		await this.dbInstance.delete(id);
+		try {
+			await this.dbInstance.delete(id);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error updating user: ${error.message}`);
+		}
 	}
 }

@@ -20,4 +20,14 @@ export class CreateUserDto {
 	lastLogin: Date;
 	termsConditions: boolean;
 	privacyPolicy: boolean;
+	socialSecurityNumber?: string;
+	identificationType?: string;
+	identificationNumber?: string;
+	country?: string;
+	stateLocation?: string;
+	city?: string;
+	zipCode?: string;
+	address?: string;
+	dateOfBirth?: Date;
+	avatar?: string;
 }

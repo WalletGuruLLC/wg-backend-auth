@@ -33,6 +33,7 @@ import { RoleService } from '../service/role.service';
 import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 import { customValidationPipe } from '../../validation.pipe';
 import * as Sentry from '@sentry/nestjs';
+import { GetRolesDto } from '../dto/get-user.dto';
 
 @ApiTags('role')
 @Controller('api/v1/roles')
@@ -81,13 +82,9 @@ export class RoleController {
 		description: 'Roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findAllPaginated(
-		@Query('providerId') providerId?: string,
-		@Query('search') search = '',
-		@Query('page') page = 1,
-		@Query('items') items = 10
-	) {
+	async findAllPaginated(@Query() getRolesDto: GetRolesDto) {
 		try {
+			const { providerId, page, items, search } = getRolesDto;
 			const roles = await this.roleService.findAllPaginated(
 				providerId,
 				Number(page),

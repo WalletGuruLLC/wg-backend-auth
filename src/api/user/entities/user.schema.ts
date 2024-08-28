@@ -100,6 +100,36 @@ export const UserSchema = new dynamoose.Schema(
 			type: Boolean,
 			default: false,
 		},
+		SocialSecurityNumber: {
+			type: String,
+		},
+		IdentificationType: {
+			type: String,
+		},
+		IdentificationNumber: {
+			type: String,
+		},
+		Country: {
+			type: String,
+		},
+		StateLocation: {
+			type: String,
+		},
+		City: {
+			type: String,
+		},
+		ZipCode: {
+			type: String,
+		},
+		Address: {
+			type: String,
+		},
+		DateOfBirth: {
+			type: Date,
+		},
+		Avatar: {
+			type: String,
+		},
 	},
 	{
 		timestamps: {

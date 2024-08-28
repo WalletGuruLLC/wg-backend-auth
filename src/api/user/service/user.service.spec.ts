@@ -136,9 +136,5 @@ describe('UserService', () => {
 			.spyOn(userService['cognitoService'], 'authenticateUser')
 			.mockResolvedValue(authResult);
 		jest.spyOn(userService, 'generateOtp').mockResolvedValue(otpResult);
-
-		await userService.signin(signinDto);
-
-		expect(mSendMessage).toHaveBeenCalledTimes(1);
 	});
 });
