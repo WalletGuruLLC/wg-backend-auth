@@ -68,6 +68,9 @@ export const UserSchema = new dynamoose.Schema(
 			type: String,
 			default: '',
 		},
+		Phone: {
+			type: String,
+		},
 		SendSms: {
 			type: Boolean,
 			default: false,
