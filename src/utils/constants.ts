@@ -238,6 +238,11 @@ export const errorCodes = {
 		description: `An error occurred while trying to create the provider. Please try again later.`,
 		descriptionEs: `Se produjo un error al intentar crear el proveedor. Por favor, inténtelo de nuevo más tarde.`,
 	},
+	WGE00044: {
+		message: 'Invalid phone format',
+		description: 'The provided phone is invalid.',
+		descriptionEs: 'El telefono proporcionada es invalido.',
+	},
 };
 
 export const successCodes = {
