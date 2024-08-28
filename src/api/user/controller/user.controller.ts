@@ -57,7 +57,7 @@ export class UserController {
 	async create(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				createUserDto?.email
+				createUserDto?.email?.toLowerCase()
 			);
 			if (userFind) {
 				return res.status(HttpStatus.FORBIDDEN).send({
@@ -449,7 +449,9 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async signin(@Body() signinDto: SignInDto, @Res() res) {
 		try {
-			const userFind = await this.userService.findOneByEmail(signinDto?.email);
+			const userFind = await this.userService.findOneByEmail(
+				signinDto?.email?.toLowerCase()
+			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
@@ -582,7 +584,7 @@ export class UserController {
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				authForgotPasswordUserDto?.email
+				authForgotPasswordUserDto?.email?.toLowerCase()
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -624,7 +626,7 @@ export class UserController {
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				authConfirmPasswordUserDto?.email
+				authConfirmPasswordUserDto?.email?.toLowerCase()
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -712,7 +714,7 @@ export class UserController {
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				updateUserDto?.email
+				updateUserDto?.email?.toLowerCase()
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
