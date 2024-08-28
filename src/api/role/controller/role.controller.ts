@@ -84,7 +84,7 @@ export class RoleController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async findAllPaginated(@Query() getRolesDto: GetRolesDto) {
 		try {
-			const { providerId, page, items, search } = getRolesDto;
+			const { providerId, page = 1, items = 10, search } = getRolesDto;
 			const roles = await this.roleService.findAllPaginated(
 				providerId,
 				Number(page),
