@@ -543,6 +543,7 @@ export class UserService {
 			'Id',
 			'Type',
 			'Email',
+			'First',
 			'FirstName',
 			'LastName',
 			'Phone',
@@ -578,7 +579,7 @@ export class UserService {
 			const role = roles?.find(
 				r => typeof r !== 'string' && r?.Id === user.roleId
 			);
-			user.roleId = role ? role?.Name : 'Not found';
+			user.roleName = role ? role?.Name : 'Not found';
 			return user;
 		});
 
