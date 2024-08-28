@@ -123,7 +123,6 @@ export class UserController {
 				data: result,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -255,7 +254,6 @@ export class UserController {
 				data: userFind,
 			});
 		} catch (error) {
-			
 			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				customCode: 'WGE0021',
@@ -281,7 +279,6 @@ export class UserController {
 				data: result,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
@@ -318,7 +315,6 @@ export class UserController {
 				data: user,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -372,7 +368,6 @@ export class UserController {
 				data: user,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -409,7 +404,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0021?.descriptionEs,
 			});
 		} catch (error) {
-			
 			if (error.message === 'User not found in database') {
 				throw new HttpException(
 					{
@@ -466,7 +460,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0018?.descriptionEs,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					customCode: 'WGE0001',
@@ -494,7 +487,6 @@ export class UserController {
 				data: result,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
@@ -552,7 +544,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0009?.descriptionEs,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.BAD_REQUEST,
@@ -595,7 +586,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0018?.descriptionEs,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -638,7 +628,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0012?.descriptionEs,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -685,7 +674,6 @@ export class UserController {
 				data: users,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -729,7 +717,6 @@ export class UserController {
 				data: user,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -766,7 +753,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0071?.descriptionEs,
 			};
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -796,7 +782,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0072?.descriptionEs,
 			});
 		} catch (error) {
-			
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.BAD_REQUEST,

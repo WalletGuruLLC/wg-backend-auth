@@ -383,16 +383,12 @@ export class UserService {
 	}
 
 	private async deletePreviousOtp(email: string) {
-		try {
-			const otpRecord = await this.dbOtpInstance.scan({ Email: email }).exec();
-			if (otpRecord && otpRecord.length > 0) {
-				await this.dbOtpInstance.delete({
-					Email: otpRecord[0].Email,
-					Otp: otpRecord[0].Otp,
-				});
-			}
-		} catch (error) {
-			console.error('Error during delete operation:', error);
+		const otpRecord = await this.dbOtpInstance.scan({ Email: email }).exec();
+		if (otpRecord && otpRecord.length > 0) {
+			await this.dbOtpInstance.delete({
+				Email: otpRecord[0].Email,
+				Otp: otpRecord[0].Otp,
+			});
 		}
 	}
 

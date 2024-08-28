@@ -1,11 +1,12 @@
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-
+import * as Sentry from '@sentry/nestjs';
 import { errorCodes } from '../../../utils/constants';
 import { Provider } from '../entities/provider.entity';
 import { ProviderSchema } from '../entities/provider.schema';
 import { CreateProviderDto, UpdateProviderDto } from '../dto/provider';
+import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 
 @Injectable()
 export class ProviderService {
@@ -29,7 +30,7 @@ export class ProviderService {
 		return this.dbInstance.create(provider);
 	}
 
-	async findAll(search?: string): Promise<Provider[]> {
+	async findAll(search = '') {
 		const scanResults = await this.dbInstance.scan().exec();
 
 		let providers = scanResults as unknown as Provider[];
@@ -58,18 +59,28 @@ export class ProviderService {
 		return provider;
 	}
 
-	async update(
-		id: string,
-		updateProviderDto: UpdateProviderDto
-	): Promise<Provider> {
-		// return this.dbInstance.update(
-		// 	{ id },
-		// 	updateProviderDto
-		// ) as Promise<Provider>;
-		return null;
+	async update(id: string, updateProviderDto: UpdateProviderDto) {
+		try {
+			return convertToCamelCase(
+				await this.dbInstance.update({
+					Id: id,
+					Email: updateProviderDto.email,
+					Description: updateProviderDto.description,
+					Name: updateProviderDto.name,
+				})
+			);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error updating user: ${error.message}`);
+		}
 	}
 
 	async remove(id: string): Promise<void> {
-		await this.dbInstance.delete(id);
+		try {
+			await this.dbInstance.delete(id);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error updating user: ${error.message}`);
+		}
 	}
 }

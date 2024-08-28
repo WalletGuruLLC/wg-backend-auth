@@ -24,4 +24,14 @@ export class User extends Document {
 	TermsConditions = false;
 	PrivacyPolicy = false;
 	AccessLevel = {};
+	SocialSecurityNumber?: string;
+	IdentificationType?: string;
+	IdentificationNumber?: string;
+	Country?: string;
+	StateLocation?: string;
+	City?: string;
+	ZipCode?: string;
+	Address?: string;
+	DateOfBirth?: Date = null;
+	Avatar?: string;
 }
