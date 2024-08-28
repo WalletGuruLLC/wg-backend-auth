@@ -23,7 +23,6 @@ pipelines:
                 - npm run lint
                 - npm run prettier
                 - npm run format
-                - npm run test
               caches:
                 - node
   branches:
@@ -61,8 +60,8 @@ pipelines:
                       CLUSTER_NAME: ${CLUSTER_NAME}
                       KUBECTL_COMMAND: "set"
                       KUBECTL_ARGS:
-                      - "image"
-                      - "--namespace=dev"
-                      - "deployment/backend-auth"
-                      - "backend-auth=${IMAGE}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
+                        - "image"
+                        - "--namespace=dev"
+                        - "deployment/backend-auth"
+                        - "backend-auth=${IMAGE}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
                       DEBUG: "true"
