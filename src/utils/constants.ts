@@ -339,4 +339,9 @@ export const successCodes = {
 		description: 'The provider has been added successfully.',
 		descriptionEs: 'El proveedor ha sido añadido con éxito.',
 	},
+	WGE0078: {
+		message: 'Validate access successful',
+		description: 'Validate access successfully.',
+		descriptionEs: 'Acceso validado con éxito.',
+	},
 };

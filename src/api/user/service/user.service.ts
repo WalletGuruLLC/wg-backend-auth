@@ -36,6 +36,8 @@ import { Attempt } from '../../auth/entities/auth-attempt.entity';
 import { AuthAttemptSchema } from '../../auth/entities/auth-attempt.schema';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import * as Sentry from '@sentry/nestjs';
+import { RoleService } from '../../role/service/role.service';
+import { ProviderService } from '../../provider/service/provider.service';
 
 @Injectable()
 export class UserService {
@@ -44,6 +46,8 @@ export class UserService {
 	private dbAttemptInstance: Model<Attempt>;
 	private cognitoService: CognitoService;
 	private cognito: AWS.CognitoIdentityServiceProvider;
+	private roleService: RoleService;
+	private providerService: ProviderService;
 
 	constructor(private readonly sqsService: SqsService) {
 		this.dbInstance = dynamoose.model<User>('Users', UserSchema);
@@ -52,6 +56,7 @@ export class UserService {
 			'Attempts',
 			AuthAttemptSchema
 		);
+		this.roleService = new RoleService(this.providerService);
 		this.cognitoService = new CognitoService();
 		this.cognito = new AWS.CognitoIdentityServiceProvider({
 			region: process.env.AWS_REGION,
@@ -466,6 +471,17 @@ export class UserService {
 	) {
 		const { token, currentPassword, newPassword } = authChangePasswordUserDto;
 
+		const user = await this.getUserInfo(token);
+
+		const userFind = await this.findOneByEmail(
+			user?.UserAttributes?.[0]?.Value
+		);
+
+		await this.dbInstance.update({
+			Id: userFind?.id,
+			First: false,
+		});
+
 		await this.cognitoService.changePassword(
 			token?.split(' ')?.[1],
 			currentPassword,
@@ -525,8 +541,9 @@ export class UserService {
 
 		query.attributes([
 			'Id',
-			'type',
+			'Type',
 			'Email',
+			'First',
 			'FirstName',
 			'LastName',
 			'Phone',
@@ -555,7 +572,17 @@ export class UserService {
 			);
 		}
 
-		// Pagination
+		const roleIds = [...new Set(users.map(user => user.roleId))];
+		const roles = await this.roleService.getRolesByIds(roleIds);
+
+		users = users?.map(user => {
+			const role = roles?.find(
+				r => typeof r !== 'string' && r?.Id === user.roleId
+			);
+			user.roleName = role ? role?.Name : 'Not found';
+			return user;
+		});
+
 		const total = users.length;
 		const offset = (Number(page) - 1) * Number(items);
 		const paginatedUsers = users.slice(offset, offset + Number(items));
@@ -678,5 +705,48 @@ export class UserService {
 		await convertToCamelCase(
 			this.cognitoService.revokeToken(token?.split(' ')?.[1])
 		);
+	}
+
+	async validateAccessMiddleware(token: string, path: string, method: string) {
+		const userCognito = await this.getUserInfo(token);
+		const user = await this.findOneByEmail(
+			userCognito?.UserAttributes?.[0]?.Value
+		);
+		const userRoleId = user.roleId;
+
+		const requestedModuleId = this.getModuleIdFromPath(path);
+		const requiredMethod = method;
+
+		const role = await this.roleService.getRoleInfo(userRoleId);
+
+		const userAccessLevel = role?.Modules[requestedModuleId];
+
+		const accessMap = {
+			GET: 8,
+			POST: 4,
+			PUT: 2,
+			PATCH: 1,
+			DELETE: 1,
+		};
+
+		const requiredAccess = accessMap[requiredMethod];
+
+		return {
+			requiredAccess,
+			userAccessLevel,
+		};
+	}
+
+	private getModuleIdFromPath(path: string): string {
+		const moduleIdMap = {
+			'/api/v1/users': 'U783',
+			'/api/v1/roles': 'R949',
+			'/api/v1/providers': 'SP95',
+			'/api/v1/wallets': 'W325',
+		};
+
+		const normalizedPath = path.split('/').slice(0, 4).join('/');
+
+		return moduleIdMap[normalizedPath] || '';
 	}
 }
