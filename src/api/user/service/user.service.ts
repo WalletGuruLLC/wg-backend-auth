@@ -185,6 +185,7 @@ export class UserService {
 				firstName,
 				lastName,
 				type,
+				phone,
 				mfaEnabled,
 				mfaType,
 				roleId,
@@ -219,7 +220,8 @@ export class UserService {
 				Id: uniqueIdValue,
 				FirstName: firstName,
 				LastName: lastName,
-				Email: email,
+				Phone: phone,
+				Email: email.toLowerCase(),
 				PasswordHash: hashedPassword,
 				MfaEnabled: mfaEnabled,
 				ServiceProviderId: type === 'PROVIDER' ? serviceProviderId : 'EMPTY',
@@ -399,7 +401,7 @@ export class UserService {
 
 	private async authenticateUser(signinDto: SignInDto) {
 		const authResult = await this.cognitoService.authenticateUser(
-			signinDto.email,
+			signinDto.email.toLowerCase(),
 			signinDto.password
 		);
 		const token = authResult.AuthenticationResult?.AccessToken;
@@ -441,16 +443,23 @@ export class UserService {
 	async signin(signinDto: SignInDto) {
 		const transactionId = uuidv4();
 		try {
-			await this.deletePreviousOtp(signinDto.email);
-			const foundUser = await this.findOneByEmail(signinDto.email);
+			await this.deletePreviousOtp(signinDto.email.toLowerCase());
+			const foundUser = await this.findOneByEmail(
+				signinDto.email.toLowerCase()
+			);
 			const token = await this.authenticateUser(signinDto);
 
 			const otpResult = await this.generateOtp({
-				email: signinDto.email,
+				email: signinDto.email.toLowerCase(),
 				token,
 			});
 
-			await this.logAttempt(transactionId, signinDto.email, 'success', 'login');
+			await this.logAttempt(
+				transactionId,
+				signinDto.email.toLowerCase(),
+				'success',
+				'login'
+			);
 
 			await this.sendOtpNotification(foundUser, otpResult.otp);
 
