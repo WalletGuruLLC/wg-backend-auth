@@ -40,6 +40,7 @@ import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { validatePassword } from '../../../utils/helpers/validatePassword';
 import * as Sentry from '@sentry/nestjs';
 import { ValidateAccessDto } from '../dto/validate-access-middleware.dto';
+import { validatePhoneNumber } from 'src/utils/helpers/validatePhone';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -115,6 +116,18 @@ export class UserController {
 						customMessageEs: errorCodes.WGE00018?.descriptionEs,
 					});
 				}
+			}
+			if (
+				['PLATFORM', 'PROVIDER'].includes(createUserDto.type) &&
+				createUserDto?.phone &&
+				!validatePhoneNumber(createUserDto?.phone)
+			) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE00044',
+					customMessage: errorCodes?.WGE00044?.description,
+					customMessageEs: errorCodes.WGE00044?.descriptionEs,
+				});
 			}
 
 			const result = await this.userService.create(createUserDto);
