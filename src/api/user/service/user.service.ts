@@ -500,7 +500,14 @@ export class UserService {
 		total: number;
 		totalPages: number;
 	}> {
-		const { type = 'WALLET', email, id, page = 1, items = 10 } = getUsersDto;
+		const {
+			type = 'WALLET',
+			email,
+			serviceProviderId,
+			id,
+			page = 1,
+			items = 10,
+		} = getUsersDto;
 
 		let query = this.dbInstance.query('Type').eq(type);
 
@@ -512,14 +519,19 @@ export class UserService {
 			query = query.and().filter('Id').eq(id);
 		}
 
+		if (serviceProviderId) {
+			query = query.and().filter('ServiceProviderId').eq(serviceProviderId);
+		}
+
 		query.attributes([
 			'Id',
 			'type',
 			'Email',
 			'FirstName',
+			'LastName',
+			'Phone',
 			'ServiceProviderId',
 			'RoleId',
-			'LastName',
 			'Active',
 			'State',
 			'MfaEnabled',
@@ -635,12 +647,17 @@ export class UserService {
 		try {
 			const user = await this.findOneByEmail(updateUserDto?.email);
 
-			return await convertToCamelCase(
-				this.dbInstance.update({
-					Id: user?.Id,
-					Active: updateUserDto?.active,
-				})
-			);
+			await this.dbInstance.update({
+				Id: user?.id,
+				Active: updateUserDto?.active,
+			});
+
+			const userUpd = await this.findOneByEmail(updateUserDto?.email);
+
+			delete userUpd.passwordHash;
+			delete userUpd.otpTimestamp;
+
+			return userUpd;
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error updating user: ${error.message}`);
