@@ -240,7 +240,7 @@ export class UserService {
 
 			if (type == 'WALLET') {
 				const valueAuth = {
-					email: passwordHash,
+					email: email.toLowerCase(),
 					password: passwordHash,
 				};
 				tokenValue = await this.authenticateUser(valueAuth);
@@ -260,6 +260,7 @@ export class UserService {
 			delete result.otp;
 			return convertToCamelCase(result);
 		} catch (error) {
+			console.log('error', error?.message);
 			Sentry.captureException(error);
 			throw new Error('Failed to create user. Please try again later.');
 		}
