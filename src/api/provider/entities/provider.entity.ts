@@ -1,28 +1,18 @@
-import * as dynamoose from 'dynamoose';
 import { Document } from 'dynamoose/dist/Document';
 
-const ProviderSchema = new dynamoose.Schema(
-	{
-		id: {
-			type: String,
-			hashKey: true,
-		},
-		name: String,
-		description: String,
-		email: String,
-		phone: String,
-	},
-	{
-		timestamps: true,
-	}
-);
-
-export const ProviderModel = dynamoose.model('Provider', ProviderSchema);
-
-export interface ProviderDocument extends Document {
-	id: string;
-	name: string;
-	description: string;
-	email: string;
-	phone: string;
+export interface Provider extends Document {
+	Id: string;
+	Name: string;
+	Description: string;
+	Email: string;
+	Phone: string;
+	EINNumber: string;
+	Country: string;
+	City: string;
+	ZipCode: string;
+	CompanyAddress: string;
+	WalletAddress: string;
+	Logo: string;
+	ContactInformation: string;
+	Active: boolean;
 }

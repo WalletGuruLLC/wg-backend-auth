@@ -19,7 +19,6 @@ export const UserSchema = new dynamoose.Schema(
 		},
 		Email: {
 			type: String,
-			required: true,
 			index: {
 				global: true,
 				name: 'EmailIndex',
@@ -38,13 +37,13 @@ export const UserSchema = new dynamoose.Schema(
 			enum: Object.values(MfaTypeUser),
 			default: MfaTypeUser.TOTP,
 		},
-		type: {
+		Type: {
 			type: String,
 			enum: Object.values(TypeUser),
 			default: TypeUser.PLATFORM,
 			index: {
 				global: true,
-				name: 'userTypeIndex',
+				name: 'UserTypeIndex',
 			},
 		},
 		RoleId: {
@@ -67,6 +66,9 @@ export const UserSchema = new dynamoose.Schema(
 		Picture: {
 			type: String,
 			default: '',
+		},
+		Phone: {
+			type: String,
 		},
 		SendSms: {
 			type: Boolean,
@@ -100,6 +102,36 @@ export const UserSchema = new dynamoose.Schema(
 			type: Boolean,
 			default: false,
 		},
+		SocialSecurityNumber: {
+			type: String,
+		},
+		IdentificationType: {
+			type: String,
+		},
+		IdentificationNumber: {
+			type: String,
+		},
+		Country: {
+			type: String,
+		},
+		StateLocation: {
+			type: String,
+		},
+		City: {
+			type: String,
+		},
+		ZipCode: {
+			type: String,
+		},
+		Address: {
+			type: String,
+		},
+		DateOfBirth: {
+			type: Date,
+		},
+		Avatar: {
+			type: String,
+		},
 	},
 	{
 		timestamps: {
@@ -110,7 +142,7 @@ export const UserSchema = new dynamoose.Schema(
 );
 
 // Asocia el modelo con la clase User
-export const UserModel = dynamoose.model<User>('users', UserSchema, {
+export const UserModel = dynamoose.model<User>('Users', UserSchema, {
 	create: false,
 	update: false,
 	waitForActive: false,

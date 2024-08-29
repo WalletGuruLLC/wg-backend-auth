@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from '../service/user.service';
 import { errorCodes } from '../../../utils/constants';
+import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class CognitoAuthGuard implements CanActivate {
@@ -34,6 +35,7 @@ export class CognitoAuthGuard implements CanActivate {
 			request.token = authHeader;
 			return true;
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,

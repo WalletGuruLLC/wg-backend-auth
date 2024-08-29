@@ -10,7 +10,7 @@ export class User extends Document {
 	PasswordHash = '';
 	MfaEnabled = false;
 	MfaType: string = MfaTypeUser.TOTP;
-	type: TypeUser = TypeUser.PLATFORM;
+	Type: TypeUser = TypeUser.PLATFORM;
 	RoleId = '';
 	Active: boolean;
 	First: boolean;
@@ -24,4 +24,14 @@ export class User extends Document {
 	TermsConditions = false;
 	PrivacyPolicy = false;
 	AccessLevel = {};
+	SocialSecurityNumber?: string;
+	IdentificationType?: string;
+	IdentificationNumber?: string;
+	Country?: string;
+	StateLocation?: string;
+	City?: string;
+	ZipCode?: string;
+	Address?: string;
+	DateOfBirth?: Date = null;
+	Avatar?: string;
 }

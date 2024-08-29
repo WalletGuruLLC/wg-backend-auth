@@ -1,8 +1,10 @@
 import { Document } from 'dynamoose/dist/Document';
 
-export class Module extends Document {
+export class Setting extends Document {
 	Id: string;
-	Description: string;
+	Belongs: string;
+	Key: string;
+	Value: string;
 	CreateDate?: string;
 	UpdateDate?: string;
 }

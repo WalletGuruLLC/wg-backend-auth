@@ -7,11 +7,19 @@ export class GetUsersDto {
 
 	@IsOptional()
 	@IsString()
+	search?: string;
+
+	@IsOptional()
+	@IsString()
 	firstName?: string;
 
 	@IsOptional()
 	@IsString()
 	lastName?: string;
+
+	@IsOptional()
+	@IsString()
+	serviceProviderId?: string;
 
 	@IsOptional()
 	@IsString()
@@ -23,9 +31,9 @@ export class GetUsersDto {
 
 	@IsOptional()
 	@IsString()
-	limit?: number;
+	items?: number;
 
 	@IsOptional()
 	@IsString()
-	skip?: number;
+	page?: number;
 }

@@ -206,6 +206,43 @@ export const errorCodes = {
 		description: `There are no modules available to update for the specified role.`,
 		descriptionEs: `No hay módulos disponibles para actualizar para el rol especificado.`,
 	},
+	WGE0038: {
+		message: `No permission to perform this action`,
+		description: `You do not have permission to perform this action.`,
+		descriptionEs: `No tienes permiso para realizar esta acción.`,
+	},
+	WGE0039: {
+		message: `No permission in the specified module`,
+		description: `You do not have permission in the specified module.`,
+		descriptionEs: `No tienes permisos en el módulo especificado.`,
+	},
+	WGE0040: {
+		message: `Provider not found`,
+		description: `There is no provider with the id provided.`,
+		descriptionEs: `No hay ningún provider asociado con el id ingresado.`,
+	},
+	WGE0041: {
+		message: 'Edit provider failed',
+		description: 'Failed to edit provider. Check inputs, then retry.',
+		descriptionEs:
+			'Error al editar el proveedor. Verifica los datos e inténtalo de nuevo.',
+	},
+	WGE0042: {
+		message: 'Delete provider failed',
+		description: 'Failed to delete provider. Check inputs, then retry.',
+		descriptionEs:
+			'Error al eliminar el proveedor. Verifica los datos e inténtalo de nuevo.',
+	},
+	WGE0043: {
+		message: `Failed to create provider`,
+		description: `An error occurred while trying to create the provider. Please try again later.`,
+		descriptionEs: `Se produjo un error al intentar crear el proveedor. Por favor, inténtelo de nuevo más tarde.`,
+	},
+	WGE00044: {
+		message: 'Invalid phone format',
+		description: 'The provided phone is invalid.',
+		descriptionEs: 'El telefono proporcionada es invalido.',
+	},
 };
 
 export const successCodes = {
@@ -281,5 +318,35 @@ export const successCodes = {
 		message: 'Logout successful',
 		description: 'The user has been logged out successfully.',
 		descriptionEs: 'El usuario ha cerrado sesión con éxito.',
+	},
+	WGE0073: {
+		message: 'Success getting providers',
+		description: 'The providers was getting succesfully.',
+		descriptionEs: 'Los proveedores se han obtenido con éxito.',
+	},
+	WGE0074: {
+		message: 'Success getting provider',
+		description: 'The provider was getting succesfully.',
+		descriptionEs: 'El proveedor se han obtenido con éxito.',
+	},
+	WGE0075: {
+		message: 'Edit provider successful',
+		description: 'The provider has been edited successfully.',
+		descriptionEs: 'El proveedor ha sido editado con éxito.',
+	},
+	WGE0076: {
+		message: 'Provider deleted successfully',
+		description: 'The provider has been deleted successfully.',
+		descriptionEs: 'El proveedor ha sido eliminado con éxito.',
+	},
+	WGS0077: {
+		message: 'Add provider successful',
+		description: 'The provider has been added successfully.',
+		descriptionEs: 'El proveedor ha sido añadido con éxito.',
+	},
+	WGE0078: {
+		message: 'Validate access successful',
+		description: 'Validate access successfully.',
+		descriptionEs: 'Acceso validado con éxito.',
 	},
 };

@@ -7,6 +7,7 @@ import {
 	HttpStatus,
 	Param,
 	Patch,
+	Put,
 	Post,
 	Query,
 	Req,
@@ -16,6 +17,7 @@ import {
 	ValidationPipe,
 } from '@nestjs/common';
 import {
+	ApiBearerAuth,
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
 	ApiOkResponse,
@@ -36,18 +38,123 @@ import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 import { CognitoAuthGuard } from '../guard/cognito-auth.guard';
 import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { validatePassword } from '../../../utils/helpers/validatePassword';
+import * as Sentry from '@sentry/nestjs';
+import { ValidateAccessDto } from '../dto/validate-access-middleware.dto';
+import { validatePhoneNumber } from 'src/utils/helpers/validatePhone';
 
 @ApiTags('user')
 @Controller('api/v1/users')
+@ApiBearerAuth('JWT')
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
+	@UseGuards(CognitoAuthGuard)
 	@Post('/register')
 	@ApiCreatedResponse({
 		description: 'The record has been successfully created.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async create(@Body() createUserDto: CreateUserDto, @Res() res) {
+		try {
+			const userFind = await this.userService.findOneByEmail(
+				createUserDto?.email?.toLowerCase()
+			);
+			if (userFind) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0003',
+					customMessage: errorCodes?.WGE0003?.description,
+					customMessageEs: errorCodes.WGE0003?.descriptionEs,
+				});
+			}
+
+			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0017',
+					customMessage: errorCodes.WGE0017?.description,
+					customMessageEs: errorCodes.WGE0017?.descriptionEs,
+				});
+			}
+
+			if (createUserDto?.type === 'WALLET' && !createUserDto?.passwordHash) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE00018',
+					customMessage: errorCodes?.WGE00018?.description,
+					customMessageEs: errorCodes.WGE00018?.descriptionEs,
+				});
+			}
+
+			if (['PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
+				if (
+					!createUserDto?.firstName ||
+					!createUserDto?.lastName ||
+					!createUserDto?.email ||
+					!createUserDto?.type ||
+					!createUserDto?.roleId
+				) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00018',
+						customMessage: errorCodes?.WGE00018?.description,
+						customMessageEs: errorCodes.WGE00018?.descriptionEs,
+					});
+				}
+			} else {
+				if (
+					!createUserDto?.email ||
+					!createUserDto?.passwordHash ||
+					!createUserDto?.type
+				) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00018',
+						customMessage: errorCodes?.WGE00018?.description,
+						customMessageEs: errorCodes.WGE00018?.descriptionEs,
+					});
+				}
+			}
+			if (
+				['PLATFORM', 'PROVIDER'].includes(createUserDto.type) &&
+				createUserDto?.phone &&
+				!validatePhoneNumber(createUserDto?.phone)
+			) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE00044',
+					customMessage: errorCodes?.WGE00044?.description,
+					customMessageEs: errorCodes.WGE00044?.descriptionEs,
+				});
+			}
+
+			const result = await this.userService.create(createUserDto);
+			return res.status(HttpStatus.CREATED).send({
+				statusCode: HttpStatus.CREATED,
+				customCode: 'WGE0018',
+				customMessage: successCodes.WGE0018?.description,
+				customMessageEs: successCodes.WGE0018?.descriptionEs,
+				data: result,
+			});
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0016',
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@Post('/register-app')
+	@ApiCreatedResponse({
+		description: 'The record has been successfully created.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async createApp(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
 				createUserDto?.email
@@ -79,6 +186,36 @@ export class UserController {
 				});
 			}
 
+			if (['PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
+				if (
+					!createUserDto?.firstName ||
+					!createUserDto?.lastName ||
+					!createUserDto?.email ||
+					!createUserDto?.type ||
+					!createUserDto?.roleId
+				) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00018',
+						customMessage: errorCodes?.WGE00018?.description,
+						customMessageEs: errorCodes.WGE00018?.descriptionEs,
+					});
+				}
+			} else {
+				if (
+					!createUserDto?.email ||
+					!createUserDto?.passwordHash ||
+					!createUserDto?.type
+				) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00018',
+						customMessage: errorCodes?.WGE00018?.description,
+						customMessageEs: errorCodes.WGE00018?.descriptionEs,
+					});
+				}
+			}
+
 			const result = await this.userService.create(createUserDto);
 			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
@@ -97,6 +234,46 @@ export class UserController {
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Get('/current-user')
+	@ApiOkResponse({
+		description: 'Successfully returned user info',
+	})
+	@ApiForbiddenResponse({ description: 'Invalid access token.' })
+	async getUserInfo(@Req() req, @Res() res) {
+		try {
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+
+			let accessLevel = {};
+			if (userFind?.roleId !== 'EMPTY') {
+				accessLevel = await this.userService.listAccessLevels(userFind?.roleId);
+			}
+
+			userFind.accessLevel = accessLevel;
+
+			delete userFind?.passwordHash;
+			delete userFind?.otpTimestamp;
+
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0022',
+				customMessage: successCodes.WGE0022?.description,
+				customMessageEs: successCodes.WGE0022?.descriptionEs,
+				data: userFind,
+			});
+		} catch (error) {
+			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0021',
+				customMessage: errorCodes.WGE0021?.description,
+				customMessageEs: errorCodes.WGE0021?.descriptionEs,
+			});
 		}
 	}
 
@@ -165,7 +342,7 @@ export class UserController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Patch('/:id')
+	@Put('/:id')
 	@ApiOkResponse({
 		description: 'The record has been successfully updated.',
 	})
@@ -185,7 +362,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
 			}
-			if (!userFind?.First && updateUserDto?.email) {
+			if (!userFind?.first && updateUserDto?.email) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0024',
@@ -195,7 +372,7 @@ export class UserController {
 			}
 
 			const user = await this.userService.update(id, updateUserDto);
-			delete user.PasswordHash;
+			delete user.passwordHash;
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
@@ -272,22 +449,24 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async signin(@Body() signinDto: SignInDto, @Res() res) {
 		try {
-			const userFind = await this.userService.findOneByEmail(signinDto?.email);
+			const userFind = await this.userService.findOneByEmail(
+				signinDto?.email?.toLowerCase()
+			);
 			if (!userFind) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
-			if (!userFind?.Active) {
-				return {
+			if (!userFind?.active) {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0022',
 					customMessage: errorCodes.WGE0022?.description,
 					customMessageEs: errorCodes.WGE0022?.descriptionEs,
-				};
+				});
 			}
 			await this.userService.signin(signinDto);
 			return res.status(HttpStatus.OK).json({
@@ -299,10 +478,9 @@ export class UserController {
 		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0001',
-					customMessage: errorCodes.WGE0001?.description,
-					customMessageEs: errorCodes.WGE0001?.descriptionEs,
+					...errorCodes.WGE0001,
+					message: error.message,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
@@ -406,7 +584,7 @@ export class UserController {
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				authForgotPasswordUserDto?.email
+				authForgotPasswordUserDto?.email?.toLowerCase()
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -448,7 +626,7 @@ export class UserController {
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				authConfirmPasswordUserDto?.email
+				authConfirmPasswordUserDto?.email?.toLowerCase()
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -495,7 +673,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0017?.descriptionEs,
 				});
 			}
-			if (getUsersDto?.skip > users?.totalPages) {
+			if (getUsersDto?.page > users?.totalPages) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0023',
@@ -525,38 +703,6 @@ export class UserController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Get('/current-user')
-	@ApiOkResponse({
-		description: 'Successfully returned user info',
-	})
-	@ApiForbiddenResponse({ description: 'Invalid access token.' })
-	async getUserInfo(@Req() req, @Res() res) {
-		try {
-			const userInfo = req.user;
-			const userFind = await this.userService.findOneByEmail(
-				userInfo?.UserAttributes?.[0]?.Value
-			);
-
-			delete userFind?.PasswordHash;
-			delete userFind?.OtpTimestamp;
-
-			return res.status(HttpStatus.OK).send({
-				statusCode: HttpStatus.OK,
-				customCode: 'WGE0022',
-				customMessage: successCodes.WGE0022?.description,
-				customMessageEs: successCodes.WGE0022?.descriptionEs,
-				data: userFind,
-			});
-		} catch (error) {
-			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				customCode: 'WGE0021',
-				customMessage: errorCodes.WGE0021?.description,
-				customMessageEs: errorCodes.WGE0021?.descriptionEs,
-			});
-		}
-	}
-
 	@Patch('/update-status/:id')
 	@ApiOkResponse({
 		description: 'The user has been successfully updated.',
@@ -568,7 +714,7 @@ export class UserController {
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				updateUserDto?.email
+				updateUserDto?.email?.toLowerCase()
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -652,6 +798,78 @@ export class UserController {
 				customMessageEs: successCodes.WGE0072?.descriptionEs,
 			});
 		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0016',
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+				},
+				HttpStatus.BAD_REQUEST
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Post('/validate-access')
+	@ApiOkResponse({
+		description: 'Validate access successfully.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async validateAccessMiddleware(
+		@Body() validateAccess: ValidateAccessDto,
+		@Req() req,
+		@Res() res
+	) {
+		try {
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			if (!userFind) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0002',
+					customMessage: errorCodes.WGE0002?.description,
+					customMessageEs: errorCodes.WGE0002?.descriptionEs,
+				});
+			}
+
+			const resultAccess = await this.userService.validateAccessMiddleware(
+				req.token,
+				validateAccess?.path,
+				validateAccess?.method
+			);
+
+			if (resultAccess?.userAccessLevel === undefined) {
+				return res.status(HttpStatus.UNAUTHORIZED).send({
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0039',
+					customMessage: errorCodes.WGE0039?.description,
+					customMessageEs: errorCodes.WGE0039?.descriptionEs,
+				});
+			}
+
+			if (
+				(resultAccess?.userAccessLevel & resultAccess?.requiredAccess) !==
+				resultAccess?.requiredAccess
+			) {
+				return res.status(HttpStatus.UNAUTHORIZED).send({
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0038',
+					customMessage: errorCodes.WGE0038?.description,
+					customMessageEs: errorCodes.WGE0038?.descriptionEs,
+				});
+			}
+
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0078',
+				customMessage: successCodes.WGE0078?.description,
+				customMessageEs: successCodes.WGE0078?.descriptionEs,
+			});
+		} catch (error) {
+			console.log('error', error?.message);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.BAD_REQUEST,

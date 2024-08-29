@@ -1,4 +1,5 @@
 import { createTransport } from 'nodemailer';
+import * as Sentry from '@sentry/nestjs';
 
 export const sendEmailNodemailer = async (to, subject, text, html) => {
 	const transporter = createTransport({
@@ -23,6 +24,7 @@ export const sendEmailNodemailer = async (to, subject, text, html) => {
 		const info = await transporter.sendMail(mailOptions);
 		console.log('Email enviado:', info.response);
 	} catch (error) {
+		Sentry.captureException(error);
 		console.error('Error al enviar el correo:', error);
 	}
 };

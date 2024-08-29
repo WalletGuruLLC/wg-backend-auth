@@ -1,19 +1,21 @@
-import { message } from './../../../../node_modules/aws-sdk/clients/sns.d';
+import { convertToCamelCase } from 'src/utils/helpers/convertCamelCase';
 import {
 	Body,
 	Controller,
-	Delete,
 	Get,
 	Query,
 	HttpException,
 	HttpStatus,
 	Param,
 	Put,
+	Patch,
 	Post,
 	UseGuards,
 	UsePipes,
+	Res,
 } from '@nestjs/common';
 import {
+	ApiBearerAuth,
 	ApiBody,
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
@@ -30,9 +32,12 @@ import { UpdateRoleDto } from '../dto/update-role.dto';
 import { RoleService } from '../service/role.service';
 import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 import { customValidationPipe } from '../../validation.pipe';
+import * as Sentry from '@sentry/nestjs';
+import { GetRolesDto } from '../dto/get-user.dto';
 
 @ApiTags('role')
 @Controller('api/v1/roles')
+@ApiBearerAuth('JWT')
 export class RoleController {
 	constructor(private readonly roleService: RoleService) {}
 
@@ -54,13 +59,20 @@ export class RoleController {
 				data: role,
 			};
 		} catch (error) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0025',
-					...errorCodes.WGE0025,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
+			if (
+				error instanceof HttpException &&
+				error.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
+			) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0025',
+						...errorCodes.WGE0025,
+						message: error.message,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+			throw error;
 		}
 	}
 
@@ -70,16 +82,14 @@ export class RoleController {
 		description: 'Roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findAll(
-		@Query('providerId') providerId?: string,
-		@Query('page') page = 1,
-		@Query('items') items = 10
-	) {
+	async findAllPaginated(@Query() getRolesDto: GetRolesDto) {
 		try {
-			const roles = await this.roleService.findAll(
+			const { providerId, page = 1, items = 10, search } = getRolesDto;
+			const roles = await this.roleService.findAllPaginated(
 				providerId,
 				Number(page),
-				Number(items)
+				Number(items),
+				search
 			);
 			return {
 				statusCode: HttpStatus.OK,
@@ -89,43 +99,40 @@ export class RoleController {
 				data: roles,
 			};
 		} catch (error) {
+			Sentry.captureException(error);
 			//TODO: throw error only if no roles are found
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0032',
-					customMessage: errorCodes.WGE0032?.description,
-					customMessageEs: errorCodes.WGE0032?.descriptionEs,
+					...errorCodes.WGE0032,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
 	}
+
 	@UseGuards(CognitoAuthGuard)
-	@Get(':id')
+	@Get('active')
 	@ApiOkResponse({
-		description: 'The role has been successfully retrieved.',
+		description: 'Active roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findOne(@Param('id') id: string) {
+	async findAllActive(@Query('providerId') providerId?: string) {
 		try {
-			const role = await this.roleService.getRoleInfo(id);
-			if (!role) {
-				throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
-			}
+			const roles = await this.roleService.findAllActive(providerId);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Role found',
-				data: role,
+				customCode: 'WGS0031',
+				customMessage: successCodes.WGS0031?.description,
+				customMessageEs: successCodes.WGS0031?.descriptionEs,
+				data: roles,
 			};
 		} catch (error) {
-			if (error.status === HttpStatus.NOT_FOUND) {
-				throw error; // Re-throw 404 errors as they are
-			}
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					message: `Error retrieving role: ${error.message}`,
+					customCode: 'WGE0032',
+					...errorCodes.WGE0032,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -142,6 +149,46 @@ export class RoleController {
 	async update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
 		try {
 			const role = await this.roleService.update(id, updateRoleDto);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGS0024',
+				customMessage: successCodes.WGS0024?.description,
+				customMessageEs: successCodes.WGS0024?.descriptionEs,
+				data: role,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			if (
+				error instanceof HttpException &&
+				error.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
+			) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0026',
+						...errorCodes.WGE0026,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+			throw error;
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Patch(':id/toggle')
+	@ApiOperation({ summary: 'Toggle the active status of a role' })
+	@ApiParam({ name: 'id', description: 'ID of the role', type: String })
+	@ApiResponse({
+		status: 200,
+		description: 'Role status toggled successfully.',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'Role not found.',
+	})
+	async toggle(@Param('id') id: string) {
+		try {
+			const role = await this.roleService.toggle(id);
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0024',
@@ -167,40 +214,6 @@ export class RoleController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Delete(':id')
-	@ApiOkResponse({
-		description: 'The role has been successfully deleted.',
-	})
-	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async remove(@Param('id') id: string) {
-		try {
-			await this.roleService.remove(id);
-			return {
-				statusCode: HttpStatus.OK,
-				message: 'Role deleted successfully',
-			};
-		} catch (error) {
-			if (error.message === 'Role not found in database') {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.NOT_FOUND,
-						message: error.message,
-					},
-					HttpStatus.NOT_FOUND
-				);
-			} else {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						message: `Error deleting role: ${error.message}`,
-					},
-					HttpStatus.INTERNAL_SERVER_ERROR
-				);
-			}
-		}
-	}
-
-	@UseGuards(CognitoAuthGuard)
 	@ApiOperation({ summary: 'Crear un nuevo nivel de acceso para un módulo' })
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
@@ -214,7 +227,8 @@ export class RoleController {
 	async createAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
-		@Body('accessLevel') accessLevel: number
+		@Body('accessLevel') accessLevel: number,
+		@Res() res
 	) {
 		try {
 			const role = await this.roleService.findRole(roleId);
@@ -232,12 +246,13 @@ export class RoleController {
 
 			const roleUpd = await this.roleService.getRoleInfo(roleId);
 
-			return {
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				message: 'Role updated successfully',
-				data: roleUpd,
-			};
+				data: convertToCamelCase(roleUpd),
+			});
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					customCode: 'WGE0036',
@@ -298,6 +313,7 @@ export class RoleController {
 				data: roleUpd,
 			};
 		} catch (error) {
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					customCode: 'WGE0035',
@@ -337,7 +353,7 @@ export class RoleController {
 				data: modulos,
 			};
 		} catch (error) {
-			console.log('error', error?.message);
+			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					customCode: 'WGE0037',

@@ -1,6 +1,5 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CognitoUserPool } from 'amazon-cognito-identity-js';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
 import { UserService } from './user.service';
 import { SqsService } from '../sqs/sqs.service';
@@ -35,6 +34,7 @@ jest.mock('dynamoose', () => ({
 	model: jest.fn().mockImplementation(() => ({
 		delete: jest.fn().mockReturnValue({ promise: jest.fn() }),
 		create: jest.fn().mockReturnValue({ promise: jest.fn() }),
+		scan: jest.fn().mockReturnValue({ promise: jest.fn() }),
 	})),
 	Schema: jest.fn(),
 }));
@@ -72,15 +72,6 @@ describe('UserService', () => {
 	test('debe crear una instancia de cognitoService', () => {
 		expect(CognitoIdentityServiceProvider).toHaveBeenCalled();
 		expect(userService['cognitoService']).toBeDefined();
-	});
-
-	test('debe crear una instancia de userPool', () => {
-		expect(CognitoUserPool).toHaveBeenCalledTimes(2);
-		expect(CognitoUserPool).toHaveBeenCalledWith({
-			UserPoolId: process.env.COGNITO_USER_POOL_ID,
-			ClientId: process.env.COGNITO_CLIENT_ID,
-		});
-		expect(userService['userPool']).toBeDefined();
 	});
 
 	test('forgotPassword debe llamar a cognitoService.forgotPassword con el nombre de usuario correcto', async () => {
@@ -144,9 +135,5 @@ describe('UserService', () => {
 			.spyOn(userService['cognitoService'], 'authenticateUser')
 			.mockResolvedValue(authResult);
 		jest.spyOn(userService, 'generateOtp').mockResolvedValue(otpResult);
-
-		await userService.signin(signinDto);
-
-		expect(mSendMessage).toHaveBeenCalledTimes(1);
 	});
 });

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SQS } from 'aws-sdk';
 import { LoginMessageDto } from './dto/login-message.dto';
+import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class SqsService {
@@ -24,6 +25,7 @@ export class SqsService {
 			await this.sqs.sendMessage(params).promise();
 			this.logger.log(`Message sent to SQS queue: ${queueUrl}`);
 		} catch (error) {
+			Sentry.captureException(error);
 			this.logger.error(
 				`Failed to send message to SQS queue: ${queueUrl}`,
 				error.stack

@@ -1,9 +1,10 @@
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, HttpStatus } from '@nestjs/common';
 import { ModuleService } from './module.service';
 
 @Controller('api/v1/modules')
 @ApiTags('modules')
+@ApiBearerAuth('JWT')
 export class ModuleController {
 	constructor(private readonly moduleService: ModuleService) {}
 
