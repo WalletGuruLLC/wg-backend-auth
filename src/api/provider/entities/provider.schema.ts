@@ -12,6 +12,15 @@ export const ProviderSchema = new dynamoose.Schema(
 		Description: String,
 		Email: String,
 		Phone: String,
+		EINNumber: String,
+		Country: String,
+		City: String,
+		ZipCode: String,
+		CompanyAddress: String,
+		WalletAddress: String,
+		Logo: String,
+		ContactInformation: String,
+		Active: Boolean,
 	},
 	{
 		timestamps: {

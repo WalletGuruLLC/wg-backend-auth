@@ -43,7 +43,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
 		const userAccessLevel = role?.Modules[requestedModuleId];
-		if (userAccessLevel === undefined) {
+		if (userAccessLevel === undefined && user.type !== 'WALLET') {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
@@ -65,7 +65,10 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const requiredAccess = accessMap[requiredMethod];
 
-		if ((userAccessLevel & requiredAccess) !== requiredAccess) {
+		if (
+			(userAccessLevel & requiredAccess) !== requiredAccess &&
+			user.type !== 'WALLET'
+		) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
