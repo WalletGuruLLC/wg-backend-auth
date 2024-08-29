@@ -362,7 +362,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
 			}
-			if (!userFind?.first && updateUserDto?.email) {
+			if (userFind?.first === false && updateUserDto?.email) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0024',
