@@ -851,8 +851,9 @@ export class UserController {
 			}
 
 			if (
+				resultAccess?.userAccessLevel < 8 ||
 				(resultAccess?.userAccessLevel & resultAccess?.requiredAccess) !==
-				resultAccess?.requiredAccess
+					resultAccess?.requiredAccess
 			) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,

@@ -66,8 +66,9 @@ export class AccessControlMiddleware implements NestMiddleware {
 		const requiredAccess = accessMap[requiredMethod];
 
 		if (
-			(userAccessLevel & requiredAccess) !== requiredAccess &&
-			user.type !== 'WALLET'
+			userAccessLevel < 8 ||
+			((userAccessLevel & requiredAccess) !== requiredAccess &&
+				user.type !== 'WALLET')
 		) {
 			throw new HttpException(
 				{
