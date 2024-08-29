@@ -44,7 +44,8 @@ import * as Sentry from '@sentry/nestjs';
 @Controller('api/v1/users')
 @ApiBearerAuth('JWT')
 export class UserController {
-	constructor(private readonly userService: UserService) {}
+	constructor(private readonly userService: UserService) {
+	}
 
 	@UseGuards(CognitoAuthGuard)
 	@Post('/register')
@@ -55,7 +56,7 @@ export class UserController {
 	async create(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				createUserDto?.email
+				createUserDto?.email,
 			);
 			if (userFind) {
 				return res.status(HttpStatus.FORBIDDEN).send({
@@ -130,7 +131,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR
+				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -143,7 +144,7 @@ export class UserController {
 	async createApp(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				createUserDto?.email
+				createUserDto?.email,
 			);
 			if (userFind) {
 				return res.status(HttpStatus.FORBIDDEN).send({
@@ -218,7 +219,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR
+				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -233,7 +234,7 @@ export class UserController {
 		try {
 			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
-				userInfo?.UserAttributes?.[0]?.Value
+				userInfo?.UserAttributes?.[0]?.Value,
 			);
 
 			let accessLevel = {};
@@ -286,7 +287,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0005?.description,
 					customMessageEs: errorCodes.WGE0005?.descriptionEs,
 				},
-				HttpStatus.UNAUTHORIZED
+				HttpStatus.UNAUTHORIZED,
 			);
 		}
 	}
@@ -322,7 +323,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR
+				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -336,7 +337,7 @@ export class UserController {
 	async update(
 		@Param('id') id: string,
 		@Body() updateUserDto: UpdateUserDto,
-		@Res() res
+		@Res() res,
 	) {
 		try {
 			const userFind = await this.userService.findOne(id);
@@ -375,7 +376,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR
+				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -412,7 +413,7 @@ export class UserController {
 						customMessage: errorCodes.WGE0002?.description,
 						customMessageEs: errorCodes.WGE0002?.descriptionEs,
 					},
-					HttpStatus.NOT_FOUND
+					HttpStatus.NOT_FOUND,
 				);
 			} else {
 				throw new HttpException(
@@ -422,7 +423,7 @@ export class UserController {
 						customMessage: errorCodes.WGE0016?.description,
 						customMessageEs: errorCodes.WGE0016?.descriptionEs,
 					},
-					HttpStatus.INTERNAL_SERVER_ERROR
+					HttpStatus.INTERNAL_SERVER_ERROR,
 				);
 			}
 		}
@@ -434,6 +435,7 @@ export class UserController {
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async signin(@Body() signinDto: SignInDto, @Res() res) {
+		signinDto.email = signinDto?.email.toLowerCase();
 		try {
 			const userFind = await this.userService.findOneByEmail(signinDto?.email);
 			if (!userFind) {
@@ -466,7 +468,7 @@ export class UserController {
 					...errorCodes.WGE0001,
 					message: error.message,
 				},
-				HttpStatus.UNAUTHORIZED
+				HttpStatus.UNAUTHORIZED,
 			);
 		}
 	}
@@ -494,7 +496,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0005?.description,
 					customMessageEs: errorCodes.WGE0005?.descriptionEs,
 				},
-				HttpStatus.UNAUTHORIZED
+				HttpStatus.UNAUTHORIZED,
 			);
 		}
 	}
@@ -508,12 +510,12 @@ export class UserController {
 	async changePassword(
 		@Body() authChangePasswordUserDto: AuthChangePasswordUserDto,
 		@Req() req,
-		@Res() res
+		@Res() res,
 	) {
 		try {
 			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
-				userInfo?.UserAttributes?.[0]?.Value
+				userInfo?.UserAttributes?.[0]?.Value,
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -551,7 +553,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.BAD_REQUEST
+				HttpStatus.BAD_REQUEST,
 			);
 		}
 	}
@@ -564,11 +566,11 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async forgotPassword(
 		@Body() authForgotPasswordUserDto: AuthForgotPasswordUserDto,
-		@Res() res
+		@Res() res,
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				authForgotPasswordUserDto?.email
+				authForgotPasswordUserDto?.email,
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -593,7 +595,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR
+				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -606,11 +608,11 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async confirmPassword(
 		@Body() authConfirmPasswordUserDto: AuthConfirmPasswordUserDto,
-		@Res() res
+		@Res() res,
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				authConfirmPasswordUserDto?.email
+				authConfirmPasswordUserDto?.email,
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -635,7 +637,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR
+				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -681,7 +683,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR
+				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -694,11 +696,11 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async changeStatusUser(
 		@Body() updateUserDto: UpdateStatusUserDto,
-		@Res() res
+		@Res() res,
 	) {
 		try {
 			const userFind = await this.userService.findOneByEmail(
-				updateUserDto?.email
+				updateUserDto?.email,
 			);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -724,7 +726,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR
+				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -760,7 +762,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0070?.description,
 					customMessageEs: errorCodes.WGE0070?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR
+				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
 	}
@@ -789,7 +791,7 @@ export class UserController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.BAD_REQUEST
+				HttpStatus.BAD_REQUEST,
 			);
 		}
 	}
