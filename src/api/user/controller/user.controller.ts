@@ -55,6 +55,7 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async create(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
+			createUserDto.email = createUserDto?.email.toLowerCase();
 			const userFind = await this.userService.findOneByEmail(
 				createUserDto?.email,
 			);
