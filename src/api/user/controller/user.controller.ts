@@ -362,7 +362,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
 			}
-			if (!userFind?.first && updateUserDto?.email) {
+			if (userFind?.first === false && updateUserDto?.email) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0024',
@@ -869,7 +869,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0078?.descriptionEs,
 			});
 		} catch (error) {
-			console.log('error', error?.message);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.BAD_REQUEST,
