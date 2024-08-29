@@ -362,7 +362,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
 			}
-			if (!userFind?.First && updateUserDto?.email) {
+			if (!userFind?.first && updateUserDto?.email) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0024',
@@ -372,7 +372,7 @@ export class UserController {
 			}
 
 			const user = await this.userService.update(id, updateUserDto);
-			delete user.PasswordHash;
+			delete user.passwordHash;
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,

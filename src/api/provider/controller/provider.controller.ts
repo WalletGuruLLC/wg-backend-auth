@@ -8,6 +8,7 @@ import {
 	Param,
 	Patch,
 	Post,
+	Put,
 	Query,
 	Res,
 	UseGuards,
@@ -15,7 +16,11 @@ import {
 	ValidationPipe,
 } from '@nestjs/common';
 import { ProviderService } from '../service/provider.service';
-import { CreateProviderDto, UpdateProviderDto } from '../dto/provider';
+import {
+	CreateProviderDto,
+	DeleteProviderDto,
+	UpdateProviderDto,
+} from '../dto/provider';
 import * as Sentry from '@sentry/nestjs';
 import {
 	ApiBearerAuth,
@@ -135,7 +140,7 @@ export class ProviderController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Patch(':id')
+	@Put(':id')
 	@UsePipes(ValidationPipe)
 	@ApiOperation({ summary: 'Update an existing provider' })
 	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
@@ -147,6 +152,43 @@ export class ProviderController {
 	) {
 		try {
 			const provider = await this.providerService.update(id, updateProviderDto);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0075',
+				customMessage: successCodes?.WGE0075?.description,
+				customMessageEs: successCodes.WGE0075?.descriptionEs,
+				data: provider,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0041',
+					customMessage: errorCodes?.WGE0041?.description,
+					customMessageEs: errorCodes.WGE0041?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Patch(':id')
+	@UsePipes(ValidationPipe)
+	@ApiOperation({ summary: 'Active or Inactive an existing provider' })
+	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
+	@ApiResponse({ status: 200, description: 'Provider updated successfully.' })
+	@ApiResponse({ status: 500, description: 'Error updating provider.' })
+	async changeStatus(
+		@Param('id') id: string,
+		@Body() deleteProviderDto: DeleteProviderDto
+	) {
+		try {
+			const provider = await this.providerService.changeStatus(
+				id,
+				deleteProviderDto
+			);
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0075',

@@ -26,7 +26,7 @@ export const OtpSchema = new dynamoose.Schema(
 			required: true,
 			default: () => new Date(),
 		},
-		TTL: {
+		Ttl: {
 			type: Number,
 		},
 	},

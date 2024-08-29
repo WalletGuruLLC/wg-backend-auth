@@ -94,7 +94,7 @@ export class UserService {
 
 		const ttl = Math.floor(Date.now() / 1000) + 60 * 5;
 
-		const otpPayload = { Email: email, Otp: otp, Token: token, TTL: ttl };
+		const otpPayload = { Email: email, Otp: otp, Token: token, Ttl: ttl };
 		await this.dbOtpInstance.create(otpPayload);
 
 		return {
@@ -277,7 +277,7 @@ export class UserService {
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
 	}
 
-	async findOne(id: string): Promise<User | null> {
+	async findOne(id: string) {
 		try {
 			return await convertToCamelCase(this.dbInstance.get({ Id: id }));
 		} catch (error) {
@@ -335,20 +335,30 @@ export class UserService {
 		}
 	}
 
-	async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
+	async update(id: string, updateUserDto: UpdateUserDto) {
 		try {
 			return convertToCamelCase(
 				await this.dbInstance.update({
 					Id: id,
-					FirstName: updateUserDto.firstName,
-					LastName: updateUserDto.lastName,
-					Email: updateUserDto.email,
-					ServiceProviderId: updateUserDto.serviceProviderId,
-					MfaEnabled: updateUserDto.mfaEnabled,
-					MfaType: updateUserDto.mfaType,
-					RoleId: updateUserDto.roleId,
-					TermsConditions: updateUserDto.termsConditions,
-					PrivacyPolicy: updateUserDto.privacyPolicy,
+					FirstName: updateUserDto?.firstName,
+					LastName: updateUserDto?.lastName,
+					Email: updateUserDto?.email,
+					ServiceProviderId: updateUserDto?.serviceProviderId,
+					MfaEnabled: updateUserDto?.mfaEnabled,
+					MfaType: updateUserDto?.mfaType,
+					RoleId: updateUserDto?.roleId,
+					TermsConditions: updateUserDto?.termsConditions,
+					PrivacyPolicy: updateUserDto?.privacyPolicy,
+					SocialSecurityNumber: updateUserDto?.socialSecurityNumber,
+					IdentificationType: updateUserDto?.identificationType,
+					IdentificationNumber: updateUserDto?.identificationNumber,
+					Country: updateUserDto?.country,
+					StateLocation: updateUserDto?.stateLocation,
+					City: updateUserDto?.city,
+					ZipCode: updateUserDto?.zipCode,
+					Address: updateUserDto?.address,
+					DateOfBirth: updateUserDto?.dateOfBirth,
+					Avatar: updateUserDto?.avatar,
 				})
 			);
 		} catch (error) {

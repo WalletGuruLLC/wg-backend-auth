@@ -6,7 +6,11 @@ import * as Sentry from '@sentry/nestjs';
 import { errorCodes } from '../../../utils/constants';
 import { Provider } from '../entities/provider.entity';
 import { ProviderSchema } from '../entities/provider.schema';
-import { CreateProviderDto, UpdateProviderDto } from '../dto/provider';
+import {
+	CreateProviderDto,
+	DeleteProviderDto,
+	UpdateProviderDto,
+} from '../dto/provider';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 
 @Injectable()
@@ -27,6 +31,14 @@ export class ProviderService {
 			Description: createProviderDto.description,
 			Email: createProviderDto.email,
 			Phone: createProviderDto.phone,
+			EINNumber: createProviderDto.einNumber,
+			Country: createProviderDto.country,
+			City: createProviderDto.city,
+			ZipCode: createProviderDto.zipCode,
+			CompanyAddress: createProviderDto.companyAddress,
+			WalletAddress: createProviderDto.walletAddress,
+			Logo: createProviderDto.logo,
+			ContactInformation: createProviderDto.contactInformation,
 		};
 		return this.dbInstance.create(provider);
 	}
@@ -37,16 +49,22 @@ export class ProviderService {
 		total: number;
 		totalPages: number;
 	}> {
-		const { page = 1, items = 10 } = getProvidersDto;
+		const { page = 1, items = 10, search } = getProvidersDto;
 
-		const query = await this.dbInstance.scan().exec();
+		const query = this.dbInstance.scan();
 
-		let providers = convertToCamelCase(query);
+		const result = await query.exec();
+		let providers = convertToCamelCase(result);
 
-		if (getProvidersDto?.search) {
-			const regex = new RegExp(getProvidersDto?.search, 'i');
+		if (search) {
+			const regex = new RegExp(search, 'i');
 			providers = providers.filter(
-				provider => regex.test(provider.email) || regex.test(provider.name)
+				provider =>
+					regex.test(provider.email) ||
+					regex.test(provider.name) ||
+					regex.test(provider.description) ||
+					regex.test(provider.companyAddress) ||
+					regex.test(provider.contactInformation)
 			);
 		}
 
@@ -79,17 +97,38 @@ export class ProviderService {
 
 	async update(id: string, updateProviderDto: UpdateProviderDto) {
 		try {
-			return convertToCamelCase(
-				await this.dbInstance.update({
-					Id: id,
-					Email: updateProviderDto.email,
-					Description: updateProviderDto.description,
-					Name: updateProviderDto.name,
-				})
-			);
+			const updatedProvider = {
+				Id: id,
+				Name: updateProviderDto.name,
+				Description: updateProviderDto.description,
+				Email: updateProviderDto.email,
+				Phone: updateProviderDto.phone,
+				EINNumber: updateProviderDto.einNumber,
+				Country: updateProviderDto.country,
+				City: updateProviderDto.city,
+				ZipCode: updateProviderDto.zipCode,
+				CompanyAddress: updateProviderDto.companyAddress,
+				WalletAddress: updateProviderDto.walletAddress,
+				Logo: updateProviderDto.logo,
+				ContactInformation: updateProviderDto.contactInformation,
+			};
+			return convertToCamelCase(await this.dbInstance.update(updatedProvider));
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new Error(`Error updating user: ${error.message}`);
+			throw new Error(`Error updating provider: ${error.message}`);
+		}
+	}
+
+	async changeStatus(id: string, deleteProvider: DeleteProviderDto) {
+		try {
+			const updatedProvider = {
+				Id: id,
+				Active: deleteProvider.active,
+			};
+			return convertToCamelCase(await this.dbInstance.update(updatedProvider));
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error updating provider: ${error.message}`);
 		}
 	}
 
@@ -98,7 +137,7 @@ export class ProviderService {
 			await this.dbInstance.delete(id);
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new Error(`Error updating user: ${error.message}`);
+			throw new Error(`Error deleting provider: ${error.message}`);
 		}
 	}
 }
