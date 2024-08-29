@@ -871,7 +871,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0078?.descriptionEs,
 			});
 		} catch (error) {
-			console.log('error', error?.message);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.BAD_REQUEST,
