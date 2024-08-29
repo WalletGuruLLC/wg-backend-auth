@@ -480,6 +480,7 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto, @Res() res) {
 		try {
+			verifyOtpDto.email = verifyOtpDto?.email.toLowerCase();
 			const result = await this.userService.verifyOtp(verifyOtpDto);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
