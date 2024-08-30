@@ -345,6 +345,16 @@ export class UserService {
 		}
 	}
 
+	async findOneByPhone(phone: string) {
+		try {
+			const users = await this.dbInstance.query('Phone').eq(phone).exec();
+			return convertToCamelCase(users[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error retrieving user: ${error.message}`);
+		}
+	}
+
 	async update(id: string, updateUserDto: UpdateUserDto) {
 		try {
 			return convertToCamelCase(

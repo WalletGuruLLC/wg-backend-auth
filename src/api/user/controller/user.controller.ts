@@ -131,7 +131,7 @@ export class UserController {
 				}
 			}
 
-			if (!validatePhoneNumber(createUserDto?.phone)) {
+			if (validatePhoneNumber(createUserDto?.phone) === false) {
 				return res.status(HttpStatus.PARTIAL_CONTENT).send({
 					statusCode: HttpStatus.PARTIAL_CONTENT,
 					customCode: 'WGE00044',
@@ -140,12 +140,16 @@ export class UserController {
 				});
 			}
 
-			if (['PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
-					customCode: 'WGE00044',
-					customMessage: errorCodes?.WGE00044?.description,
-					customMessageEs: errorCodes.WGE00044?.descriptionEs,
+			const userPhone = await this.userService.findOneByPhone(
+				createUserDto?.phone
+			);
+
+			if (userPhone) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0003',
+					customMessage: errorCodes?.WGE0003?.description,
+					customMessageEs: errorCodes.WGE0003?.descriptionEs,
 				});
 			}
 
