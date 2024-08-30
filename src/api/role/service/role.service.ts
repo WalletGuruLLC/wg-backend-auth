@@ -57,23 +57,35 @@ export class RoleService {
 		items = 10,
 		search = ''
 	) {
+		const docClient = new DocumentClient();
+
 		const skip = (page - 1) * items;
-		let dbQuery;
 
+		let params: DocumentClient.QueryInput | DocumentClient.ScanInput;
 		if (providerId) {
-			dbQuery = this.dbInstance
-				.query('ProviderId')
-				.eq(providerId)
-				.using('ProviderIdIndex');
+			params = {
+				TableName: 'Roles',
+				IndexName: 'ProviderIdIndex',
+				KeyConditionExpression: 'ProviderId = :providerId',
+				ExpressionAttributeValues: {
+					':providerId': providerId,
+				},
+			};
 		} else {
-			dbQuery = this.dbInstance.scan();
+			params = {
+				TableName: 'Roles',
+			};
 		}
 
-		let roles = await dbQuery.exec();
-
-		if (roles.length === 0) {
-			throw new Error();
-		}
+		let roles = [];
+		let result;
+		do {
+			result = providerId
+				? await docClient.query(params).promise()
+				: await docClient.scan(params).promise();
+			roles = roles.concat(result.Items || []);
+			params.ExclusiveStartKey = result.LastEvaluatedKey;
+		} while (result.LastEvaluatedKey);
 
 		if (search) {
 			const regex = new RegExp(search, 'i');
@@ -91,19 +103,36 @@ export class RoleService {
 
 		const paginatedRoles = roles.slice(skip, skip + items);
 
+		if (paginatedRoles.length === 0 && total > 0) {
+			throw new Error(
+				`No results found for page ${page} with ${items} items per page.`
+			);
+		}
+
 		const transformedRoles = paginatedRoles.map(this.mapRoleToResponse);
 		return { roles: transformedRoles, total };
 	}
 
 	async findAllActive(providerId?: string) {
-		let query = this.dbInstance.scan('Active').eq(true);
+		const docClient = new DocumentClient();
+
+		const params: DocumentClient.ScanInput = {
+			TableName: 'Roles',
+			FilterExpression: 'Active = :active',
+			ExpressionAttributeValues: {
+				':active': true,
+			},
+		};
 
 		if (providerId) {
-			query = query.and().filter('ProviderId').eq(providerId);
+			params.FilterExpression += ' AND ProviderId = :providerId';
+			params.ExpressionAttributeValues[':providerId'] = providerId;
 		}
 
-		const result = await query.exec();
-		return result.map(this.mapRoleToResponse);
+		const result = await docClient.scan(params).promise();
+		const roles = result.Items || [];
+
+		return roles.map(this.mapRoleToResponse);
 	}
 
 	async update(id: string, updateRoleDto: UpdateRoleDto) {
@@ -143,6 +172,18 @@ export class RoleService {
 
 	async remove(id: string): Promise<void> {
 		await this.dbInstance.delete(id);
+	}
+
+	async validateModuleExists(moduleId: string): Promise<boolean> {
+		const docClient = new DocumentClient();
+
+		const params = {
+			TableName: 'Modules',
+			Key: { Id: moduleId },
+		};
+
+		const result = await docClient.get(params).promise();
+		return !!result.Item;
 	}
 
 	async createAccessLevel(

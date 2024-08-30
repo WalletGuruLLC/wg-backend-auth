@@ -105,7 +105,11 @@ export class UserController {
 				if (
 					!createUserDto?.email ||
 					!createUserDto?.passwordHash ||
-					!createUserDto?.type
+					!createUserDto?.type ||
+					!createUserDto?.termsConditions ||
+					!createUserDto?.privacyPolicy ||
+					createUserDto?.termsConditions !== true ||
+					createUserDto?.privacyPolicy !== true
 				) {
 					return res.status(HttpStatus.PARTIAL_CONTENT).send({
 						statusCode: HttpStatus.PARTIAL_CONTENT,
@@ -205,7 +209,11 @@ export class UserController {
 				if (
 					!createUserDto?.email ||
 					!createUserDto?.passwordHash ||
-					!createUserDto?.type
+					!createUserDto?.type ||
+					!createUserDto?.termsConditions ||
+					!createUserDto?.privacyPolicy ||
+					createUserDto?.termsConditions !== true ||
+					createUserDto?.privacyPolicy !== true
 				) {
 					return res.status(HttpStatus.PARTIAL_CONTENT).send({
 						statusCode: HttpStatus.PARTIAL_CONTENT,
