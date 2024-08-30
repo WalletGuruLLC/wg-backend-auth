@@ -236,7 +236,17 @@ export class UserService {
 
 			await this.dbInstance.create(userData);
 
-			const result = await this.generateOtp({ email, token: '' });
+			let tokenValue = '';
+
+			if (type == 'WALLET') {
+				const valueAuth = {
+					email: email.toLowerCase(),
+					password: passwordHash,
+				};
+				tokenValue = await this.authenticateUser(valueAuth);
+			}
+
+			const result = await this.generateOtp({ email, token: tokenValue });
 
 			await this.sendOtpOrPasswordMessage(
 				type,

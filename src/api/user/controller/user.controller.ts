@@ -38,9 +38,9 @@ import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 import { CognitoAuthGuard } from '../guard/cognito-auth.guard';
 import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { validatePassword } from '../../../utils/helpers/validatePassword';
-import * as Sentry from '@sentry/nestjs';
 import { ValidateAccessDto } from '../dto/validate-access-middleware.dto';
 import { validatePhoneNumber } from 'src/utils/helpers/validatePhone';
+import { isValidEmail } from 'src/utils/helpers/validateEmail';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -56,6 +56,15 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async create(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
+			createUserDto.email = createUserDto?.email.toLowerCase();
+			if (!isValidEmail(createUserDto?.email)) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0048',
+					customMessage: errorCodes?.WGE0048?.description,
+					customMessageEs: errorCodes.WGE0048?.descriptionEs,
+				});
+			}
 			const userFind = await this.userService.findOneByEmail(
 				createUserDto?.email?.toLowerCase()
 			);
@@ -105,7 +114,11 @@ export class UserController {
 				if (
 					!createUserDto?.email ||
 					!createUserDto?.passwordHash ||
-					!createUserDto?.type
+					!createUserDto?.type ||
+					!createUserDto?.termsConditions ||
+					!createUserDto?.privacyPolicy ||
+					createUserDto?.termsConditions !== true ||
+					createUserDto?.privacyPolicy !== true
 				) {
 					return res.status(HttpStatus.PARTIAL_CONTENT).send({
 						statusCode: HttpStatus.PARTIAL_CONTENT,
@@ -156,6 +169,15 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async createApp(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
+			createUserDto.email = createUserDto?.email.toLowerCase();
+			if (!isValidEmail(createUserDto?.email)) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0048',
+					customMessage: errorCodes?.WGE0048?.description,
+					customMessageEs: errorCodes.WGE0048?.descriptionEs,
+				});
+			}
 			const userFind = await this.userService.findOneByEmail(
 				createUserDto?.email
 			);
@@ -205,7 +227,11 @@ export class UserController {
 				if (
 					!createUserDto?.email ||
 					!createUserDto?.passwordHash ||
-					!createUserDto?.type
+					!createUserDto?.type ||
+					!createUserDto?.termsConditions ||
+					!createUserDto?.privacyPolicy ||
+					createUserDto?.termsConditions !== true ||
+					createUserDto?.privacyPolicy !== true
 				) {
 					return res.status(HttpStatus.PARTIAL_CONTENT).send({
 						statusCode: HttpStatus.PARTIAL_CONTENT,
@@ -362,7 +388,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
 			}
-			if (!userFind?.first && updateUserDto?.email) {
+			if (userFind?.first === false && updateUserDto?.email) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0024',
@@ -448,6 +474,7 @@ export class UserController {
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async signin(@Body() signinDto: SignInDto, @Res() res) {
+		signinDto.email = signinDto?.email.toLowerCase();
 		try {
 			const userFind = await this.userService.findOneByEmail(
 				signinDto?.email?.toLowerCase()
@@ -494,6 +521,7 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto, @Res() res) {
 		try {
+			verifyOtpDto.email = verifyOtpDto?.email.toLowerCase();
 			const result = await this.userService.verifyOtp(verifyOtpDto);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
@@ -851,8 +879,9 @@ export class UserController {
 			}
 
 			if (
+				resultAccess?.userAccessLevel < 8 ||
 				(resultAccess?.userAccessLevel & resultAccess?.requiredAccess) !==
-				resultAccess?.requiredAccess
+					resultAccess?.requiredAccess
 			) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
@@ -869,7 +898,6 @@ export class UserController {
 				customMessageEs: successCodes.WGE0078?.descriptionEs,
 			});
 		} catch (error) {
-			console.log('error', error?.message);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.BAD_REQUEST,

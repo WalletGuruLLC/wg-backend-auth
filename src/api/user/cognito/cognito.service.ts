@@ -148,11 +148,16 @@ export class CognitoService implements CognitoServiceInterface {
 		confirmationCode: string,
 		newPassword: string
 	): Promise<ConfirmForgotPasswordResponse> {
+		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
+		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
+		const secretHash = hasher.digest('base64');
+
 		const params = {
 			ClientId: process.env.COGNITO_CLIENT_ID,
 			Username: username,
 			ConfirmationCode: confirmationCode,
 			Password: newPassword,
+			SecretHash: secretHash,
 		};
 
 		try {
