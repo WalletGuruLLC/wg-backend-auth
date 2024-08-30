@@ -243,6 +243,21 @@ export const errorCodes = {
 		description: 'The provided phone is invalid.',
 		descriptionEs: 'El telefono proporcionada es invalido.',
 	},
+	WGE0045: {
+		message: `Module not found`,
+		description: `The specified module does not exist in the system.`,
+		descriptionEs: `El módulo especificado no existe en el sistema.`,
+	},
+	WGE0046: {
+		message: `Role not found`,
+		description: `The specified role does not exist in the system.`,
+		descriptionEs: `El rol especificado no existe en el sistema.`,
+	},
+	WGE0047: {
+		message: `Module not found in role`,
+		description: `The specified module does not exist within the specified role.`,
+		descriptionEs: `El módulo especificado no existe dentro del rol especificado.`,
+	},
 };
 
 export const successCodes = {
@@ -348,5 +363,21 @@ export const successCodes = {
 		message: 'Validate access successful',
 		description: 'Validate access successfully.',
 		descriptionEs: 'Acceso validado con éxito.',
+	},
+	WGE0079: {
+		message: 'Access level updated successfully',
+		description: 'The access leve has been updated successfully.',
+		descriptionEs:
+			'La información del nivel de acceso ha sido actualizada con éxito.',
+	},
+	WGE0080: {
+		message: 'Add access level successfully',
+		description: 'The access level has been added successfully.',
+		descriptionEs: 'El nivel de acceso ha sido añadido con éxito.',
+	},
+	WGE0081: {
+		message: 'Success getting access levels',
+		description: 'The access levels was getting succesfully.',
+		descriptionEs: 'Los niveles de acceso se han obtenido con éxito.',
 	},
 };

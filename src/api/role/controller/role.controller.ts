@@ -235,11 +235,26 @@ export class RoleController {
 			if (!role) {
 				throw new HttpException(
 					{
-						customCode: 'WGE0033',
-						...errorCodes.WGE0033,
+						statusCode: HttpStatus.NOT_FOUND,
+						customCode: 'WGE0046',
+						customMessage: errorCodes.WGE0046?.description,
+						customMessageEs: errorCodes.WGE0046?.descriptionEs,
 					},
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);
+			}
+
+			const validateExistModule = await this.roleService.validateModuleExists(
+				moduleId
+			);
+
+			if (!validateExistModule) {
+				return {
+					statusCode: HttpStatus.OK,
+					customCode: 'WGE0045',
+					customMessage: errorCodes.WGE0045?.description,
+					customMessageEs: errorCodes.WGE0045?.descriptionEs,
+				};
 			}
 
 			await this.roleService.createAccessLevel(roleId, moduleId, accessLevel);
@@ -248,15 +263,19 @@ export class RoleController {
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				message: 'Role updated successfully',
+				customCode: 'WGE0080',
+				customMessage: successCodes.WGE0080?.description,
+				customMessageEs: successCodes.WGE0080?.descriptionEs,
 				data: convertToCamelCase(roleUpd),
 			});
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0036',
-					...errorCodes.WGE0036,
+					customMessage: errorCodes.WGE0036?.description,
+					customMessageEs: errorCodes.WGE0036?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -287,8 +306,10 @@ export class RoleController {
 			if (!role) {
 				throw new HttpException(
 					{
-						customCode: 'WGE0033',
-						...errorCodes.WGE0033,
+						statusCode: HttpStatus.NOT_FOUND,
+						customCode: 'WGE0046',
+						customMessage: errorCodes.WGE0046?.description,
+						customMessageEs: errorCodes.WGE0046?.descriptionEs,
 					},
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);
@@ -297,27 +318,46 @@ export class RoleController {
 			if (!role || !role[moduleId]) {
 				throw new HttpException(
 					{
-						customCode: 'WGE0037',
-						...errorCodes.WGE0037,
+						statusCode: HttpStatus.NOT_FOUND,
+						customCode: 'WGE0047',
+						customMessage: errorCodes.WGE0047?.description,
+						customMessageEs: errorCodes.WGE0047?.descriptionEs,
 					},
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);
+			}
+
+			const validateExistModule = await this.roleService.validateModuleExists(
+				moduleId
+			);
+
+			if (!validateExistModule) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0045',
+					customMessage: errorCodes.WGE0045?.description,
+					customMessageEs: errorCodes.WGE0045?.descriptionEs,
+				};
 			}
 
 			await this.roleService.updateAccessLevel(roleId, moduleId, accessLevel);
 			const roleUpd = await this.roleService.getRoleInfo(roleId);
 
 			return {
-				statusCode: HttpStatus.OK,
-				message: 'Role updated successfully',
+				statusCode: HttpStatus.CREATED,
+				customCode: 'WGE0079',
+				customMessage: successCodes.WGE0079?.description,
+				customMessageEs: successCodes.WGE0079?.descriptionEs,
 				data: roleUpd,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0035',
-					...errorCodes.WGE0035,
+					customMessage: errorCodes.WGE0035?.description,
+					customMessageEs: errorCodes.WGE0035?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -349,7 +389,9 @@ export class RoleController {
 			const modulos = await this.roleService.listAccessLevels(role?.Id);
 			return {
 				statusCode: HttpStatus.OK,
-				message: 'Access Levels returned successfully',
+				customCode: 'WGE0081',
+				customMessage: successCodes.WGE0081?.description,
+				customMessageEs: successCodes.WGE0081?.descriptionEs,
 				data: modulos,
 			};
 		} catch (error) {
