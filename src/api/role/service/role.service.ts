@@ -55,13 +55,14 @@ export class RoleService {
 		providerId?: string,
 		page = 1,
 		items = 10,
-		search = ''
+		search = '',
+		orderBy = 'Name',
+		ascending = true
 	) {
 		const docClient = new DocumentClient();
-
 		const skip = (page - 1) * items;
-
 		let params: DocumentClient.QueryInput | DocumentClient.ScanInput;
+
 		if (providerId) {
 			params = {
 				TableName: 'Roles',
@@ -93,10 +94,14 @@ export class RoleService {
 		}
 
 		roles.sort((a, b) => {
-			if (a.Active === b.Active) {
-				return a.Name.localeCompare(b.Name);
+			if (a[orderBy] === b[orderBy]) {
+				return 0;
 			}
-			return a.Active ? -1 : 1;
+			if (ascending) {
+				return a[orderBy] > b[orderBy] ? 1 : -1;
+			} else {
+				return a[orderBy] < b[orderBy] ? 1 : -1;
+			}
 		});
 
 		const total = roles.length;
@@ -110,12 +115,12 @@ export class RoleService {
 		}
 
 		const transformedRoles = paginatedRoles.map(this.mapRoleToResponse);
+
 		return { roles: transformedRoles, total };
 	}
 
-	async findAllActive(providerId?: string) {
+	async findAllActive(providerId?: string, orderBy = 'Name', ascending = true) {
 		const docClient = new DocumentClient();
-
 		const params: DocumentClient.ScanInput = {
 			TableName: 'Roles',
 			FilterExpression: 'Active = :active',
@@ -129,8 +134,28 @@ export class RoleService {
 			params.ExpressionAttributeValues[':providerId'] = providerId;
 		}
 
-		const result = await docClient.scan(params).promise();
-		const roles = result.Items || [];
+		let roles = [];
+		let result;
+		do {
+			result = await docClient.scan(params).promise();
+			roles = roles.concat(result.Items || []);
+			params.ExclusiveStartKey = result.LastEvaluatedKey;
+		} while (result.LastEvaluatedKey);
+
+		if (roles.length === 0) {
+			throw new Error('No active roles found.');
+		}
+
+		roles.sort((a, b) => {
+			if (a[orderBy] === b[orderBy]) {
+				return 0;
+			}
+			if (ascending) {
+				return a[orderBy] > b[orderBy] ? 1 : -1;
+			} else {
+				return a[orderBy] < b[orderBy] ? 1 : -1;
+			}
+		});
 
 		return roles.map(this.mapRoleToResponse);
 	}
