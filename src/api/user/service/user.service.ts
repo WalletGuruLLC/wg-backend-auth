@@ -273,15 +273,15 @@ export class UserService {
 		otp: string,
 		password: string
 	) {
-		const event = type === 'WALLET' ? 'OTP_SENT' : 'TEMPORARY_PASSWORD_SENT';
+		const event =
+			type === 'WALLET' ? 'WALLET_USER_CREATED' : 'FIRST_PASSWORD_GENERATED';
 		const otpOrPassword = type === 'WALLET' ? otp : password;
-		const username =
-			firstName + (lastName ? ' ' + lastName.charAt(0) + '.' : '');
+		const username = firstName + (lastName ? ' ' + lastName : '');
 		const sqsMessage = {
 			event,
 			email,
 			username,
-			otp: otpOrPassword,
+			value: otpOrPassword,
 		};
 
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
@@ -338,6 +338,16 @@ export class UserService {
 	async findOneByEmail(email: string) {
 		try {
 			const users = await this.dbInstance.query('Email').eq(email).exec();
+			return convertToCamelCase(users[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error retrieving user: ${error.message}`);
+		}
+	}
+
+	async findOneByPhone(phone: string) {
+		try {
+			const users = await this.dbInstance.query('Phone').eq(phone).exec();
 			return convertToCamelCase(users[0]);
 		} catch (error) {
 			Sentry.captureException(error);
@@ -450,12 +460,12 @@ export class UserService {
 	private async sendOtpNotification(foundUser: any, otp: string) {
 		foundUser.firstName = foundUser.firstName || '';
 		const sqsMessage = {
-			event: 'OTP_SENT',
+			event: 'LOGGED_IN',
 			email: foundUser.email,
 			username:
 				foundUser.firstName +
-				(foundUser.lastName ? ' ' + foundUser.lastName.charAt(0) + '.' : ''),
-			otp,
+				(foundUser.lastName ? ' ' + foundUser.lastName : ''),
+			value: otp,
 		};
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
 	}
@@ -552,6 +562,8 @@ export class UserService {
 			id,
 			page = 1,
 			items = 10,
+			orderBy = 'firstName',
+			ascending = true,
 		} = getUsersDto;
 
 		let query = this.dbInstance.query('Type').eq(type);
@@ -610,6 +622,22 @@ export class UserService {
 			);
 			user.roleName = role ? role?.Name : 'Not found';
 			return user;
+		});
+
+		users.sort((a, b) => {
+			if (a.active !== b.active) {
+				return a.active ? -1 : 1;
+			}
+			if (a[orderBy] === b[orderBy]) {
+				return 0;
+			}
+			return ascending
+				? a[orderBy] > b[orderBy]
+					? 1
+					: -1
+				: a[orderBy] < b[orderBy]
+				? 1
+				: -1;
 		});
 
 		const total = users.length;

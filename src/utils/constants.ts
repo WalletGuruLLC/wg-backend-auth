@@ -330,7 +330,7 @@ export const successCodes = {
 	},
 	WGS0031: {
 		message: 'Success getting roles',
-		description: 'The users was getting succesfully.',
+		description: 'The roles was getting succesfully.',
 		descriptionEs: 'Los roles se han obtenido con éxito.',
 	},
 	WGE0071: {
@@ -389,5 +389,10 @@ export const successCodes = {
 		message: 'Success getting access levels',
 		description: 'The access levels was getting succesfully.',
 		descriptionEs: 'Los niveles de acceso se han obtenido con éxito.',
+	},
+	WGS0082: {
+		message: 'Success getting role',
+		description: 'The role was getting succesfully.',
+		descriptionEs: 'El role se ha obtenido con éxito.',
 	},
 };

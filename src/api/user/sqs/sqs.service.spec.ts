@@ -22,7 +22,7 @@ describe('SqsService', () => {
 		event: 'login_attempt',
 		email: 'user@example.com',
 		username: 'user123',
-		otp: '123456',
+		value: '123456',
 	};
 	const params = {
 		QueueUrl: queueUrl,
