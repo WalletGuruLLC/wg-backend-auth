@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class GetRolesDto {
 	@IsOptional()
@@ -16,4 +16,12 @@ export class GetRolesDto {
 	@IsOptional()
 	@IsString()
 	page?: string;
+
+	@IsOptional()
+	@IsString()
+	orderBy?: string;
+
+	@IsOptional()
+	@IsBoolean()
+	ascending?: boolean;
 }

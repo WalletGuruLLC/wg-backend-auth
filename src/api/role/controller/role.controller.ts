@@ -85,12 +85,21 @@ export class RoleController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async findAllPaginated(@Query() getRolesDto: GetRolesDto) {
 		try {
-			const { providerId, page = 1, items = 10, search } = getRolesDto;
+			const {
+				providerId,
+				page = 1,
+				items = 10,
+				search,
+				orderBy,
+				ascending,
+			} = getRolesDto;
 			const roles = await this.roleService.findAllPaginated(
 				providerId,
 				Number(page),
 				Number(items),
-				search
+				search,
+				orderBy,
+				ascending
 			);
 			return {
 				statusCode: HttpStatus.OK,
@@ -134,6 +143,46 @@ export class RoleController {
 				{
 					customCode: 'WGE0032',
 					...errorCodes.WGE0032,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Get(':id')
+	@ApiOkResponse({
+		description: 'Role have been successfully retrieved.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async getRoleInfo(@Param('id') id: string) {
+		try {
+			const role = await this.roleService.findRole(id);
+			if (!role) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.NOT_FOUND,
+						customCode: 'WGE0046',
+						customMessage: errorCodes.WGE0046?.description,
+						customMessageEs: errorCodes.WGE0046?.descriptionEs,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+			const roleInfo = await this.roleService.getRoleInfo(id);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGS0082',
+				customMessage: successCodes.WGS0082?.description,
+				customMessageEs: successCodes.WGS0082?.descriptionEs,
+				data: roleInfo,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					customCode: 'WGE0046',
+					...errorCodes.WGE0046,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

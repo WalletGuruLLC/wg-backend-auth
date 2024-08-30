@@ -562,6 +562,8 @@ export class UserService {
 			id,
 			page = 1,
 			items = 10,
+			orderBy = 'firstName',
+			ascending = true,
 		} = getUsersDto;
 
 		let query = this.dbInstance.query('Type').eq(type);
@@ -620,6 +622,22 @@ export class UserService {
 			);
 			user.roleName = role ? role?.Name : 'Not found';
 			return user;
+		});
+
+		users.sort((a, b) => {
+			if (a.active !== b.active) {
+				return a.active ? -1 : 1;
+			}
+			if (a[orderBy] === b[orderBy]) {
+				return 0;
+			}
+			return ascending
+				? a[orderBy] > b[orderBy]
+					? 1
+					: -1
+				: a[orderBy] < b[orderBy]
+				? 1
+				: -1;
 		});
 
 		const total = users.length;

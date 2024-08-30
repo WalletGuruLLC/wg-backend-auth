@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class GetUsersDto {
 	@IsOptional()
@@ -36,4 +36,12 @@ export class GetUsersDto {
 	@IsOptional()
 	@IsString()
 	page?: number;
+
+	@IsOptional()
+	@IsString()
+	orderBy?: string;
+
+	@IsOptional()
+	@IsBoolean()
+	ascending?: boolean;
 }
