@@ -101,7 +101,9 @@ export class UserController {
 					!createUserDto?.lastName ||
 					!createUserDto?.email ||
 					!createUserDto?.type ||
-					!createUserDto?.roleId
+					!createUserDto?.roleId ||
+					!createUserDto?.serviceProviderId ||
+					!createUserDto?.phone
 				) {
 					return res.status(HttpStatus.PARTIAL_CONTENT).send({
 						statusCode: HttpStatus.PARTIAL_CONTENT,
@@ -128,11 +130,17 @@ export class UserController {
 					});
 				}
 			}
-			if (
-				['PLATFORM', 'PROVIDER'].includes(createUserDto.type) &&
-				createUserDto?.phone &&
-				!validatePhoneNumber(createUserDto?.phone)
-			) {
+
+			if (!validatePhoneNumber(createUserDto?.phone)) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE00044',
+					customMessage: errorCodes?.WGE00044?.description,
+					customMessageEs: errorCodes.WGE00044?.descriptionEs,
+				});
+			}
+
+			if (['PLATFORM', 'PROVIDER'].includes(createUserDto.type)) {
 				return res.status(HttpStatus.PARTIAL_CONTENT).send({
 					statusCode: HttpStatus.PARTIAL_CONTENT,
 					customCode: 'WGE00044',
