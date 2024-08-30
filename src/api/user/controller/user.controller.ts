@@ -40,6 +40,7 @@ import { UpdateStatusUserDto } from '../dto/update-status-user.dto';
 import { validatePassword } from '../../../utils/helpers/validatePassword';
 import { ValidateAccessDto } from '../dto/validate-access-middleware.dto';
 import { validatePhoneNumber } from 'src/utils/helpers/validatePhone';
+import { isValidEmail } from 'src/utils/helpers/validateEmail';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -56,6 +57,14 @@ export class UserController {
 	async create(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
 			createUserDto.email = createUserDto?.email.toLowerCase();
+			if (!isValidEmail(createUserDto?.email)) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0048',
+					customMessage: errorCodes?.WGE0048?.description,
+					customMessageEs: errorCodes.WGE0048?.descriptionEs,
+				});
+			}
 			const userFind = await this.userService.findOneByEmail(
 				createUserDto?.email?.toLowerCase()
 			);
@@ -160,6 +169,15 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async createApp(@Body() createUserDto: CreateUserDto, @Res() res) {
 		try {
+			createUserDto.email = createUserDto?.email.toLowerCase();
+			if (!isValidEmail(createUserDto?.email)) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0048',
+					customMessage: errorCodes?.WGE0048?.description,
+					customMessageEs: errorCodes.WGE0048?.descriptionEs,
+				});
+			}
 			const userFind = await this.userService.findOneByEmail(
 				createUserDto?.email
 			);
