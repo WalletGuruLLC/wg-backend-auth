@@ -258,6 +258,16 @@ export const errorCodes = {
 		description: `The specified module does not exist within the specified role.`,
 		descriptionEs: `El módulo especificado no existe dentro del rol especificado.`,
 	},
+	WGE0048: {
+		message: 'Invalid email',
+		description: 'The entered email is invalid.',
+		descriptionEs: 'El correo electronico ingresado es inválido.',
+	},
+	WGE0049: {
+		message: 'Invalid access level',
+		description: 'The entered access level is invalid.',
+		descriptionEs: 'El nivel de acceso ingresado es inválido.',
+	},
 };
 
 export const successCodes = {

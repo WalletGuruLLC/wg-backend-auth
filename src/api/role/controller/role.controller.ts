@@ -34,6 +34,7 @@ import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 import { customValidationPipe } from '../../validation.pipe';
 import * as Sentry from '@sentry/nestjs';
 import { GetRolesDto } from '../dto/get-user.dto';
+import { isNumberInRange } from 'src/utils/helpers/validateAccessLevel';
 
 @ApiTags('role')
 @Controller('api/v1/roles')
@@ -257,6 +258,15 @@ export class RoleController {
 				};
 			}
 
+			if (!isNumberInRange(accessLevel)) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0049',
+					customMessage: errorCodes.WGE0049?.description,
+					customMessageEs: errorCodes.WGE0049?.descriptionEs,
+				};
+			}
+
 			await this.roleService.createAccessLevel(roleId, moduleId, accessLevel);
 
 			const roleUpd = await this.roleService.getRoleInfo(roleId);
@@ -337,6 +347,15 @@ export class RoleController {
 					customCode: 'WGE0045',
 					customMessage: errorCodes.WGE0045?.description,
 					customMessageEs: errorCodes.WGE0045?.descriptionEs,
+				};
+			}
+
+			if (!isNumberInRange(accessLevel)) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0049',
+					customMessage: errorCodes.WGE0049?.description,
+					customMessageEs: errorCodes.WGE0049?.descriptionEs,
 				};
 			}
 
