@@ -238,7 +238,14 @@ export class UserService {
 
 			const result = await this.generateOtp({ email, token: '' });
 
-			await this.sendOtpOrPasswordMessage(userData, result.otp, password);
+			await this.sendOtpOrPasswordMessage(
+				type,
+				email,
+				firstName,
+				lastName,
+				result.otp,
+				password
+			);
 
 			delete result.otp;
 			return convertToCamelCase(result);
@@ -257,14 +264,14 @@ export class UserService {
 		password: string
 	) {
 		const event =
-			type === 'WALLET' ? 'FIRST_OTP_SENT' : 'TEMPORARY_PASSWORD_SENT';
+			type === 'WALLET' ? 'WALLET_USER_CREATED' : 'FIRST_PASSWORD_GENERATED';
 		const otpOrPassword = type === 'WALLET' ? otp : password;
-		const username = firstName + (lastName ? ' ' + lastName : '') + ',';
+		const username = firstName + (lastName ? ' ' + lastName : '');
 		const sqsMessage = {
 			event,
 			email,
 			username,
-			otp: otpOrPassword,
+			value: otpOrPassword,
 		};
 
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
@@ -433,12 +440,12 @@ export class UserService {
 	private async sendOtpNotification(foundUser: any, otp: string) {
 		foundUser.firstName = foundUser.firstName || '';
 		const sqsMessage = {
-			event: 'OTP_SENT',
+			event: 'LOGGED_IN',
 			email: foundUser.email,
 			username:
 				foundUser.firstName +
-				(foundUser.lastName ? ' ' + foundUser.lastName.charAt(0) + '.' : ''),
-			otp,
+				(foundUser.lastName ? ' ' + foundUser.lastName : ''),
+			value: otp,
 		};
 		await this.sqsService.sendMessage(process.env.SQS_QUEUE_URL, sqsMessage);
 	}
