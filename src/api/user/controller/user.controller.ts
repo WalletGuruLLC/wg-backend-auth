@@ -409,6 +409,19 @@ export class UserController {
 				});
 			}
 
+			if (
+				updateUserDto?.phone &&
+				updateUserDto?.phone?.trim() !== '' &&
+				validatePhoneNumber(updateUserDto?.phone) === false
+			) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE00044',
+					customMessage: errorCodes?.WGE00044?.description,
+					customMessageEs: errorCodes?.WGE00044?.descriptionEs,
+				});
+			}
+
 			const user = await this.userService.update(id, updateUserDto);
 			delete user.passwordHash;
 
