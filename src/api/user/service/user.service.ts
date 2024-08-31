@@ -363,6 +363,7 @@ export class UserService {
 					FirstName: updateUserDto?.firstName,
 					LastName: updateUserDto?.lastName,
 					Email: updateUserDto?.email,
+					Phone: updateUserDto?.phone,
 					ServiceProviderId: updateUserDto?.serviceProviderId,
 					MfaEnabled: updateUserDto?.mfaEnabled,
 					MfaType: updateUserDto?.mfaType,
