@@ -490,9 +490,9 @@ export class UserController {
 			if (!userFind?.active) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0022',
-					customMessage: errorCodes.WGE0022?.description,
-					customMessageEs: errorCodes.WGE0022?.descriptionEs,
+					customCode: 'WGE00108',
+					customMessage: errorCodes.WGE00108?.description,
+					customMessageEs: errorCodes.WGE00108?.descriptionEs,
 				});
 			}
 			await this.userService.signin(signinDto);
@@ -880,6 +880,8 @@ export class UserController {
 
 			if (
 				resultAccess?.userAccessLevel < 8 ||
+				(validateAccess?.method === 'PATCH' &&
+					resultAccess?.userAccessLevel !== 15) ||
 				(resultAccess?.userAccessLevel & resultAccess?.requiredAccess) !==
 					resultAccess?.requiredAccess
 			) {

@@ -268,6 +268,11 @@ export const errorCodes = {
 		description: 'The entered access level is invalid.',
 		descriptionEs: 'El nivel de acceso ingresado es inválido.',
 	},
+	WGE00108: {
+		message: 'Login inactive User',
+		description: 'This email is currently inactive. Please contact the wallet guru support team to reactivate your account.',
+		descriptionEs: 'Este correo electrónico está actualmente inactivo. Por favor, contacta al equipo de soporte de Wallet Guru para reactivar tu cuenta.',
+	},
 };
 
 export const successCodes = {
