@@ -532,7 +532,9 @@ export class UserService {
 		authForgotPasswordUserDto: AuthForgotPasswordUserDto
 	): Promise<string> {
 		const { email } = authForgotPasswordUserDto;
-		return await convertToCamelCase(this.cognitoService.forgotPassword(email));
+		return await convertToCamelCase(
+			this.cognitoService.forgotPassword(email?.toLowerCase())
+		);
 	}
 
 	async confirmUserPassword(
@@ -542,7 +544,7 @@ export class UserService {
 
 		await convertToCamelCase(
 			this.cognitoService.confirmForgotPassword(
-				email,
+				email?.toLowerCase(),
 				confirmationCode,
 				newPassword
 			)
