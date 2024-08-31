@@ -880,8 +880,6 @@ export class UserController {
 
 			if (
 				resultAccess?.userAccessLevel < 8 ||
-				(validateAccess?.method === 'PATCH' &&
-					resultAccess?.userAccessLevel !== 15) ||
 				(resultAccess?.userAccessLevel & resultAccess?.requiredAccess) !==
 					resultAccess?.requiredAccess
 			) {
