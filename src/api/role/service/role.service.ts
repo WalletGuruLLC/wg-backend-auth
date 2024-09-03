@@ -94,6 +94,9 @@ export class RoleService {
 		}
 
 		roles.sort((a, b) => {
+			if (a.Active !== b.Active) {
+				return a.Active ? -1 : 1;
+			}
 			if (a[orderBy] === b[orderBy]) {
 				return 0;
 			}
@@ -147,6 +150,9 @@ export class RoleService {
 		}
 
 		roles.sort((a, b) => {
+			if (a.Active !== b.Active) {
+				return a.Active ? -1 : 1;
+			}
 			if (a[orderBy] === b[orderBy]) {
 				return 0;
 			}
