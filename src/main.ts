@@ -26,8 +26,9 @@ async function bootstrap() {
 			'Comprehensive documentation for the Paystream API, detailing the Authentication service and its endpoints.'
 		)
 		.addServer('http://localhost:3000/', 'Local environment')
-		.addServer('https://dev.auth.walletguru.co/', 'Dev environment')
-		.addServer('https://qa.auth.walletguru.co/', 'QA environment')
+		.addServer('https://dev.codes.walletguru.co/', 'Dev environment')
+		.addServer('https://qa.codes.walletguru.co/', 'QA environment')
+		.addServer('https://codes.walletguru.co/', 'Production environment')
 		.addBearerAuth(
 			{ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
 			'JWT'
