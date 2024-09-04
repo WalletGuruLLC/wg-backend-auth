@@ -22,6 +22,9 @@ import {
 	ApiForbiddenResponse,
 	ApiOkResponse,
 	ApiTags,
+	ApiOperation,
+	ApiResponse,
+	ApiParam,
 } from '@nestjs/swagger';
 
 import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
@@ -442,6 +445,45 @@ export class UserController {
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Put(':id/toggle-first')
+	@ApiOperation({ summary: 'Toggle the first field of a user' })
+	@ApiParam({ name: 'id', description: 'ID of the user', type: String })
+	@ApiResponse({
+		status: 200,
+		description: 'User first field toggled successfully.',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'User not found.',
+	})
+	async toggleFirst(@Param('id') id: string) {
+		try {
+			const user = await this.userService.toggleFirst(id);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0020',
+				customMessage: successCodes.WGE0020?.description,
+				customMessageEs: successCodes.WGE0020?.descriptionEs,
+				data: user,
+			};
+		} catch (error) {
+			if (
+				error instanceof HttpException &&
+				error.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
+			) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0016',
+						...errorCodes.WGE0016,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+			throw error;
 		}
 	}
 
