@@ -16,14 +16,21 @@ export class ModuleService {
 			waitForActive: false,
 		});
 	}
-	async findAll() {
-		const modules = await this.dbInstance.scan().exec();
+	async findAll(belongs?: string) {
+		let modules;
+		if (belongs) {
+			modules = await this.dbInstance.query('Belongs').eq(belongs).exec();
+		} else {
+			modules = await this.dbInstance.scan().exec();
+		}
+
 		return modules.map(this.mapModuleToResponse);
 	}
 
 	private mapModuleToResponse(module: Module) {
 		return {
 			id: module.Id,
+			belongs: module.Belongs,
 			description: module.Description,
 			createDate: module.CreateDate,
 			updateDate: module.UpdateDate,
