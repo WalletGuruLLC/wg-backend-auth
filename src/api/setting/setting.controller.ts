@@ -8,7 +8,7 @@ export class SettingController {
 	constructor(private readonly settingService: SettingService) {}
 
 	@Get()
-	@ApiQuery({ name: 'belong', required: false, type: String })
+	@ApiQuery({ name: 'belongs', required: false, type: String })
 	@ApiOkResponse({
 		description: 'Successfully returned settings',
 	})
