@@ -131,6 +131,10 @@ export class UserService {
 				);
 			}
 
+			if (otpRecord?.[0]?.Otp !== verifyOtp?.otp) {
+				throw new HttpException('Incorrect OTP', HttpStatus.UNAUTHORIZED);
+			}
+
 			const existingToken = await this.dbOtpInstance
 				.query('Otp')
 				.eq(verifyOtp?.otp)
