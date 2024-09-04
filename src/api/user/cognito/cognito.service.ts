@@ -32,6 +32,7 @@ export class CognitoService implements CognitoServiceInterface {
 				{ Name: 'email', Value: email },
 				{ Name: 'email_verified', Value: 'true' },
 			],
+			MessageAction: 'SUPPRESS',
 		};
 
 		try {
