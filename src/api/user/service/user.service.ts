@@ -38,6 +38,7 @@ import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import * as Sentry from '@sentry/nestjs';
 import { RoleService } from '../../role/service/role.service';
 import { ProviderService } from '../../provider/service/provider.service';
+import { errorCodes } from '../../../utils/constants';
 
 @Injectable()
 export class UserService {
@@ -128,6 +129,10 @@ export class UserService {
 					'Invalid or expired OTP',
 					HttpStatus.UNAUTHORIZED
 				);
+			}
+
+			if (otpRecord?.[0]?.Otp !== verifyOtp?.otp) {
+				throw new HttpException('Incorrect OTP', HttpStatus.UNAUTHORIZED);
 			}
 
 			const existingToken = await this.dbOtpInstance
@@ -289,7 +294,7 @@ export class UserService {
 
 	async findOne(id: string) {
 		try {
-			return await convertToCamelCase(this.dbInstance.get({ Id: id }));
+			return convertToCamelCase(await this.dbInstance.get({ Id: id }));
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error retrieving user: ${error.message}`);
@@ -386,6 +391,25 @@ export class UserService {
 			Sentry.captureException(error);
 			throw new Error(`Error updating user: ${error.message}`);
 		}
+	}
+
+	async toggleFirst(id: string) {
+		const user = await this.findOne(id);
+
+		if (!user) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0002',
+					...errorCodes.WGE0002,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+		user.first = !user.first;
+		const updatedUser = await this.dbInstance.update(id, {
+			First: user.first,
+		});
+		return convertToCamelCase(updatedUser);
 	}
 
 	async remove(id: string): Promise<void> {
