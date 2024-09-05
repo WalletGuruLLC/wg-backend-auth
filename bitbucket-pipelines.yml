@@ -48,6 +48,7 @@ pipelines:
                 name: Build with Docker
                 size: 2x
                 script:
+                  - echo "Building Docker image"
                   - *push-image
                 caches:
                   - pip
@@ -78,6 +79,7 @@ pipelines:
                 name: Build with Docker
                 size: 2x
                 script:
+                  - echo "Building Docker image"
                   - *push-image
                 caches:
                   - pip
