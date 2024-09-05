@@ -15,4 +15,5 @@ export interface Provider extends Document {
 	Logo: string;
 	ContactInformation: string;
 	Active: boolean;
+	ImageUrl: string;
 }

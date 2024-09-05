@@ -268,6 +268,13 @@ export const errorCodes = {
 		description: 'The entered access level is invalid.',
 		descriptionEs: 'El nivel de acceso ingresado es inválido.',
 	},
+	WGE0050: {
+		message: 'Edit User failed',
+		description:
+			'Failed to edit user. Check inputs, then retry.',
+		descriptionEs:
+			'Error al editar el usuario. Verifica los datos e inténtalo de nuevo.',
+	},
 	WGE00108: {
 		message: 'Login inactive User',
 		description:
@@ -401,5 +408,10 @@ export const successCodes = {
 		message: 'Success getting role',
 		description: 'The role was getting succesfully.',
 		descriptionEs: 'El role se ha obtenido con éxito.',
+	},
+	WGE0083: {
+		message: 'Edit user successful',
+		description: 'The user has been edited successfully.',
+		descriptionEs: 'El usuario ha sido editado con éxito.',
 	},
 };

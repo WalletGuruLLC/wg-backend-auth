@@ -15,6 +15,8 @@ import {
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
+	UploadedFile,
+	UseInterceptors,
 } from '@nestjs/common';
 import {
 	ApiBearerAuth,
@@ -44,6 +46,8 @@ import { validatePassword } from '../../../utils/helpers/validatePassword';
 import { ValidateAccessDto } from '../dto/validate-access-middleware.dto';
 import { validatePhoneNumber } from 'src/utils/helpers/validatePhone';
 import { isValidEmail } from 'src/utils/helpers/validateEmail';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as Sentry from '@sentry/nestjs';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -973,6 +977,41 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
 				HttpStatus.BAD_REQUEST
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Patch('upload-image/:id')
+	@UsePipes(ValidationPipe)
+	@UseInterceptors(FileInterceptor('file'))
+	@ApiOperation({ summary: 'Update user profile image' })
+	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
+	@ApiResponse({ status: 200, description: 'Provider updated successfully.' })
+	@ApiResponse({ status: 500, description: 'Error updating provider.' })
+	async uploadImage(
+		@Param('id') id: string,
+		@UploadedFile() file: Express.Multer.File
+	) {
+		try {
+			const provider = await this.userService.uploadImage(id, file);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0083',
+				customMessage: successCodes?.WGE0083?.description,
+				customMessageEs: successCodes.WGE0083?.descriptionEs,
+				data: provider,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0050',
+					customMessage: errorCodes?.WGE0050?.description,
+					customMessageEs: errorCodes.WGE0050?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
 	}
