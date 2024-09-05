@@ -43,3 +43,4 @@ Create a .env file in the root of the project following the content of .env.exam
 - `CLUSTER_NAME`: Name of the cluster in ECS
 - `AWS_ACCESS_KEY_ID_TERRAFORM`: Key ID of the AWS account for Terraform
 - `AWS_SECRET_ACCESS_KEY_TERRAFORM`: Secret key of the AWS account for Terraform
+- `AWS_S3_BUCKET_NAME`: Name of the S3 bucket for images

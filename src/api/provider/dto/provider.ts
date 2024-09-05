@@ -27,6 +27,7 @@ export class UpdateProviderDto {
 	logo?: string;
 	contactInformation?: string;
 	active?: boolean;
+	ImageUrl?: string;
 }
 
 export class DeleteProviderDto {

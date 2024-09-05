@@ -30,4 +30,5 @@ export class CreateUserDto {
 	address?: string;
 	dateOfBirth?: Date;
 	avatar?: string;
+	imageUrl: string;
 }

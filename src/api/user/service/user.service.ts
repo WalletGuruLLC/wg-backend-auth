@@ -39,6 +39,11 @@ import * as Sentry from '@sentry/nestjs';
 import { RoleService } from '../../role/service/role.service';
 import { ProviderService } from '../../provider/service/provider.service';
 import { errorCodes } from '../../../utils/constants';
+import {
+	S3Client,
+	DeleteObjectCommand,
+	PutObjectCommand,
+} from '@aws-sdk/client-s3';
 
 @Injectable()
 export class UserService {
@@ -832,5 +837,146 @@ export class UserService {
 		const normalizedPath = path.split('/').slice(0, 4).join('/');
 
 		return moduleIdMap[normalizedPath] || '';
+	}
+
+	// async uploadImage(id: string, file: Express.Multer.File) {
+	// 	try {
+	// 		if (file) {
+	// 			const fileExtension = file.originalname.split('.').pop().toLowerCase();
+	// 			const allowedExtensions = ['jpg', 'jpeg', 'svg', 'png'];
+	//
+	// 			if (!allowedExtensions.includes(fileExtension)) {
+	// 				throw new HttpException(
+	// 					{
+	// 						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+	// 						customCode: 'WGE0043',
+	// 						customMessage: errorCodes.WGE0043?.description,
+	// 						customMessageEs: errorCodes.WGE0043?.descriptionEs,
+	// 					},
+	// 					HttpStatus.INTERNAL_SERVER_ERROR
+	// 				);
+	// 			}
+	//
+	// 			const fileName = `${uuidv4()}.${fileExtension}`;
+	// 			const filePath = `service-providers/${id}/${fileName}`;
+	//
+	// 			const user = await this.dbInstance.get({ Id: id });
+	// 			const currentImageUrl = user?.Picture;
+	//
+	// 			if (currentImageUrl) {
+	// 				const currentImageKey = currentImageUrl.split('.com/')[1];
+	// 				await this.s3
+	// 					.deleteObject({
+	// 						Bucket: process.env.AWS_S3_BUCKET_NAME,
+	// 						Key: currentImageKey,
+	// 					})
+	// 					.promise();
+	// 			}
+	//
+	// 			const AwsImage = await this.s3
+	// 				.upload({
+	// 					Bucket: process.env.AWS_S3_BUCKET_NAME,
+	// 					Key: filePath,
+	// 					Body: file.buffer,
+	// 					ContentType: file.mimetype,
+	// 					ACL: 'public-read',
+	// 				})
+	// 				.promise();
+	//
+	// 			const updatedProvider = {
+	// 				Id: id,
+	// 				Picture: AwsImage.Location,
+	// 			};
+	//
+	// 			return this.dbInstance.update(updatedProvider);
+	// 		}
+	// 	} catch (error) {
+	// 		Sentry.captureException(error);
+	// 		console.log('error', error);
+	// 		throw new HttpException(
+	// 			{
+	// 				statusCode: HttpStatus.FORBIDDEN,
+	// 				customCode: 'WGE0050',
+	// 				customMessage: errorCodes?.WGE0050?.description,
+	// 				customMessageEs: errorCodes.WGE0050?.descriptionEs,
+	// 			},
+	// 			HttpStatus.INTERNAL_SERVER_ERROR
+	// 		);
+	// 	}
+	// }
+
+	async uploadImage(id: string, file: Express.Multer.File) {
+		try {
+			if (file) {
+				const fileExtension = file.originalname.split('.').pop().toLowerCase();
+				const allowedExtensions = ['jpg', 'jpeg', 'svg', 'png'];
+
+				if (!allowedExtensions.includes(fileExtension)) {
+					throw new HttpException(
+						{
+							statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+							customCode: 'WGE0043',
+							customMessage: errorCodes.WGE0043?.description,
+							customMessageEs: errorCodes.WGE0043?.descriptionEs,
+						},
+						HttpStatus.INTERNAL_SERVER_ERROR
+					);
+				}
+
+				const fileName = `${uuidv4()}.${fileExtension}`;
+				const filePath = `users/${id}/${fileName}`;
+
+				const user = await this.dbInstance.get({ Id: id });
+				const currentImageUrl = user?.Picture;
+
+				const s3Client = new S3Client({
+					region: process.env.AWS_REGION,
+					credentials: {
+						accessKeyId: process.env.AWS_KEY_ID,
+						secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+					},
+				});
+
+				if (currentImageUrl) {
+					const currentImageKey = currentImageUrl.split('.com/')[1];
+
+					const deleteCommand = new DeleteObjectCommand({
+						Bucket: process.env.AWS_S3_BUCKET_NAME,
+						Key: currentImageKey,
+					});
+
+					await s3Client.send(deleteCommand);
+				}
+
+				const uploadCommand = new PutObjectCommand({
+					Bucket: process.env.AWS_S3_BUCKET_NAME,
+					Key: filePath,
+					Body: file.buffer,
+					ContentType: file.mimetype,
+					ACL: 'public-read',
+				});
+
+				await s3Client.send(uploadCommand);
+
+				const updateUser = {
+					Id: id,
+					Picture: `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${filePath}`,
+				};
+
+				return this.dbInstance.update(updateUser);
+			}
+		} catch (error) {
+			Sentry.captureException(error);
+			console.log('error', error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0050',
+					customMessage: errorCodes?.WGE0050?.description,
+					customMessageEs: errorCodes.WGE0050?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 }

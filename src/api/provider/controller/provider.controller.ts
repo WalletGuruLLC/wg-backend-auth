@@ -14,6 +14,8 @@ import {
 	UseGuards,
 	UsePipes,
 	ValidationPipe,
+	UploadedFile,
+	UseInterceptors,
 } from '@nestjs/common';
 import { ProviderService } from '../service/provider.service';
 import {
@@ -34,6 +36,7 @@ import {
 import { errorCodes, successCodes } from '../../../utils/constants';
 import { GetProvidersDto } from '../dto/getProviderDto';
 import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -249,6 +252,41 @@ export class ProviderController {
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);
 			}
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Patch('upload-image/:id')
+	@UsePipes(ValidationPipe)
+	@UseInterceptors(FileInterceptor('file'))
+	@ApiOperation({ summary: 'Upload service provider image' })
+	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
+	@ApiResponse({ status: 200, description: 'Provider updated successfully.' })
+	@ApiResponse({ status: 500, description: 'Error updating provider.' })
+	async uploadImage(
+		@Param('id') id: string,
+		@UploadedFile() file: Express.Multer.File
+	) {
+		try {
+			const provider = await this.providerService.uploadImage(id, file);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0075',
+				customMessage: successCodes?.WGE0075?.description,
+				customMessageEs: successCodes.WGE0075?.descriptionEs,
+				data: provider,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0041',
+					customMessage: errorCodes?.WGE0041?.description,
+					customMessageEs: errorCodes.WGE0041?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
 		}
 	}
 }

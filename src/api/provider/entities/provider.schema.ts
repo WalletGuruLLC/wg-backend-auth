@@ -21,6 +21,7 @@ export const ProviderSchema = new dynamoose.Schema(
 		Logo: String,
 		ContactInformation: String,
 		Active: Boolean,
+		ImageUrl: String,
 	},
 	{
 		timestamps: {
