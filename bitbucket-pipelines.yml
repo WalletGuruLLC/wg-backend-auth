@@ -64,7 +64,7 @@ pipelines:
                         - "image"
                         - "--namespace=dev"
                         - "deployment/backend-auth"
-                        - "backend-auth=${IMAGE}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
+                        - "backend-auth=${IMAGE_URL}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
                       DEBUG: "true"
     "qa":
       - stage:
@@ -86,5 +86,5 @@ pipelines:
                         - "image"
                         - "--namespace=qa"
                         - "deployment/backend-auth"
-                        - "backend-auth=${IMAGE}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
+                        - "backend-auth=${IMAGE_URL}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
                       DEBUG: "true"
