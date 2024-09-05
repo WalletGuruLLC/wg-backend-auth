@@ -270,10 +270,8 @@ export const errorCodes = {
 	},
 	WGE0050: {
 		message: 'Edit User failed',
-		description:
-			'Failed to edit user. Check inputs, then retry.',
-		descriptionEs:
-			'Error al editar el usuario. Verifica los datos e inténtalo de nuevo.',
+		description: 'Failed to edit user. Check inputs, then retry.',
+		descriptionEs: 'Error al editar el usuario. Verifica los datos e inténtalo de nuevo.',
 	},
 	WGE00108: {
 		message: 'Login inactive User',

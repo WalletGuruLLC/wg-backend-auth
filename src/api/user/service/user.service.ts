@@ -956,7 +956,7 @@ export class UserService {
 					ACL: 'public-read',
 				});
 
-				const AwsImage = await s3Client.send(uploadCommand);
+				await s3Client.send(uploadCommand);
 
 				const updateUser = {
 					Id: id,
