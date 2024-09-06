@@ -982,7 +982,7 @@ export class UserController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Patch('upload-image/:id')
+	@Put('upload-image/:id')
 	@UsePipes(ValidationPipe)
 	@UseInterceptors(FileInterceptor('file'))
 	@ApiOperation({ summary: 'Update user profile image' })
