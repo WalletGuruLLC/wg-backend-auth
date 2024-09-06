@@ -1,7 +1,6 @@
 import {
 	Body,
 	Controller,
-	Delete,
 	Get,
 	HttpException,
 	HttpStatus,
@@ -19,13 +18,14 @@ import {
 } from '@nestjs/common';
 import { ProviderService } from '../service/provider.service';
 import {
+	ChangeStatusProviderDto,
 	CreateProviderDto,
-	DeleteProviderDto,
 	UpdateProviderDto,
 } from '../dto/provider';
 import * as Sentry from '@sentry/nestjs';
 import {
 	ApiBearerAuth,
+	ApiBody,
 	ApiForbiddenResponse,
 	ApiOkResponse,
 	ApiOperation,
@@ -48,7 +48,53 @@ export class ProviderController {
 	@Post()
 	@UsePipes(ValidationPipe)
 	@ApiOperation({ summary: 'Create a new provider' })
-	@ApiResponse({ status: 201, description: 'Provider created successfully.' })
+	@ApiBody({
+		description: 'The provider creation data',
+		required: true,
+		schema: {
+			example: {
+				name: 'Provider Name',
+				description: 'Provider Description',
+				email: 'provider@example.com',
+				phone: '+123456789',
+				einNumber: '12-3456789',
+				country: 'Argentina',
+				city: 'Balvanera',
+				zipCode: '59569',
+				companyAddress: 'Company Address test',
+				walletAddress: '',
+				contactInformation: 'Contact Info test',
+			},
+		},
+	})
+	@ApiResponse({
+		status: 201,
+		description: 'Provider created successfully.',
+		schema: {
+			example: {
+				statusCode: 201,
+				customCode: 'WGS0077',
+				customMessage: 'Provider created successfully.',
+				customMessageEs: 'Proveedor creado con éxito.',
+				data: {
+					Name: 'Provider Name',
+					Description: 'Provider description',
+					Email: 'provider@example.com',
+					Phone: '+123456789',
+					EINNumber: '12-3456789',
+					Country: 'Argentina',
+					City: 'Balvanera',
+					ZipCode: '59569',
+					CompanyAddress: 'Company Address test',
+					WalletAddress: 'test wallet address',
+					ContactInformation: 'Contact Info test',
+					CreateDate: 1725592379481,
+					UpdateDate: 1725592379481,
+					Id: '4fef9ad1-1dba-4e65-976a-1bea78043e66',
+				},
+			},
+		},
+	})
 	@ApiResponse({ status: 500, description: 'Error creating provider.' })
 	async create(@Body() createProviderDto: CreateProviderDto) {
 		try {
@@ -76,10 +122,43 @@ export class ProviderController {
 
 	@UseGuards(CognitoAuthGuard)
 	@Get('')
-	@ApiOperation({ summary: 'Retrieve a list of providers' })
+	@ApiOperation({
+		summary:
+			'Retrieve a list of providers with pagination and optional search.',
+	})
 	@ApiOkResponse({
 		status: 200,
 		description: 'Providers retrieved successfully.',
+		schema: {
+			example: {
+				statusCode: 200,
+				customCode: 'WGE0073',
+				customMessage: 'Providers retrieved successfully.',
+				customMessageEs: 'Proveedores recuperados con éxito.',
+				data: {
+					providers: [
+						{
+							id: '123',
+							name: 'Provider Name',
+							description: 'Provider Description',
+							email: 'provider@example.com',
+							phone: '+123456789',
+							einNumber: '12-3456789',
+							country: 'Argentina',
+							city: 'Balvanera',
+							zipCode: '59569',
+							companyAddress: 'Company Address',
+							walletAddress: '',
+							logo: 'https://example.com/logo.png',
+							contactInformation: 'Contact Info',
+						},
+					],
+					currentPage: 1,
+					total: 1,
+					totalPages: 1,
+				},
+			},
+		},
 	})
 	@ApiForbiddenResponse({ status: 403, description: 'Access forbidden.' })
 	async findAll(@Query() getProvidersDto: GetProvidersDto, @Res() res) {
@@ -110,7 +189,33 @@ export class ProviderController {
 	@Get(':id')
 	@ApiOperation({ summary: 'Retrieve a single provider by ID' })
 	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
-	@ApiResponse({ status: 200, description: 'Provider found.' })
+	@ApiResponse({
+		status: 200,
+		description: 'Provider found.',
+		schema: {
+			example: {
+				statusCode: 200,
+				customCode: 'WGE0074',
+				customMessage: 'Provider found successfully.',
+				customMessageEs: 'Proveedor encontrado con éxito.',
+				data: {
+					id: '123',
+					name: 'Provider Name',
+					description: 'Provider Description',
+					email: 'provider@example.com',
+					phone: '+123456789',
+					einNumber: '12-3456789',
+					country: 'Argentina',
+					city: 'Balvanera',
+					zipCode: '59569',
+					companyAddress: 'Company Address',
+					walletAddress: '',
+					logo: 'https://example.com/logo.png',
+					contactInformation: 'Contact Info',
+				},
+			},
+		},
+	})
 	@ApiResponse({ status: 404, description: 'Provider not found.' })
 	async findOne(@Param('id') id: string) {
 		try {
@@ -147,6 +252,24 @@ export class ProviderController {
 	@UsePipes(ValidationPipe)
 	@ApiOperation({ summary: 'Update an existing provider' })
 	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
+	@ApiBody({
+		description: 'Data to update the provider.',
+		schema: {
+			example: {
+				name: 'Updated Provider Name',
+				description: 'Updated Description',
+				email: 'updated@example.com',
+				phone: '+123456789',
+				einNumber: '12-3456789',
+				country: 'Argentina',
+				city: 'Balvanera',
+				zipCode: '59569',
+				companyAddress: 'Updated Address',
+				walletAddress: '',
+				contactInformation: 'Updated Contact Info',
+			},
+		},
+	})
 	@ApiResponse({ status: 200, description: 'Provider updated successfully.' })
 	@ApiResponse({ status: 500, description: 'Error updating provider.' })
 	async update(
@@ -179,18 +302,29 @@ export class ProviderController {
 	@UseGuards(CognitoAuthGuard)
 	@Patch(':id')
 	@UsePipes(ValidationPipe)
-	@ApiOperation({ summary: 'Active or Inactive an existing provider' })
+	@ApiOperation({ summary: 'Activate or desactivate an existing provider' })
 	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
-	@ApiResponse({ status: 200, description: 'Provider updated successfully.' })
-	@ApiResponse({ status: 500, description: 'Error updating provider.' })
-	async changeStatus(
+	@ApiBody({
+		description: 'Status change data for the provider.',
+		schema: {
+			example: {
+				active: false,
+			},
+		},
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Provider status updated successfully.',
+	})
+	@ApiResponse({ status: 500, description: 'Error updating provider status.' })
+	async activeInactiveProvider(
 		@Param('id') id: string,
-		@Body() deleteProviderDto: DeleteProviderDto
+		@Body() changeStatusProvider: ChangeStatusProviderDto
 	) {
 		try {
-			const provider = await this.providerService.changeStatus(
+			const provider = await this.providerService.activeInactiveProvider(
 				id,
-				deleteProviderDto
+				changeStatusProvider
 			);
 			return {
 				statusCode: HttpStatus.OK,
@@ -214,49 +348,7 @@ export class ProviderController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Delete(':id')
-	@ApiOperation({ summary: 'Delete a provider by ID' })
-	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
-	@ApiResponse({ status: 200, description: 'Provider deleted successfully.' })
-	@ApiResponse({ status: 404, description: 'Provider not found.' })
-	@ApiResponse({ status: 500, description: 'Error deleting provider.' })
-	async remove(@Param('id') id: string) {
-		try {
-			await this.providerService.remove(id);
-			return {
-				statusCode: HttpStatus.OK,
-				customCode: 'WGE0076',
-				customMessage: successCodes?.WGE0076?.description,
-				customMessageEs: successCodes.WGE0076?.descriptionEs,
-			};
-		} catch (error) {
-			Sentry.captureException(error);
-			if (error.message === 'Provider not found in database') {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.NOT_FOUND,
-						customCode: 'WGE0040',
-						customMessage: errorCodes?.WGE0040?.description,
-						customMessageEs: errorCodes.WGE0040?.descriptionEs,
-					},
-					HttpStatus.NOT_FOUND
-				);
-			} else {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						customCode: 'WGE0042',
-						customMessage: errorCodes?.WGE0042?.description,
-						customMessageEs: errorCodes.WGE0042?.descriptionEs,
-					},
-					HttpStatus.INTERNAL_SERVER_ERROR
-				);
-			}
-		}
-	}
-
-	@UseGuards(CognitoAuthGuard)
-	@Patch('upload-image/:id')
+	@Put('upload-image/:id')
 	@UsePipes(ValidationPipe)
 	@UseInterceptors(FileInterceptor('file'))
 	@ApiOperation({ summary: 'Upload service provider image' })
