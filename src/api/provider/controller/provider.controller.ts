@@ -348,7 +348,7 @@ export class ProviderController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Patch('upload-image/:id')
+	@Put('upload-image/:id')
 	@UsePipes(ValidationPipe)
 	@UseInterceptors(FileInterceptor('file'))
 	@ApiOperation({ summary: 'Upload service provider image' })
