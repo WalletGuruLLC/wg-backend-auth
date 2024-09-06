@@ -20,7 +20,10 @@ export const ProviderSchema = new dynamoose.Schema(
 		WalletAddress: String,
 		Logo: String,
 		ContactInformation: String,
-		Active: Boolean,
+		Active: {
+			type: Boolean,
+			default: true,
+		},
 		ImageUrl: String,
 	},
 	{
