@@ -1,4 +1,5 @@
 import { GetProvidersDto } from './../dto/getProviderDto';
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
@@ -8,7 +9,7 @@ import { Provider } from '../entities/provider.entity';
 import { ProviderSchema } from '../entities/provider.schema';
 import {
 	CreateProviderDto,
-	DeleteProviderDto,
+	ChangeStatusProviderDto,
 	UpdateProviderDto,
 } from '../dto/provider';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
@@ -56,85 +57,135 @@ export class ProviderService {
 		totalPages: number;
 	}> {
 		const { page = 1, items = 10, search } = getProvidersDto;
+		const docClient = new DocumentClient();
 
-		const query = this.dbInstance.scan();
-
-		const result = await query.exec();
-		let providers = convertToCamelCase(result);
-
-		if (search) {
-			const regex = new RegExp(search, 'i');
-			providers = providers.filter(
-				provider =>
-					regex.test(provider.email) ||
-					regex.test(provider.name) ||
-					regex.test(provider.description) ||
-					regex.test(provider.companyAddress) ||
-					regex.test(provider.contactInformation)
-			);
-		}
-
-		const total = providers.length;
-		const offset = (Number(page) - 1) * Number(items);
-		const paginatedProviders = providers.slice(offset, offset + Number(items));
-		const totalPages = Math.ceil(total / Number(items));
-
-		return {
-			providers: paginatedProviders,
-			currentPage: Number(page),
-			total,
-			totalPages,
+		const params: DocumentClient.ScanInput = {
+			TableName: 'Providers',
 		};
+
+		try {
+			const result = await docClient.scan(params).promise();
+			let providers = convertToCamelCase(result.Items || []);
+
+			if (search) {
+				const regex = new RegExp(search, 'i');
+				providers = providers.filter(
+					provider =>
+						regex.test(provider.email) ||
+						regex.test(provider.name) ||
+						regex.test(provider.description) ||
+						regex.test(provider.companyAddress) ||
+						regex.test(provider.contactInformation)
+				);
+			}
+
+			const total = providers.length;
+			const offset = (Number(page) - 1) * Number(items);
+			const paginatedProviders = providers.slice(
+				offset,
+				offset + Number(items)
+			);
+			const totalPages = Math.ceil(total / Number(items));
+
+			return {
+				providers: paginatedProviders,
+				currentPage: Number(page),
+				total,
+				totalPages,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching providers: ${error.message}`);
+		}
 	}
 
 	async findOne(id: string) {
-		const provider = await this.dbInstance.get(id);
-		if (!provider) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0040',
-					...errorCodes.WGE0040,
-				},
-				HttpStatus.NOT_FOUND
-			);
+		const docClient = new DocumentClient();
+		const params: DocumentClient.GetItemInput = {
+			TableName: 'Providers',
+			Key: { Id: id },
+		};
+
+		try {
+			const result = await docClient.get(params).promise();
+
+			if (!result.Item) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0040',
+						...errorCodes.WGE0040,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			return convertToCamelCase(result.Item);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching provider by ID: ${error.message}`);
 		}
-		return provider;
 	}
 
 	async update(id: string, updateProviderDto: UpdateProviderDto) {
+		const docClient = new DocumentClient();
+		const updateExpressionParts = [];
+		const expressionAttributeNames = {};
+		const expressionAttributeValues = {};
+
+		Object.entries(updateProviderDto).forEach(([key, value]) => {
+			if (value !== undefined) {
+				const attributeKey = `#${key}`;
+				const valueKey = `:${key}`;
+				updateExpressionParts.push(`${attributeKey} = ${valueKey}`);
+				expressionAttributeNames[attributeKey] = key;
+				expressionAttributeValues[valueKey] = value;
+			}
+		});
+
+		const updateExpression = `SET ${updateExpressionParts.join(', ')}`;
+
+		const params: DocumentClient.UpdateItemInput = {
+			TableName: 'Providers',
+			Key: { Id: id },
+			UpdateExpression: updateExpression,
+			ExpressionAttributeNames: expressionAttributeNames,
+			ExpressionAttributeValues: expressionAttributeValues,
+			ReturnValues: 'ALL_NEW',
+		};
+
 		try {
-			const updatedProvider = {
-				Id: id,
-				Name: updateProviderDto.name,
-				Description: updateProviderDto.description,
-				Email: updateProviderDto.email,
-				Phone: updateProviderDto.phone,
-				EINNumber: updateProviderDto.einNumber,
-				Country: updateProviderDto.country,
-				City: updateProviderDto.city,
-				ZipCode: updateProviderDto.zipCode,
-				CompanyAddress: updateProviderDto.companyAddress,
-				WalletAddress: updateProviderDto.walletAddress,
-				Logo: updateProviderDto.logo,
-				ContactInformation: updateProviderDto.contactInformation,
-			};
-			return convertToCamelCase(await this.dbInstance.update(updatedProvider));
+			const result = await docClient.update(params).promise();
+			return convertToCamelCase(result.Attributes || {});
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error updating provider: ${error.message}`);
 		}
 	}
 
-	async changeStatus(id: string, deleteProvider: DeleteProviderDto) {
+	async activeInactiveProvider(
+		id: string,
+		changeStatusProvider: ChangeStatusProviderDto
+	) {
+		const docClient = new DocumentClient();
+		const params: DocumentClient.UpdateItemInput = {
+			TableName: 'Providers',
+			Key: { Id: id },
+			UpdateExpression: 'SET #active = :active',
+			ExpressionAttributeNames: {
+				'#active': 'Active',
+			},
+			ExpressionAttributeValues: {
+				':active': changeStatusProvider.active,
+			},
+			ReturnValues: 'ALL_NEW',
+		};
+
 		try {
-			const updatedProvider = {
-				Id: id,
-				Active: deleteProvider.active,
-			};
-			return convertToCamelCase(await this.dbInstance.update(updatedProvider));
+			const result = await docClient.update(params).promise();
+			return convertToCamelCase(result.Attributes || {});
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new Error(`Error updating provider: ${error.message}`);
+			throw new Error(`Error updating status provider: ${error.message}`);
 		}
 	}
 

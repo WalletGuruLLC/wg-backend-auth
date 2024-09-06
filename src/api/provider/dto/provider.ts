@@ -30,7 +30,7 @@ export class UpdateProviderDto {
 	ImageUrl?: string;
 }
 
-export class DeleteProviderDto {
+export class ChangeStatusProviderDto {
 	email?: string;
 	active?: boolean;
 }
