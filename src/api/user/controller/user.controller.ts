@@ -147,6 +147,19 @@ export class UserController {
 				});
 			}
 
+			if (createUserDto?.type == 'PROVIDER') {
+				const { phone } = createUserDto;
+
+				if (!phone || !phone.trim() || !validatePhoneNumber(phone)) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00044',
+						customMessage: errorCodes?.WGE00044?.description,
+						customMessageEs: errorCodes?.WGE00044?.descriptionEs,
+					});
+				}
+			}
+
 			const userPhone = await this.userService.findOneByPhone(
 				createUserDto?.phone
 			);
