@@ -37,7 +37,11 @@ import { SignInDto } from '../dto/signin.dto';
 import { SendOtpDto } from '../dto/send-otp-email.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserService } from '../service/user.service';
-import { errorCodes, successCodes } from '../../../utils/constants';
+import {
+	errorCodes,
+	licenseFormats,
+	successCodes,
+} from '../../../utils/constants';
 import { GetUsersDto } from '../dto/get-user.dto';
 import { VerifyOtpDto } from '../../auth/dto/verify-otp.dto';
 import { CognitoAuthGuard } from '../guard/cognito-auth.guard';
@@ -48,6 +52,7 @@ import { validatePhoneNumber } from 'src/utils/helpers/validatePhone';
 import { isValidEmail } from 'src/utils/helpers/validateEmail';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as Sentry from '@sentry/nestjs';
+import { validateLicense } from 'src/utils/helpers/validateLicenseDriver';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -427,6 +432,39 @@ export class UserController {
 					customMessage: errorCodes?.WGE00044?.description,
 					customMessageEs: errorCodes?.WGE00044?.descriptionEs,
 				});
+			}
+
+			if (updateUserDto?.identificationType === `Driver’s License`) {
+				const { stateLocation, identificationNumber } = updateUserDto;
+
+				if (
+					!stateLocation ||
+					!identificationNumber ||
+					!licenseFormats[
+						stateLocation.trim().replace(/\b\w/g, char => char.toUpperCase())
+					]
+				) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00019',
+						customMessage: errorCodes?.WGE00019?.description,
+						customMessageEs: errorCodes?.WGE00019?.descriptionEs,
+					});
+				}
+
+				const isValidLicense = await validateLicense(
+					stateLocation,
+					identificationNumber
+				);
+
+				if (!isValidLicense) {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE00019',
+						customMessage: errorCodes?.WGE00019?.description,
+						customMessageEs: errorCodes?.WGE00019?.descriptionEs,
+					});
+				}
 			}
 
 			const user = await this.userService.update(id, updateUserDto);
