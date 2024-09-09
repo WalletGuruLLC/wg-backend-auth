@@ -6,12 +6,10 @@ export function validateLicense(state, licenseNumber) {
 		.replace(/\b\w/g, char => char.toUpperCase());
 
 	if (!licenseFormats[formattedState]) {
-		return `Estado no reconocido: ${state}`;
+		return false;
 	}
 
 	const isValid = licenseFormats[formattedState].test(licenseNumber);
 
-	return isValid
-		? 'Número de licencia válido.'
-		: 'Número de licencia inválido.';
+	return isValid ? true : false;
 }
