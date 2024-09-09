@@ -25,7 +25,6 @@ import {
 	ApiParam,
 	ApiResponse,
 	ApiTags,
-	ApiQuery,
 } from '@nestjs/swagger';
 
 import { errorCodes, successCodes } from '../../../utils/constants';

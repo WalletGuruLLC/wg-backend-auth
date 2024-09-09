@@ -8,7 +8,6 @@ import { errorCodes } from '../../../utils/constants';
 import { Role } from '../entities/role.entity';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
-import * as AWS from 'aws-sdk';
 import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
 import { Provider } from '../../provider/entities/provider.entity';
