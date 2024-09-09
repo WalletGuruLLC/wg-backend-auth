@@ -13,6 +13,7 @@ import {
 	UseGuards,
 	UsePipes,
 	Res,
+	Req,
 } from '@nestjs/common';
 import {
 	ApiBearerAuth,
@@ -24,6 +25,7 @@ import {
 	ApiParam,
 	ApiResponse,
 	ApiTags,
+	ApiQuery,
 } from '@nestjs/swagger';
 
 import { errorCodes, successCodes } from '../../../utils/constants';
@@ -458,6 +460,46 @@ export class RoleController {
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Get('list/providers/:id?') // '?' hace que el parámetro id sea opcional
+	@ApiOperation({ summary: 'Retrieve roles from the Provider ID (optional)' })
+	@ApiResponse({
+		status: 200,
+		description: 'Provider found.',
+	})
+	@ApiResponse({ status: 404, description: 'Provider not found.' })
+	async listRoles(
+		@Req() req,
+		@Res() res,
+		@Query() getRolesDto: GetRolesDto,
+		@Param('id') providerId?: string
+	) {
+		try {
+			const { page = 1, items = 10 } = getRolesDto;
+			const user = req.user?.UserAttributes;
+
+			const rolesServiceProvider = await this.roleService.listRoles(
+				user,
+				providerId,
+				Number(page),
+				Number(items)
+			);
+			if (rolesServiceProvider) {
+				return res.status(HttpStatus.OK).send({
+					statusCode: HttpStatus.OK,
+					customCode: 'WGE0110',
+					data: convertToCamelCase(rolesServiceProvider),
+				});
+			}
+		} catch (error) {
+			Sentry.captureException(error);
+			return res.status(HttpStatus.NOT_FOUND).send({
+				statusCode: HttpStatus.NOT_FOUND,
+				customCode: 'WGE0109',
+			});
 		}
 	}
 }
