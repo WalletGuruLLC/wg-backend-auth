@@ -438,32 +438,25 @@ export class UserController {
 				const { stateLocation, identificationNumber } = updateUserDto;
 
 				if (
-					!stateLocation ||
-					!identificationNumber ||
-					!licenseFormats[
+					stateLocation &&
+					identificationNumber &&
+					licenseFormats[
 						stateLocation.trim().replace(/\b\w/g, char => char.toUpperCase())
 					]
 				) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
-						customCode: 'WGE00019',
-						customMessage: errorCodes?.WGE00019?.description,
-						customMessageEs: errorCodes?.WGE00019?.descriptionEs,
-					});
-				}
+					const isValidLicense = await validateLicense(
+						stateLocation,
+						identificationNumber
+					);
 
-				const isValidLicense = await validateLicense(
-					stateLocation,
-					identificationNumber
-				);
-
-				if (!isValidLicense) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
-						customCode: 'WGE00019',
-						customMessage: errorCodes?.WGE00019?.description,
-						customMessageEs: errorCodes?.WGE00019?.descriptionEs,
-					});
+					if (!isValidLicense) {
+						return res.status(HttpStatus.PARTIAL_CONTENT).send({
+							statusCode: HttpStatus.PARTIAL_CONTENT,
+							customCode: 'WGE00019',
+							customMessage: errorCodes?.WGE00019?.description,
+							customMessageEs: errorCodes?.WGE00019?.descriptionEs,
+						});
+					}
 				}
 			}
 
