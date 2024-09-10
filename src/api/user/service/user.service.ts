@@ -365,33 +365,54 @@ export class UserService {
 		}
 	}
 
+	async findOneById(id: string) {
+		try {
+			const users = await this.dbInstance.query('Id').eq(id).exec();
+			return convertToCamelCase(users[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error retrieving user: ${error.message}`);
+		}
+	}
+
 	async update(id: string, updateUserDto: UpdateUserDto) {
 		try {
-			return convertToCamelCase(
-				await this.dbInstance.update({
-					Id: id,
-					FirstName: updateUserDto?.firstName,
-					LastName: updateUserDto?.lastName,
-					Email: updateUserDto?.email,
-					Phone: updateUserDto?.phone,
-					ServiceProviderId: updateUserDto?.serviceProviderId,
-					MfaEnabled: updateUserDto?.mfaEnabled,
-					MfaType: updateUserDto?.mfaType,
-					RoleId: updateUserDto?.roleId,
-					TermsConditions: updateUserDto?.termsConditions,
-					PrivacyPolicy: updateUserDto?.privacyPolicy,
-					SocialSecurityNumber: updateUserDto?.socialSecurityNumber,
-					IdentificationType: updateUserDto?.identificationType,
-					IdentificationNumber: updateUserDto?.identificationNumber,
-					Country: updateUserDto?.country,
-					StateLocation: updateUserDto?.stateLocation,
-					City: updateUserDto?.city,
-					ZipCode: updateUserDto?.zipCode,
-					Address: updateUserDto?.address,
-					DateOfBirth: updateUserDto?.dateOfBirth,
-					Avatar: updateUserDto?.avatar,
-				})
-			);
+			const userFind = await this.findOneById(id);
+
+			if (!userFind) {
+				throw new Error(`User with ID ${id} not found.`);
+			}
+
+			const updatedUser = {
+				...userFind,
+				...updateUserDto,
+			};
+
+			const result = await this.dbInstance.update({
+				Id: id,
+				FirstName: updatedUser.firstName,
+				LastName: updatedUser.lastName,
+				Email: updatedUser.email,
+				Phone: updatedUser.phone,
+				ServiceProviderId: updatedUser.serviceProviderId,
+				MfaEnabled: updatedUser.mfaEnabled,
+				MfaType: updatedUser.mfaType,
+				RoleId: updatedUser.roleId,
+				TermsConditions: updatedUser.termsConditions,
+				PrivacyPolicy: updatedUser.privacyPolicy,
+				SocialSecurityNumber: updatedUser.socialSecurityNumber,
+				IdentificationType: updatedUser.identificationType,
+				IdentificationNumber: updatedUser.identificationNumber,
+				Country: updatedUser.country,
+				StateLocation: updatedUser.stateLocation,
+				City: updatedUser.city,
+				ZipCode: updatedUser.zipCode,
+				Address: updatedUser.address,
+				DateOfBirth: updatedUser.dateOfBirth,
+				Avatar: updatedUser.avatar,
+			});
+
+			return convertToCamelCase(result);
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error updating user: ${error.message}`);

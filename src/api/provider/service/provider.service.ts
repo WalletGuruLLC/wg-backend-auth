@@ -79,6 +79,13 @@ export class ProviderService {
 				);
 			}
 
+			providers.sort((a, b) => {
+				if (a.active !== b.active) {
+					return a.active ? -1 : 1;
+				}
+				return a.name.localeCompare(b.name);
+			});
+
 			const total = providers.length;
 			const offset = (Number(page) - 1) * Number(items);
 			const paginatedProviders = providers.slice(
