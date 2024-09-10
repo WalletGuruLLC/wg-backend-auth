@@ -19,10 +19,13 @@ import {
 	DeleteObjectCommand,
 	PutObjectCommand,
 } from '@aws-sdk/client-s3';
+import { User } from '../../user/entities/user.entity';
+import { UserSchema } from '../../user/entities/user.schema';
 
 @Injectable()
 export class ProviderService {
 	private readonly dbInstance: Model<Provider>;
+	private dbUserInstance: Model<User>;
 
 	constructor() {
 		const tableName = 'Providers';
@@ -30,6 +33,7 @@ export class ProviderService {
 			create: false,
 			waitForActive: false,
 		});
+		this.dbUserInstance = dynamoose.model<User>('Users', UserSchema);
 	}
 
 	async create(createProviderDto: CreateProviderDto): Promise<Provider> {
@@ -270,6 +274,79 @@ export class ProviderService {
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error deleting provider: ${error.message}`);
+		}
+	}
+
+	async findAllUsers(
+		getProvidersDto: GetProvidersDto,
+		user?: string,
+		providerId?: string
+	): Promise<{
+		providers: any[];
+		total: number;
+		totalPages: number;
+	}> {
+		const { page = 1, items = 10 } = getProvidersDto;
+
+		const userConverted = user as unknown as { Name: string; Value: string }[];
+		const email = userConverted[0]?.Value;
+
+		try {
+			const users = await this.dbUserInstance.query('Email').eq(email).exec();
+
+			if (users.length === 0) {
+				throw new Error('User not found');
+			}
+
+			let allData = [];
+
+			if (users[0].Type === 'PROVIDER') {
+				const serviceProviderId = users[0].ServiceProviderId;
+
+				const usersProvider = await this.dbUserInstance
+					.scan('ServiceProviderId')
+					.eq(serviceProviderId)
+					.exec();
+
+				allData = usersProvider.map(item => item.toJSON());
+				allData.sort((a, b) => a.FirstName.localeCompare(b.FirstName));
+			} else if (users[0].Type === 'PLATFORM' && providerId) {
+				const platformUsers = await this.dbUserInstance
+					.scan('ServiceProviderId')
+					.eq(providerId)
+					.exec();
+
+				allData = platformUsers.map(item => item.toJSON());
+
+				allData.sort((a, b) => {
+					if (a.Email && b.Email) {
+						return a.Email.localeCompare(b.Email);
+					}
+					return 0;
+				});
+			} else {
+				new Error(
+					'User type is not supported or providerId is missing for PLATFORM type'
+				);
+			}
+
+			if (allData.length === 0) {
+				throw new Error('No users found');
+			}
+
+			const total = allData.length;
+			const offset = (page - 1) * items;
+			const paginatedUsers = allData.slice(offset, offset + items);
+			const totalPages = Math.ceil(total / items);
+
+			return {
+				providers: paginatedUsers,
+				total,
+				totalPages,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching providers: ${error.message}`);
 		}
 	}
 }
