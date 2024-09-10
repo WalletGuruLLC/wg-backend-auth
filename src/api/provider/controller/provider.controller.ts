@@ -221,7 +221,10 @@ export class ProviderController {
 		try {
 			const provider = await this.providerService.findOne(id);
 			if (!provider) {
-				throw new HttpException('Provider not found', HttpStatus.NOT_FOUND);
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0040',
+				};
 			}
 			return {
 				statusCode: HttpStatus.OK,
@@ -277,12 +280,17 @@ export class ProviderController {
 		@Body() updateProviderDto: UpdateProviderDto
 	) {
 		try {
+			const providerFind = await this.providerService.findOne(id);
+			if (!providerFind) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0040',
+				};
+			}
 			const provider = await this.providerService.update(id, updateProviderDto);
 			return {
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0075',
-				customMessage: successCodes?.WGE0075?.description,
-				customMessageEs: successCodes.WGE0075?.descriptionEs,
+				customCode: 'WGS0034',
 				data: provider,
 			};
 		} catch (error) {
@@ -322,15 +330,20 @@ export class ProviderController {
 		@Body() changeStatusProvider: ChangeStatusProviderDto
 	) {
 		try {
+			const providerFind = await this.providerService.findOne(id);
+			if (!providerFind) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0040',
+				};
+			}
 			const provider = await this.providerService.activeInactiveProvider(
 				id,
 				changeStatusProvider
 			);
 			return {
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0075',
-				customMessage: successCodes?.WGE0075?.description,
-				customMessageEs: successCodes.WGE0075?.descriptionEs,
+				customCode: 'WGS0034',
 				data: provider,
 			};
 		} catch (error) {
