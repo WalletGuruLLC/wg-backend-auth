@@ -409,9 +409,16 @@ export class UserController {
 	async update(
 		@Param('id') id: string,
 		@Body() updateUserDto: UpdateUserDto,
+		@Req() req,
 		@Res() res
 	) {
 		try {
+			const userRequest = req.user?.UserAttributes;
+			const userConverted = userRequest as unknown as {
+				Name: string;
+				Value: string;
+			}[];
+			const emailRequest = userConverted[0]?.Value;
 			const userFind = await this.userService.findOne(id);
 			if (!userFind) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -421,6 +428,16 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
 			}
+
+			if (emailRequest === userFind.email) {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0016',
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+				});
+			}
+
 			if (userFind?.first === false && updateUserDto?.email) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
@@ -801,9 +818,14 @@ export class UserController {
 		description: 'Successfully returned users',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async getUsers(@Query() getUsersDto: GetUsersDto, @Res() res) {
+	async getUsers(@Query() getUsersDto: GetUsersDto, @Req() req, @Res() res) {
 		try {
-			const users = await this.userService.getUsersByType(getUsersDto);
+			const userRequest = req.user?.UserAttributes;
+
+			const users = await this.userService.getUsersByType(
+				getUsersDto,
+				userRequest
+			);
 			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(getUsersDto.type)) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -849,9 +871,17 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async changeStatusUser(
 		@Body() updateUserDto: UpdateStatusUserDto,
+		@Req() req,
 		@Res() res
 	) {
 		try {
+			const userRequest = req.user?.UserAttributes;
+			const userConverted = userRequest as unknown as {
+				Name: string;
+				Value: string;
+			}[];
+			const emailRequest = userConverted[0]?.Value;
+
 			const userFind = await this.userService.findOneByEmail(
 				updateUserDto?.email?.toLowerCase()
 			);
@@ -861,6 +891,14 @@ export class UserController {
 					customCode: 'WGE0002',
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
+				});
+			}
+			if (emailRequest === userFind.email) {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0016',
+					customMessage: errorCodes.WGE0016?.description,
+					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				});
 			}
 			const user = await this.userService.changeStatusUser(updateUserDto);

@@ -489,7 +489,7 @@ export class RoleController {
 			if (rolesServiceProvider) {
 				return res.status(HttpStatus.OK).send({
 					statusCode: HttpStatus.OK,
-					customCode: 'WGE0110',
+					customCode: 'WGE0114',
 					data: convertToCamelCase(rolesServiceProvider),
 				});
 			}
