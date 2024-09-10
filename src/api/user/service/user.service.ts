@@ -581,7 +581,10 @@ export class UserService {
 		);
 	}
 
-	async getUsersByType(getUsersDto: GetUsersDto): Promise<{
+	async getUsersByType(
+		getUsersDto: GetUsersDto,
+		userRequest: unknown
+	): Promise<{
 		users: User[];
 		currentPage: number;
 		total: number;
@@ -597,6 +600,12 @@ export class UserService {
 			orderBy = 'firstName',
 			ascending = true,
 		} = getUsersDto;
+
+		const userConverted = userRequest as unknown as {
+			Name: string;
+			Value: string;
+		}[];
+		const emailRequest = userConverted[0]?.Value; // Safely extract Value
 
 		let query = this.dbInstance.query('Type').eq(type);
 
@@ -644,6 +653,10 @@ export class UserService {
 					regex.test(`${user.firstName} ${user.lastName}`)
 			);
 		}
+
+		users = users.filter(
+			(user: { email: string }) => user.email !== emailRequest
+		);
 
 		const roleIds = [...new Set(users.map(user => user.roleId))];
 		const roles = await this.roleService.getRolesByIds(roleIds);
