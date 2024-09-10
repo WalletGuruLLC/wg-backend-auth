@@ -42,8 +42,8 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		const userAccessLevel = role?.Modules[requestedModuleId];
-		if (userAccessLevel === undefined && user.type !== 'WALLET') {
+		const userAccessLevels = role?.Modules[requestedModuleId];
+		if (!userAccessLevels && user.type !== 'WALLET') {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
@@ -65,20 +65,43 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const requiredAccess = accessMap[requiredMethod];
 
-		if (
-			userAccessLevel < 8 ||
-			((userAccessLevel & requiredAccess) !== requiredAccess &&
-				user.type !== 'WALLET')
-		) {
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.UNAUTHORIZED,
-					customCode: 'WGE0038',
-					customMessage: errorCodes.WGE0038?.description,
-					customMessageEs: errorCodes.WGE0038?.descriptionEs,
-				},
-				HttpStatus.UNAUTHORIZED
-			);
+		if (typeof userAccessLevels === 'object') {
+			let hasAccess = false;
+
+			for (const [, level] of Object.entries(userAccessLevels)) {
+				if (level >= requiredAccess) {
+					hasAccess = true;
+					break;
+				}
+			}
+
+			if (!hasAccess && user.type !== 'WALLET') {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0038',
+						customMessage: errorCodes.WGE0038?.description,
+						customMessageEs: errorCodes.WGE0038?.descriptionEs,
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
+		} else {
+			if (
+				userAccessLevels < 8 ||
+				((userAccessLevels & requiredAccess) !== requiredAccess &&
+					user.type !== 'WALLET')
+			) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0038',
+						customMessage: errorCodes.WGE0038?.description,
+						customMessageEs: errorCodes.WGE0038?.descriptionEs,
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
 		}
 
 		next();

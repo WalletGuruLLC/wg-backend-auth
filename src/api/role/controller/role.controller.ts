@@ -277,7 +277,7 @@ export class RoleController {
 	async createAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
-		@Body('accessLevel') accessLevel: number,
+		@Body('accessLevel') accessLevel: Record<string, number>,
 		@Res() res
 	) {
 		try {
@@ -352,7 +352,7 @@ export class RoleController {
 	async updateAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
-		@Body('accessLevel') accessLevel: number,
+		@Body('accessLevel') accessLevel: Record<string, number>,
 		@Res() res
 	) {
 		try {

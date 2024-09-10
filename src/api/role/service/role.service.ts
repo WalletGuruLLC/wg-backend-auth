@@ -220,20 +220,20 @@ export class RoleService {
 	async createAccessLevel(
 		roleId: string,
 		moduleId: string,
-		accessLevel: number
+		accessLevels: Record<string, number>
 	) {
 		const docClient = new DocumentClient();
 
 		const params = {
 			TableName: 'Roles',
 			Key: { Id: roleId },
-			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
+			UpdateExpression: 'SET #modules.#moduleId = :accessLevels',
 			ExpressionAttributeNames: {
 				'#modules': 'Modules',
 				'#moduleId': moduleId,
 			},
 			ExpressionAttributeValues: {
-				':accessLevel': accessLevel,
+				':accessLevels': accessLevels,
 			},
 			ReturnValues: 'ALL_NEW',
 		};
@@ -244,20 +244,20 @@ export class RoleService {
 	async updateAccessLevel(
 		roleId: string,
 		moduleId: string,
-		accessLevel: number
+		accessLevels: Record<string, number>
 	) {
 		const docClient = new DocumentClient();
 
 		const params = {
 			TableName: 'Roles',
 			Key: { Id: roleId },
-			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
+			UpdateExpression: 'SET #modules.#moduleId = :accessLevels',
 			ExpressionAttributeNames: {
 				'#modules': 'Modules',
 				'#moduleId': moduleId,
 			},
 			ExpressionAttributeValues: {
-				':accessLevel': accessLevel,
+				':accessLevels': accessLevels,
 			},
 			ReturnValues: 'ALL_NEW',
 		};

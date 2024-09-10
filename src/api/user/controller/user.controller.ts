@@ -980,20 +980,7 @@ export class UserController {
 				validateAccess?.method
 			);
 
-			if (resultAccess?.userAccessLevel === undefined) {
-				return res.status(HttpStatus.UNAUTHORIZED).send({
-					statusCode: HttpStatus.UNAUTHORIZED,
-					customCode: 'WGE0039',
-					customMessage: errorCodes.WGE0039?.description,
-					customMessageEs: errorCodes.WGE0039?.descriptionEs,
-				});
-			}
-
-			if (
-				resultAccess?.userAccessLevel < 8 ||
-				(resultAccess?.userAccessLevel & resultAccess?.requiredAccess) !==
-					resultAccess?.requiredAccess
-			) {
+			if (!resultAccess.hasAccess) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0038',

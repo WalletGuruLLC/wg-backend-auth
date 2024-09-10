@@ -808,7 +808,7 @@ export class UserService {
 
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		const userAccessLevel = role?.Modules[requestedModuleId];
+		const userAccessLevels = role?.Modules[requestedModuleId] || {};
 
 		const accessMap = {
 			GET: 8,
@@ -820,9 +820,16 @@ export class UserService {
 
 		const requiredAccess = accessMap[requiredMethod];
 
+		const hasAccess = Object.values(userAccessLevels).some((level: any) => {
+			const numericLevel =
+				typeof level === 'number' ? level : parseInt(level, 10);
+			return (numericLevel & requiredAccess) === requiredAccess;
+		});
+
 		return {
 			requiredAccess,
-			userAccessLevel,
+			userAccessLevels,
+			hasAccess,
 		};
 	}
 
