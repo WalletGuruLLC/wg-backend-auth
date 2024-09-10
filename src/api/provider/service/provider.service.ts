@@ -67,6 +67,13 @@ export class ProviderService {
 			const result = await docClient.scan(params).promise();
 			let providers = convertToCamelCase(result.Items || []);
 
+			providers = providers.map(provider => ({
+				imageUrl: provider?.imageUrl,
+				name: provider?.name,
+				active: provider?.active,
+				id: provider?.id,
+			}));
+
 			if (search) {
 				const regex = new RegExp(search, 'i');
 				providers = providers.filter(
