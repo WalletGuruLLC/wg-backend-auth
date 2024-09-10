@@ -8,10 +8,17 @@ import { errorCodes } from '../../../utils/constants';
 import { Role } from '../entities/role.entity';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
+import { User } from '../../user/entities/user.entity';
+import { UserSchema } from '../../user/entities/user.schema';
+import { Provider } from '../../provider/entities/provider.entity';
+import { ProviderSchema } from '../../provider/entities/provider.schema';
+import { ScanResponse } from 'dynamoose/dist/DocumentRetriever';
 
 @Injectable()
 export class RoleService {
 	private readonly dbInstance: Model<Role>;
+	private dbUserInstance: Model<User>;
+	private dbProviderInstance: Model<Provider>;
 
 	constructor(private readonly providerService: ProviderService) {
 		const tableName = 'Roles';
@@ -19,6 +26,11 @@ export class RoleService {
 			create: false,
 			waitForActive: false,
 		});
+		this.dbUserInstance = dynamoose.model<User>('Users', UserSchema);
+		this.dbProviderInstance = dynamoose.model<Provider>(
+			'Providers',
+			ProviderSchema
+		);
 	}
 
 	async create(createRoleDto: CreateRoleDto) {
@@ -331,6 +343,93 @@ export class RoleService {
 			modules: role.Modules,
 			createDate: role.CreateDate,
 			updateDate: role.UpdateDate,
+		};
+	}
+
+	async listRoles(
+		user?: string,
+		providerId?: string,
+		page: number = 1,
+		items: number = 10
+	) {
+		//IF USERS TYPE PLATFORM AND providerId NULL/UNDEFINED THAN RETURN EMPTY ONES OK
+		//IF USERS TYPE PLATFORM AND providerId NOT NULL BRING THAN RETURN THE MATCHES OK
+		//IF USERS TYPE PROVIDER SEARCH THE PROVIDER ID FROM TOKEN AND RETURN THE MATCHES OK
+		//IF USERS TYPE WALLET RETURN AN ERROR OK
+		const userConverted = user as unknown as { Name: string; Value: string }[];
+		const email = userConverted[0]?.Value; // Safely extract Value
+
+		if (!email) {
+			throw new Error('E-mail must not be undefined!');
+		}
+
+		const users = await this.dbUserInstance.query('Email').eq(email).exec();
+
+		if (users.length === 0) {
+			throw new Error('User not found');
+		}
+
+		const userType = users[0].Type;
+
+		const offset = (page - 1) * items;
+
+		let roles = [];
+		let total = 0;
+
+		if (userType === 'PLATFORM') {
+			let rolesQuery: ScanResponse<Role>;
+
+			if (providerId === undefined || providerId === null) {
+				rolesQuery = await this.dbInstance
+					.scan('ProviderId')
+					.eq('EMPTY')
+					.exec();
+			} else {
+				rolesQuery = await this.dbInstance
+					.scan('ProviderId')
+					.eq(providerId)
+					.exec();
+			}
+
+			roles = rolesQuery
+				.map(item => item.toJSON())
+				.sort((a, b) => {
+					if (a.Active === b.Active) {
+						return a.Description.localeCompare(b.Description);
+					}
+					return a.Active === true ? -1 : 1;
+				});
+
+			roles = roles.slice(offset, offset + items);
+			total = roles.length;
+		}
+
+		if (userType === 'PROVIDER') {
+			const providersQuery = await this.dbProviderInstance
+				.scan('Id')
+				.eq(users[0].ServiceProviderId)
+				.exec();
+
+			roles = providersQuery
+				.map(item => item.toJSON())
+				.sort((a, b) => {
+					if (a.Active === b.Active) {
+						return a.Description.localeCompare(b.Description);
+					}
+					return a.Active === true ? -1 : 1;
+				});
+
+			roles = roles.slice(offset, offset + items);
+			total = roles.length;
+		}
+
+		if (userType === 'WALLET') {
+			throw new Error('Invalid user type: wallet');
+		}
+
+		return {
+			roles,
+			total,
 		};
 	}
 }
