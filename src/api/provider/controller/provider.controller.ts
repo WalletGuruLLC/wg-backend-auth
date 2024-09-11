@@ -39,6 +39,7 @@ import { GetProvidersDto } from '../dto/getProviderDto';
 import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
+import { UpdateUserDto } from '../../user/dto/update-user.dto';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -381,7 +382,7 @@ export class ProviderController {
 				customCode: 'WGE0075',
 				customMessage: successCodes?.WGE0075?.description,
 				customMessageEs: successCodes.WGE0075?.descriptionEs,
-				data: provider,
+				data: { provider: convertToCamelCase(provider) },
 			};
 		} catch (error) {
 			Sentry.captureException(error);
@@ -457,7 +458,7 @@ export class ProviderController {
 				customCode: 'WGE0073',
 				customMessage: successCodes.WGE0073?.description,
 				customMessageEs: successCodes.WGE0073?.descriptionEs,
-				data: convertToCamelCase(userProvider),
+				data: { userProvider: convertToCamelCase(userProvider) },
 			});
 		} catch (error) {
 			Sentry.captureException(error);
@@ -467,6 +468,47 @@ export class ProviderController {
 					customCode: 'WGE0040',
 					customMessage: errorCodes?.WGE0040?.description,
 					customMessageEs: errorCodes.WGE0040?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Put('edit/users/:id?')
+	@UsePipes(ValidationPipe)
+	@ApiOperation({ summary: 'Upload service provider image' })
+	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
+	@ApiResponse({ status: 200, description: 'Provider updated successfully.' })
+	@ApiResponse({ status: 500, description: 'Error updating provider.' })
+	async uploadProviderUsers(
+		@Body() updateUserDto: UpdateUserDto,
+		@Req() req,
+		@Param('id') id?: string
+	) {
+		try {
+			const userRequest = req.user?.UserAttributes;
+
+			const usersProvider = await this.providerService.updateProviderUsers(
+				updateUserDto,
+				userRequest,
+				id
+			);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0075',
+				customMessage: successCodes?.WGE0075?.description,
+				customMessageEs: successCodes.WGE0075?.descriptionEs,
+				data: { users: convertToCamelCase(usersProvider) },
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0041',
+					customMessage: errorCodes?.WGE0041?.description,
+					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
