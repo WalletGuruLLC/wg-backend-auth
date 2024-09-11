@@ -21,7 +21,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
-import { UpdateUserDto } from './../..//user/dto/update-user.dto';
+import { UpdateUserDto } from '../../user/dto/update-user.dto';
 
 @Injectable()
 export class ProviderService {
