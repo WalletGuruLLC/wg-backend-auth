@@ -346,12 +346,7 @@ export class RoleService {
 		};
 	}
 
-	async listRoles(
-		user?: string,
-		providerId?: string,
-		page: number = 1,
-		items: number = 10
-	) {
+	async listRoles(user?: string, providerId?: string, page = 1, items = 10) {
 		//IF USERS TYPE PLATFORM AND providerId NULL/UNDEFINED THAN RETURN EMPTY ONES OK
 		//IF USERS TYPE PLATFORM AND providerId NOT NULL BRING THAN RETURN THE MATCHES OK
 		//IF USERS TYPE PROVIDER SEARCH THE PROVIDER ID FROM TOKEN AND RETURN THE MATCHES OK
