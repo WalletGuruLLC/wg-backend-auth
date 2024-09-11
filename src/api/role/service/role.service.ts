@@ -229,33 +229,64 @@ export class RoleService {
 		return !!result.Item;
 	}
 
-	async createAccessLevel(
+	async createOrUpdateAccessLevel(
 		roleId: string,
-		moduleId: string,
-		accessLevels: Record<string, number>
+		serviceProviderId: string,
+		accessLevel: number,
+		moduleId: string
 	) {
-		const docClient = new DocumentClient();
+		try {
+			const docClient = new DocumentClient();
 
-		const params = {
-			TableName: 'Roles',
-			Key: { Id: roleId },
-			UpdateExpression: 'SET #modules.#moduleId = :accessLevels',
-			ExpressionAttributeNames: {
-				'#modules': 'Modules',
-				'#moduleId': moduleId,
-			},
-			ExpressionAttributeValues: {
-				':accessLevels': accessLevels,
-			},
-			ReturnValues: 'ALL_NEW',
-		};
+			const getParams = {
+				TableName: 'Roles',
+				Key: { Id: roleId },
+			};
 
-		return await docClient.update(params).promise();
+			const result = await docClient.get(getParams).promise();
+			const currentPermissionModules = result.Item?.PermissionModules || [];
+
+			if (!Array.isArray(currentPermissionModules)) {
+				throw new Error('PermissionModules is not an array');
+			}
+
+			let moduleIndex = currentPermissionModules.findIndex(
+				module => module[moduleId]
+			);
+
+			if (moduleIndex === -1) {
+				currentPermissionModules.push({
+					[moduleId]: { [serviceProviderId]: accessLevel },
+				});
+				moduleIndex = currentPermissionModules.length - 1;
+			} else {
+				const existingModule = currentPermissionModules[moduleIndex];
+				existingModule[moduleId][serviceProviderId] = accessLevel;
+				currentPermissionModules[moduleIndex] = existingModule;
+			}
+
+			const updateParams = {
+				TableName: 'Roles',
+				Key: { Id: roleId },
+				UpdateExpression: `SET PermissionModules = :permissionModules`,
+				ExpressionAttributeValues: {
+					':permissionModules': currentPermissionModules,
+				},
+				ReturnValues: 'ALL_NEW',
+			};
+
+			const updateResult = await docClient.update(updateParams).promise();
+
+			return updateResult.Attributes;
+		} catch (error) {
+			console.error('Error updating access level:', error.message);
+			throw new Error('Error updating access level');
+		}
 	}
 
 	async updateAccessLevel(
 		roleId: string,
-		moduleId: string,
+		serviceProviderId: string,
 		accessLevels: Record<string, number>
 	) {
 		const docClient = new DocumentClient();
@@ -263,10 +294,11 @@ export class RoleService {
 		const params = {
 			TableName: 'Roles',
 			Key: { Id: roleId },
-			UpdateExpression: 'SET #modules.#moduleId = :accessLevels',
+			UpdateExpression:
+				'SET #serviceProviders.#serviceProviderId = :accessLevels',
 			ExpressionAttributeNames: {
-				'#modules': 'Modules',
-				'#moduleId': moduleId,
+				'#serviceProviders': 'ServiceProviders',
+				'#serviceProviderId': serviceProviderId,
 			},
 			ExpressionAttributeValues: {
 				':accessLevels': accessLevels,
@@ -283,11 +315,11 @@ export class RoleService {
 		const params = {
 			TableName: 'Roles',
 			Key: { Id: roleId },
-			ProjectionExpression: 'Modules',
+			ProjectionExpression: 'PermissionModules',
 		};
 
 		const result = await docClient.get(params).promise();
-		return result.Item?.Modules || {};
+		return result.Item?.PermissionModules || {};
 	}
 
 	async getRoleInfo(roleId: string) {
@@ -346,12 +378,7 @@ export class RoleService {
 		};
 	}
 
-	async listRoles(
-		user?: string,
-		providerId?: string,
-		page: number = 1,
-		items: number = 10
-	) {
+	async listRoles(user?: string, providerId?: string, page = 1, items = 10) {
 		//IF USERS TYPE PLATFORM AND providerId NULL/UNDEFINED THAN RETURN EMPTY ONES OK
 		//IF USERS TYPE PLATFORM AND providerId NOT NULL BRING THAN RETURN THE MATCHES OK
 		//IF USERS TYPE PROVIDER SEARCH THE PROVIDER ID FROM TOKEN AND RETURN THE MATCHES OK

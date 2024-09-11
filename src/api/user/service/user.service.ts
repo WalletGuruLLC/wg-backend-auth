@@ -831,40 +831,134 @@ export class UserService {
 	}
 
 	async validateAccessMiddleware(token: string, path: string, method: string) {
-		const userCognito = await this.getUserInfo(token);
-		const user = await this.findOneByEmail(
-			userCognito?.UserAttributes?.[0]?.Value
-		);
-		const userRoleId = user.roleId;
+		try {
+			const userCognito = await this.getUserInfo(token);
 
-		const requestedModuleId = this.getModuleIdFromPath(path);
-		const requiredMethod = method;
+			if (!userCognito?.UserAttributes?.[0]?.Value) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0021',
+						customMessage: errorCodes.WGE0021?.description,
+						customMessageEs: errorCodes.WGE0021?.descriptionEs,
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
 
-		const role = await this.roleService.getRoleInfo(userRoleId);
+			const user = await this.findOneByEmail(
+				userCognito.UserAttributes[0].Value
+			);
 
-		const userAccessLevels = role?.Modules[requestedModuleId] || {};
+			if (!user) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0021',
+						customMessage: errorCodes.WGE0021?.description,
+						customMessageEs: errorCodes.WGE0021?.descriptionEs,
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
 
-		const accessMap = {
-			GET: 8,
-			POST: 4,
-			PUT: 2,
-			PATCH: 1,
-			DELETE: 1,
-		};
+			const userRoleId = user.roleId;
+			const requestedModuleId = this.getModuleIdFromPath(path);
+			const requiredMethod = method;
 
-		const requiredAccess = accessMap[requiredMethod];
+			const role = await this.roleService.getRoleInfo(userRoleId);
 
-		const hasAccess = Object.values(userAccessLevels).some((level: any) => {
-			const numericLevel =
-				typeof level === 'number' ? level : parseInt(level, 10);
-			return (numericLevel & requiredAccess) === requiredAccess;
-		});
+			if (!role) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.NOT_FOUND,
+						customCode: 'WGE0046',
+						customMessage: errorCodes.WGE0046?.description,
+						customMessageEs: errorCodes.WGE0046?.descriptionEs,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
 
-		return {
-			requiredAccess,
-			userAccessLevels,
-			hasAccess,
-		};
+			const userAccessLevels = role?.Modules[requestedModuleId] || {};
+
+			if (!userAccessLevels && user.type !== 'WALLET') {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0039',
+						customMessage: errorCodes.WGE0039?.description,
+						customMessageEs: errorCodes.WGE0039?.descriptionEs,
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
+
+			const accessMap = {
+				GET: 8,
+				POST: 4,
+				PUT: 2,
+				PATCH: 1,
+				DELETE: 1,
+			};
+
+			const requiredAccess = accessMap[requiredMethod];
+
+			let hasAccess = false;
+
+			if (typeof userAccessLevels === 'object') {
+				hasAccess = Object.values(userAccessLevels).some((level: any) => {
+					const numericLevel =
+						typeof level === 'number' ? level : parseInt(level, 10);
+					return numericLevel >= requiredAccess;
+				});
+
+				if (!hasAccess && user.type !== 'WALLET') {
+					throw new HttpException(
+						{
+							statusCode: HttpStatus.UNAUTHORIZED,
+							customCode: 'WGE0038',
+							customMessage: errorCodes.WGE0038?.description,
+							customMessageEs: errorCodes.WGE0038?.descriptionEs,
+						},
+						HttpStatus.UNAUTHORIZED
+					);
+				}
+			} else {
+				if (
+					userAccessLevels < 8 ||
+					((userAccessLevels & requiredAccess) !== requiredAccess &&
+						user.type !== 'WALLET')
+				) {
+					throw new HttpException(
+						{
+							statusCode: HttpStatus.UNAUTHORIZED,
+							customCode: 'WGE0038',
+							customMessage: errorCodes.WGE0038?.description,
+							customMessageEs: errorCodes.WGE0038?.descriptionEs,
+						},
+						HttpStatus.UNAUTHORIZED
+					);
+				}
+			}
+
+			return {
+				requiredAccess,
+				userAccessLevels,
+				hasAccess,
+			};
+		} catch (error) {
+			console.error('Access Control Validation Error:', error?.message);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0035',
+					customMessage: errorCodes.WGE0035?.description,
+					customMessageEs: errorCodes.WGE0035?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 
 	private getModuleIdFromPath(path: string): string {

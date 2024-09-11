@@ -268,17 +268,20 @@ export class RoleController {
 	@ApiOperation({ summary: 'Crear un nuevo nivel de acceso para un módulo' })
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
-	@ApiBody({ schema: { example: { accessLevel: 11 } } })
+	@ApiBody({
+		schema: { example: { accessLevel: 11, serviceProvider: 'provider1' } },
+	})
 	@ApiResponse({
 		status: 201,
 		description: 'Nivel de acceso creado con éxito.',
 	})
-	@ApiResponse({ status: 404, description: 'Role not found' })
+	@ApiResponse({ status: 404, description: 'Role or Module not found' })
 	@Post('/access-level/:roleId/:moduleId')
 	async createAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
-		@Body('accessLevel') accessLevel: Record<string, number>,
+		@Body()
+		body: { accessLevel: Record<string, number>; serviceProvider: string }, // Ajuste en Body para incluir serviceProvider
 		@Res() res
 	) {
 		try {
@@ -292,11 +295,11 @@ export class RoleController {
 				});
 			}
 
-			const validateExistModule = await this.roleService.validateModuleExists(
+			const moduleExists = await this.roleService.validateModuleExists(
 				moduleId
 			);
 
-			if (!validateExistModule) {
+			if (!moduleExists) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0045',
@@ -305,7 +308,7 @@ export class RoleController {
 				});
 			}
 
-			if (!isNumberInRange(accessLevel)) {
+			if (!isNumberInRange(body.accessLevel)) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0049',
@@ -314,7 +317,12 @@ export class RoleController {
 				});
 			}
 
-			await this.roleService.createAccessLevel(roleId, moduleId, accessLevel);
+			await this.roleService.createOrUpdateAccessLevel(
+				roleId,
+				body.serviceProvider,
+				Number(body.accessLevel),
+				moduleId
+			);
 
 			const roleUpd = await this.roleService.getRoleInfo(roleId);
 
@@ -340,7 +348,9 @@ export class RoleController {
 	@ApiOperation({ summary: 'Editar un nivel de acceso para un módulo' })
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
-	@ApiBody({ schema: { example: { accessLevel: 15 } } })
+	@ApiBody({
+		schema: { example: { accessLevel: 15, serviceProvider: 'provider1' } },
+	})
 	@ApiResponse({
 		status: 200,
 		description: 'Nivel de acceso actualizado con éxito.',
@@ -353,20 +363,12 @@ export class RoleController {
 	async updateAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
-		@Body('accessLevel') accessLevel: Record<string, number>,
+		@Body()
+		body: { accessLevel: Record<string, number>; serviceProvider: string },
 		@Res() res
 	) {
 		try {
 			const role = await this.roleService.listAccessLevels(roleId);
-			if (!role) {
-				return res.status(HttpStatus.NOT_FOUND).send({
-					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0046',
-					customMessage: errorCodes.WGE0046?.description,
-					customMessageEs: errorCodes.WGE0046?.descriptionEs,
-				});
-			}
-
 			if (!role || !role[moduleId]) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
@@ -376,11 +378,11 @@ export class RoleController {
 				});
 			}
 
-			const validateExistModule = await this.roleService.validateModuleExists(
+			const moduleExists = await this.roleService.validateModuleExists(
 				moduleId
 			);
 
-			if (!validateExistModule) {
+			if (!moduleExists) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0045',
@@ -389,7 +391,7 @@ export class RoleController {
 				});
 			}
 
-			if (!isNumberInRange(accessLevel)) {
+			if (!isNumberInRange(body.accessLevel)) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0049',
@@ -398,7 +400,11 @@ export class RoleController {
 				});
 			}
 
-			await this.roleService.updateAccessLevel(roleId, moduleId, accessLevel);
+			await this.roleService.updateAccessLevel(
+				roleId,
+				moduleId,
+				body.accessLevel
+			);
 			const roleUpd = await this.roleService.getRoleInfo(roleId);
 
 			return res.status(HttpStatus.CREATED).send({
