@@ -301,7 +301,6 @@ export class ProviderService {
 		totalPages: number;
 	}> {
 		const { page = 1, items = 10 } = getProvidersDto;
-
 		const userConverted = user as unknown as { Name: string; Value: string }[];
 		const email = userConverted[0]?.Value;
 
