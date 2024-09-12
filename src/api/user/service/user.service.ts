@@ -663,6 +663,7 @@ export class UserService {
 		// Execute the query
 		const result = await query.exec();
 		let users = convertToCamelCase(result);
+		console.log('result', result);
 
 		// Apply regex search client-side if 'search' is provided
 		if (getUsersDto?.search) {
@@ -688,12 +689,6 @@ export class UserService {
 				(user: { email: string }) => user.email !== emailRequest
 			);
 		}
-
-		users = users.filter(
-			(user: { email: string; serviceProviderId: string }) =>
-				user.email !== emailRequest &&
-				user.serviceProviderId === userDb[0].ServiceProviderId
-		);
 
 		const roleIds = [...new Set(users.map(user => user.roleId))];
 		const roles = await this.roleService.getRolesByIds(roleIds);
