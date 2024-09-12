@@ -628,6 +628,8 @@ export class UserService {
 		}[];
 		const emailRequest = userConverted[0]?.Value; // Safely extract Value
 
+		const userDb = await this.dbInstance.scan('Email').eq(emailRequest).exec();
+
 		let query = this.dbInstance.query('Type').eq(type);
 
 		if (email) {
@@ -676,7 +678,9 @@ export class UserService {
 		}
 
 		users = users.filter(
-			(user: { email: string }) => user.email !== emailRequest
+			(user: { email: string; serviceProviderId: string }) =>
+				user.email !== emailRequest &&
+				user.serviceProviderId === userDb[0].ServiceProviderId
 		);
 
 		const roleIds = [...new Set(users.map(user => user.roleId))];
