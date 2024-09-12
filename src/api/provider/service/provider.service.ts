@@ -95,7 +95,11 @@ export class ProviderService {
 				if (a.active !== b.active) {
 					return a.active ? -1 : 1;
 				}
-				return a.name.localeCompare(b.name);
+
+				const nameA = a?.name || '';
+				const nameB = b?.name || '';
+
+				return nameA.localeCompare(nameB);
 			});
 
 			const total = providers.length;
