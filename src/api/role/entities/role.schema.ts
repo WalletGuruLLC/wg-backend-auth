@@ -33,6 +33,10 @@ export const RoleSchema = new dynamoose.Schema(
 			type: Object,
 			default: {},
 		},
+		PermissionModules: {
+			type: Array,
+			default: [],
+		},
 	},
 	{
 		timestamps: {

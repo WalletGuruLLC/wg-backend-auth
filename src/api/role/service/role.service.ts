@@ -229,23 +229,90 @@ export class RoleService {
 		return !!result.Item;
 	}
 
-	async createAccessLevel(
+	async createOrUpdateAccessLevel(
+		roleId: string,
+		serviceProviderId: string,
+		accessLevel: number,
+		moduleId: string
+	) {
+		try {
+			const docClient = new DocumentClient();
+
+			const getParams = {
+				TableName: 'Roles',
+				Key: { Id: roleId },
+			};
+
+			const result = await docClient.get(getParams).promise();
+			const currentPermissionModules = result.Item?.PermissionModules || [];
+
+			if (!Array.isArray(currentPermissionModules)) {
+				throw new Error('PermissionModules is not an array');
+			}
+
+			let moduleIndex = currentPermissionModules.findIndex(
+				module => module[moduleId]
+			);
+
+			if (moduleIndex === -1) {
+				currentPermissionModules.push({
+					[moduleId]: { [serviceProviderId]: accessLevel },
+				});
+				moduleIndex = currentPermissionModules.length - 1;
+			} else {
+				const existingModule = currentPermissionModules[moduleIndex];
+				existingModule[moduleId][serviceProviderId] = accessLevel;
+				currentPermissionModules[moduleIndex] = existingModule;
+			}
+
+			const updateParams = {
+				TableName: 'Roles',
+				Key: { Id: roleId },
+				UpdateExpression: `SET PermissionModules = :permissionModules`,
+				ExpressionAttributeValues: {
+					':permissionModules': currentPermissionModules,
+				},
+				ReturnValues: 'ALL_NEW',
+			};
+
+			const updateResult = await docClient.update(updateParams).promise();
+
+			return updateResult.Attributes;
+		} catch (error) {
+			console.error('Error updating access level:', error.message);
+			throw new Error('Error updating access level');
+		}
+	}
+
+	async listAccessLevels(roleId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'Roles',
+			Key: { Id: roleId },
+			ProjectionExpression: 'PermissionModules',
+		};
+
+		const result = await docClient.get(params).promise();
+		return result.Item?.PermissionModules || {};
+	}
+
+	async createOrUpdateAccessLevelModules(
 		roleId: string,
 		moduleId: string,
-		accessLevel: number
+		accessLevels: Record<string, number>
 	) {
 		const docClient = new DocumentClient();
 
 		const params = {
 			TableName: 'Roles',
 			Key: { Id: roleId },
-			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
+			UpdateExpression: 'SET #modules.#moduleId = :accessLevels',
 			ExpressionAttributeNames: {
 				'#modules': 'Modules',
 				'#moduleId': moduleId,
 			},
 			ExpressionAttributeValues: {
-				':accessLevel': accessLevel,
+				':accessLevels': accessLevels,
 			},
 			ReturnValues: 'ALL_NEW',
 		};
@@ -253,32 +320,7 @@ export class RoleService {
 		return await docClient.update(params).promise();
 	}
 
-	async updateAccessLevel(
-		roleId: string,
-		moduleId: string,
-		accessLevel: number
-	) {
-		const docClient = new DocumentClient();
-
-		const params = {
-			TableName: 'Roles',
-			Key: { Id: roleId },
-			UpdateExpression: 'SET #modules.#moduleId = :accessLevel',
-			ExpressionAttributeNames: {
-				'#modules': 'Modules',
-				'#moduleId': moduleId,
-			},
-			ExpressionAttributeValues: {
-				':accessLevel': accessLevel,
-			},
-			ReturnValues: 'ALL_NEW',
-		};
-
-		await docClient.update(params).promise();
-		return this.listAccessLevels(roleId);
-	}
-
-	async listAccessLevels(roleId: string) {
+	async listAccessLevelsModules(roleId: string) {
 		const docClient = new DocumentClient();
 		const params = {
 			TableName: 'Roles',

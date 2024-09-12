@@ -265,20 +265,26 @@ export class RoleController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@ApiOperation({ summary: 'Crear un nuevo nivel de acceso para un módulo' })
+	@ApiOperation({
+		summary:
+			'Create or update a new access level for a module for service providers',
+	})
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
-	@ApiBody({ schema: { example: { accessLevel: 11 } } })
+	@ApiBody({
+		schema: { example: { accessLevel: 11, serviceProvider: 'provider1' } },
+	})
 	@ApiResponse({
 		status: 201,
-		description: 'Nivel de acceso creado con éxito.',
+		description: 'Access level created successfully.',
 	})
-	@ApiResponse({ status: 404, description: 'Role not found' })
+	@ApiResponse({ status: 404, description: 'Role or Module not found' })
 	@Post('/access-level/:roleId/:moduleId')
-	async createAccessLevel(
+	async createOrUpdateAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
-		@Body('accessLevel') accessLevel: number,
+		@Body()
+		body: { accessLevel: Record<string, number>; serviceProvider: string }, // Ajuste en Body para incluir serviceProvider
 		@Res() res
 	) {
 		try {
@@ -292,11 +298,11 @@ export class RoleController {
 				});
 			}
 
-			const validateExistModule = await this.roleService.validateModuleExists(
+			const moduleExists = await this.roleService.validateModuleExists(
 				moduleId
 			);
 
-			if (!validateExistModule) {
+			if (!moduleExists) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0045',
@@ -305,7 +311,7 @@ export class RoleController {
 				});
 			}
 
-			if (!isNumberInRange(accessLevel)) {
+			if (!isNumberInRange(body.accessLevel)) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0049',
@@ -314,7 +320,12 @@ export class RoleController {
 				});
 			}
 
-			await this.roleService.createAccessLevel(roleId, moduleId, accessLevel);
+			await this.roleService.createOrUpdateAccessLevel(
+				roleId,
+				body.serviceProvider,
+				Number(body.accessLevel),
+				moduleId
+			);
 
 			const roleUpd = await this.roleService.getRoleInfo(roleId);
 
@@ -337,27 +348,28 @@ export class RoleController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@ApiOperation({ summary: 'Editar un nivel de acceso para un módulo' })
+	@ApiOperation({
+		summary: 'Create or update a new access level for a module',
+	})
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
-	@ApiBody({ schema: { example: { accessLevel: 15 } } })
-	@ApiResponse({
-		status: 200,
-		description: 'Nivel de acceso actualizado con éxito.',
+	@ApiBody({
+		schema: { example: { accessLevel: 11 } },
 	})
 	@ApiResponse({
-		status: 404,
-		description: 'Role not found or Module not found in role',
+		status: 201,
+		description: 'Access level created successfully.',
 	})
-	@Put('/access-level/:roleId/:moduleId')
-	async updateAccessLevel(
+	@ApiResponse({ status: 404, description: 'Role or Module not found' })
+	@Post('/simple-access-level/:roleId/:moduleId')
+	async createSimpleAccessLevel(
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
-		@Body('accessLevel') accessLevel: number,
+		@Body() body: { accessLevel: Record<string, number> },
 		@Res() res
 	) {
 		try {
-			const role = await this.roleService.listAccessLevels(roleId);
+			const role = await this.roleService.findRole(roleId);
 			if (!role) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
@@ -367,20 +379,11 @@ export class RoleController {
 				});
 			}
 
-			if (!role || !role[moduleId]) {
-				return res.status(HttpStatus.NOT_FOUND).send({
-					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0047',
-					customMessage: errorCodes.WGE0047?.description,
-					customMessageEs: errorCodes.WGE0047?.descriptionEs,
-				});
-			}
-
-			const validateExistModule = await this.roleService.validateModuleExists(
+			const moduleExists = await this.roleService.validateModuleExists(
 				moduleId
 			);
 
-			if (!validateExistModule) {
+			if (!moduleExists) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0045',
@@ -389,7 +392,7 @@ export class RoleController {
 				});
 			}
 
-			if (!isNumberInRange(accessLevel)) {
+			if (!isNumberInRange(body.accessLevel)) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0049',
@@ -398,30 +401,78 @@ export class RoleController {
 				});
 			}
 
-			await this.roleService.updateAccessLevel(roleId, moduleId, accessLevel);
+			await this.roleService.createOrUpdateAccessLevelModules(
+				roleId,
+				moduleId,
+				body.accessLevel
+			);
+
 			const roleUpd = await this.roleService.getRoleInfo(roleId);
 
-			return res.status(HttpStatus.CREATED).send({
-				statusCode: HttpStatus.CREATED,
-				customCode: 'WGE0079',
-				customMessage: successCodes.WGE0079?.description,
-				customMessageEs: successCodes.WGE0079?.descriptionEs,
-				data: roleUpd,
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0080',
+				customMessage: successCodes.WGE0080?.description,
+				customMessageEs: successCodes.WGE0080?.descriptionEs,
+				data: convertToCamelCase(roleUpd),
 			});
 		} catch (error) {
-			console.log('error', error?.message);
 			Sentry.captureException(error);
 			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				customCode: 'WGE0035',
-				customMessage: errorCodes.WGE0035?.description,
-				customMessageEs: errorCodes.WGE0035?.descriptionEs,
+				customCode: 'WGE0036',
+				customMessage: errorCodes.WGE0036?.description,
+				customMessageEs: errorCodes.WGE0036?.descriptionEs,
 			});
 		}
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@ApiOperation({ summary: 'Listar los niveles de acceso para un rol' })
+	@ApiOperation({ summary: 'List access levels for a role by modules' })
+	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
+	@ApiResponse({
+		status: 200,
+		description: 'Lista de niveles de acceso obtenida con éxito.',
+	})
+	@ApiResponse({ status: 404, description: 'Role not found' })
+	@Get('/simple-access-level/:roleId')
+	async listSimpleAccessLevels(@Param('roleId') roleId: string) {
+		try {
+			const role = await this.roleService.findRole(roleId);
+			if (!role) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0033',
+						...errorCodes.WGE0033,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+
+			const modulos = await this.roleService.listAccessLevelsModules(role?.Id);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0081',
+				customMessage: successCodes.WGE0081?.description,
+				customMessageEs: successCodes.WGE0081?.descriptionEs,
+				data: modulos,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					customCode: 'WGE0037',
+					...errorCodes.WGE0037,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@ApiOperation({
+		summary: 'List access levels for a role with service providers',
+	})
 	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
 	@ApiResponse({
 		status: 200,

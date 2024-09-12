@@ -4,10 +4,9 @@ import {
 	HttpException,
 	HttpStatus,
 } from '@nestjs/common';
-import { Request, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { RoleService } from 'src/api/role/service/role.service';
 import { UserService } from '../service/user.service';
-import { errorCodes } from 'src/utils/constants';
 
 @Injectable()
 export class AccessControlMiddleware implements NestMiddleware {
@@ -16,7 +15,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 		private readonly authService: UserService
 	) {}
 
-	async use(req: Request, res, next: NextFunction): Promise<void> {
+	async use(req: Request, res: Response, next: NextFunction): Promise<void> {
 		const authHeader = req.headers.authorization;
 
 		if (!authHeader) {
@@ -24,8 +23,6 @@ export class AccessControlMiddleware implements NestMiddleware {
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0021',
-					customMessage: errorCodes.WGE0021?.description,
-					customMessageEs: errorCodes.WGE0021?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
@@ -42,14 +39,75 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
+		if (user?.type === 'PLATFORM') {
+			const serviceProviderId = req.headers['x-service-provider-id'] as string;
+			if (!serviceProviderId) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.BAD_REQUEST,
+						customCode: 'WGE0130',
+					},
+					HttpStatus.BAD_REQUEST
+				);
+			}
+
+			const permissionModule = role.PermissionModules.find(
+				module => module[requestedModuleId]
+			);
+
+			if (!permissionModule) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0131',
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
+
+			const serviceProviderAccessLevel =
+				permissionModule[requestedModuleId][serviceProviderId];
+
+			if (!serviceProviderAccessLevel) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0132',
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
+
+			const accessMap = {
+				GET: 8,
+				POST: 4,
+				PUT: 2,
+				PATCH: 1,
+				DELETE: 1,
+			};
+
+			const requiredAccess = accessMap[requiredMethod];
+
+			if ((serviceProviderAccessLevel & requiredAccess) !== requiredAccess) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0038',
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
+
+			next();
+			return;
+		}
+
 		const userAccessLevel = role?.Modules[requestedModuleId];
 		if (userAccessLevel === undefined && user.type !== 'WALLET') {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0039',
-					customMessage: errorCodes.WGE0039?.description,
-					customMessageEs: errorCodes.WGE0039?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
@@ -74,8 +132,6 @@ export class AccessControlMiddleware implements NestMiddleware {
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0038',
-					customMessage: errorCodes.WGE0038?.description,
-					customMessageEs: errorCodes.WGE0038?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
