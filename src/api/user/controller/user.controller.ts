@@ -429,7 +429,7 @@ export class UserController {
 				});
 			}
 
-			if (emailRequest === userFind.email) {
+			if (emailRequest === userFind.email && userFind.type !== 'WALLET') {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0016',

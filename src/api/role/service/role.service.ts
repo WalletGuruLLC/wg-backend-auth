@@ -12,7 +12,7 @@ import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
 import { Provider } from '../../provider/entities/provider.entity';
 import { ProviderSchema } from '../../provider/entities/provider.schema';
-import { ScanResponse } from 'dynamoose/dist/DocumentRetriever';
+import { QueryResponse, ScanResponse } from 'dynamoose/dist/DocumentRetriever';
 
 @Injectable()
 export class RoleService {
@@ -284,9 +284,21 @@ export class RoleService {
 		}
 	}
 
-	async updateAccessLevel(
+	async listAccessLevels(roleId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'Roles',
+			Key: { Id: roleId },
+			ProjectionExpression: 'PermissionModules',
+		};
+
+		const result = await docClient.get(params).promise();
+		return result.Item?.PermissionModules || {};
+	}
+
+	async createOrUpdateAccessLevelProvider(
 		roleId: string,
-		serviceProviderId: string,
+		moduleId: string,
 		accessLevels: Record<string, number>
 	) {
 		const docClient = new DocumentClient();
@@ -294,11 +306,34 @@ export class RoleService {
 		const params = {
 			TableName: 'Roles',
 			Key: { Id: roleId },
-			UpdateExpression:
-				'SET #serviceProviders.#serviceProviderId = :accessLevels',
+			UpdateExpression: 'SET #modules.#moduleId = :accessLevels',
 			ExpressionAttributeNames: {
-				'#serviceProviders': 'ServiceProviders',
-				'#serviceProviderId': serviceProviderId,
+				'#modules': 'Modules',
+				'#moduleId': moduleId,
+			},
+			ExpressionAttributeValues: {
+				':accessLevels': accessLevels,
+			},
+			ReturnValues: 'ALL_NEW',
+		};
+
+		return await docClient.update(params).promise();
+	}
+
+	async updateAccessLevelProvider(
+		roleId: string,
+		moduleId: string,
+		accessLevels: Record<string, number>
+	) {
+		const docClient = new DocumentClient();
+
+		const params = {
+			TableName: 'Roles',
+			Key: { Id: roleId },
+			UpdateExpression: 'SET #modules.#moduleId = :accessLevels',
+			ExpressionAttributeNames: {
+				'#modules': 'Modules',
+				'#moduleId': moduleId,
 			},
 			ExpressionAttributeValues: {
 				':accessLevels': accessLevels,
@@ -310,16 +345,16 @@ export class RoleService {
 		return this.listAccessLevels(roleId);
 	}
 
-	async listAccessLevels(roleId: string) {
+	async listAccessLevelsProvider(roleId: string) {
 		const docClient = new DocumentClient();
 		const params = {
 			TableName: 'Roles',
 			Key: { Id: roleId },
-			ProjectionExpression: 'PermissionModules',
+			ProjectionExpression: 'Modules',
 		};
 
 		const result = await docClient.get(params).promise();
-		return result.Item?.PermissionModules || {};
+		return result.Item?.Modules || {};
 	}
 
 	async getRoleInfo(roleId: string) {
@@ -402,10 +437,8 @@ export class RoleService {
 
 		let roles = [];
 		let total = 0;
-
+		let rolesQuery: ScanResponse<Role>;
 		if (userType === 'PLATFORM') {
-			let rolesQuery: ScanResponse<Role>;
-
 			if (providerId === undefined || providerId === null) {
 				rolesQuery = await this.dbInstance
 					.scan('ProviderId')
@@ -422,7 +455,7 @@ export class RoleService {
 				.map(item => item.toJSON())
 				.sort((a, b) => {
 					if (a.Active === b.Active) {
-						return a.Description.localeCompare(b.Description);
+						return a.Name.localeCompare(b.Name);
 					}
 					return a.Active === true ? -1 : 1;
 				});
@@ -432,16 +465,16 @@ export class RoleService {
 		}
 
 		if (userType === 'PROVIDER') {
-			const providersQuery = await this.dbProviderInstance
-				.scan('Id')
+			rolesQuery = await this.dbInstance
+				.scan('ProviderId')
 				.eq(users[0].ServiceProviderId)
 				.exec();
 
-			roles = providersQuery
+			roles = rolesQuery
 				.map(item => item.toJSON())
 				.sort((a, b) => {
 					if (a.Active === b.Active) {
-						return a.Description.localeCompare(b.Description);
+						return a.Name.localeCompare(b.Name);
 					}
 					return a.Active === true ? -1 : 1;
 				});
@@ -453,7 +486,6 @@ export class RoleService {
 		if (userType === 'WALLET') {
 			throw new Error('Invalid user type: wallet');
 		}
-
 		return {
 			roles,
 			total,

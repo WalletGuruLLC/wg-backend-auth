@@ -15,6 +15,7 @@ import {
 	ValidationPipe,
 	UploadedFile,
 	UseInterceptors,
+	Req,
 } from '@nestjs/common';
 import { ProviderService } from '../service/provider.service';
 import {
@@ -37,6 +38,8 @@ import { errorCodes, successCodes } from '../../../utils/constants';
 import { GetProvidersDto } from '../dto/getProviderDto';
 import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
+import { UpdateUserDto } from '../../user/dto/update-user.dto';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -379,7 +382,124 @@ export class ProviderController {
 				customCode: 'WGE0075',
 				customMessage: successCodes?.WGE0075?.description,
 				customMessageEs: successCodes.WGE0075?.descriptionEs,
-				data: provider,
+				data: { provider: convertToCamelCase(provider) },
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0041',
+					customMessage: errorCodes?.WGE0041?.description,
+					customMessageEs: errorCodes.WGE0041?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Get('list/users/:id?')
+	@ApiOperation({
+		summary:
+			'Retrieve a list of users from the service provider with pagination and optional search.',
+	})
+	@ApiOkResponse({
+		status: 200,
+		description: 'Users retrieved successfully.',
+		schema: {
+			example: {
+				statusCode: 200,
+				customCode: 'WGE0073',
+				customMessage: 'Users retrieved successfully.',
+				customMessageEs: 'Usuários recuperados con éxito.',
+				data: {
+					providers: [
+						{
+							id: '123',
+							name: 'Provider Name',
+							description: 'Provider Description',
+							email: 'provider@example.com',
+							phone: '+123456789',
+							einNumber: '12-3456789',
+							country: 'Argentina',
+							city: 'Balvanera',
+							zipCode: '59569',
+							companyAddress: 'Company Address',
+							walletAddress: '',
+							logo: 'https://example.com/logo.png',
+							contactInformation: 'Contact Info',
+						},
+					],
+					currentPage: 1,
+					total: 1,
+					totalPages: 1,
+				},
+			},
+		},
+	})
+	@ApiForbiddenResponse({ status: 403, description: 'Access forbidden.' })
+	async findAllUsers(
+		@Query() getProvidersDto: GetProvidersDto,
+		@Req() req,
+		@Res() res,
+		@Param('id') providerId?: string
+	) {
+		try {
+			const userRequest = req.user?.UserAttributes;
+
+			const userProvider = await this.providerService.findAllUsers(
+				getProvidersDto,
+				userRequest,
+				providerId
+			);
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0073',
+				customMessage: successCodes.WGE0073?.description,
+				customMessageEs: successCodes.WGE0073?.descriptionEs,
+				data: { userProvider: convertToCamelCase(userProvider) },
+			});
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0040',
+					customMessage: errorCodes?.WGE0040?.description,
+					customMessageEs: errorCodes.WGE0040?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Put('edit/users/:id?')
+	@UsePipes(ValidationPipe)
+	@ApiOperation({ summary: 'Upload service provider image' })
+	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
+	@ApiResponse({ status: 200, description: 'Provider updated successfully.' })
+	@ApiResponse({ status: 500, description: 'Error updating provider.' })
+	async uploadProviderUsers(
+		@Body() updateUserDto: UpdateUserDto,
+		@Req() req,
+		@Param('id') id?: string
+	) {
+		try {
+			const userRequest = req.user?.UserAttributes;
+
+			const usersProvider = await this.providerService.updateProviderUsers(
+				updateUserDto,
+				userRequest,
+				id
+			);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0075',
+				customMessage: successCodes?.WGE0075?.description,
+				customMessageEs: successCodes.WGE0075?.descriptionEs,
+				data: { users: convertToCamelCase(usersProvider) },
 			};
 		} catch (error) {
 			Sentry.captureException(error);
