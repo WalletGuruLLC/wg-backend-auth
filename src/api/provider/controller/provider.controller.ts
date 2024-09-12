@@ -40,12 +40,16 @@ import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import { UpdateUserDto } from '../../user/dto/update-user.dto';
+import { UserService } from 'src/api/user/service/user.service';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
 @Controller('api/v1/providers')
 export class ProviderController {
-	constructor(private readonly providerService: ProviderService) {}
+	constructor(
+		private readonly providerService: ProviderService,
+		private readonly userService: UserService
+	) {}
 
 	@UseGuards(CognitoAuthGuard)
 	@Post()
@@ -164,14 +168,26 @@ export class ProviderController {
 		},
 	})
 	@ApiForbiddenResponse({ status: 403, description: 'Access forbidden.' })
-	async findAll(@Query() getProvidersDto: GetProvidersDto, @Res() res) {
+	async findAll(
+		@Query() getProvidersDto: GetProvidersDto,
+		@Req() req,
+		@Res() res
+	) {
 		try {
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			if (userFind?.type !== 'PLATFORM') {
+				return res.status(HttpStatus.NOT_ACCEPTABLE).send({
+					statusCode: HttpStatus.NOT_ACCEPTABLE,
+					customCode: 'WGE0017',
+				});
+			}
 			const providers = await this.providerService.findAll(getProvidersDto);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0073',
-				customMessage: successCodes.WGE0073?.description,
-				customMessageEs: successCodes.WGE0073?.descriptionEs,
 				data: providers,
 			});
 		} catch (error) {
