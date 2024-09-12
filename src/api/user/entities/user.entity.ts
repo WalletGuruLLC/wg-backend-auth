@@ -34,4 +34,5 @@ export class User extends Document {
 	Address?: string;
 	DateOfBirth?: Date = null;
 	Avatar?: string;
+	ContactUser: boolean;
 }

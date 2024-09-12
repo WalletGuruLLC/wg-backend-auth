@@ -1125,4 +1125,23 @@ export class UserService {
 			);
 		}
 	}
+
+	async toggleContact(id: string) {
+		const user = await this.findOne(id);
+
+		if (!user) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0002',
+					...errorCodes.WGE0002,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+		user.contactUser = !user.contactUser;
+		const updatedUser = await this.dbInstance.update(id, {
+			ContactUser: user.contactUser,
+		});
+		return convertToCamelCase(updatedUser);
+	}
 }
