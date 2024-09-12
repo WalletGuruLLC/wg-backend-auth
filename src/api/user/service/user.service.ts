@@ -677,6 +677,18 @@ export class UserService {
 			);
 		}
 
+		if (type === 'PROVIDER') {
+			users = users.filter(
+				(user: { email: string; serviceProviderId: string }) =>
+					user.email !== emailRequest &&
+					user.serviceProviderId === userDb[0].ServiceProviderId
+			);
+		} else {
+			users = users.filter(
+				(user: { email: string }) => user.email !== emailRequest
+			);
+		}
+
 		users = users.filter(
 			(user: { email: string; serviceProviderId: string }) =>
 				user.email !== emailRequest &&
