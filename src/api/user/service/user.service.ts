@@ -628,6 +628,8 @@ export class UserService {
 		}[];
 		const emailRequest = userConverted[0]?.Value; // Safely extract Value
 
+		const userDb = await this.dbInstance.scan('Email').eq(emailRequest).exec();
+
 		let query = this.dbInstance.query('Type').eq(type);
 
 		if (email) {
@@ -661,6 +663,7 @@ export class UserService {
 		// Execute the query
 		const result = await query.exec();
 		let users = convertToCamelCase(result);
+		console.log('result', result);
 
 		// Apply regex search client-side if 'search' is provided
 		if (getUsersDto?.search) {
@@ -675,9 +678,17 @@ export class UserService {
 			);
 		}
 
-		users = users.filter(
-			(user: { email: string }) => user.email !== emailRequest
-		);
+		if (type === 'PROVIDER') {
+			users = users.filter(
+				(user: { email: string; serviceProviderId: string }) =>
+					user.email !== emailRequest &&
+					user.serviceProviderId === userDb[0].ServiceProviderId
+			);
+		} else {
+			users = users.filter(
+				(user: { email: string }) => user.email !== emailRequest
+			);
+		}
 
 		const roleIds = [...new Set(users.map(user => user.roleId))];
 		const roles = await this.roleService.getRolesByIds(roleIds);
