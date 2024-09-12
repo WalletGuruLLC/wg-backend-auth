@@ -21,6 +21,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
+import { UpdateUserDto } from '../../user/dto/update-user.dto';
 
 @Injectable()
 export class ProviderService {
@@ -360,6 +361,78 @@ export class ProviderService {
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error fetching providers: ${error.message}`);
+		}
+	}
+
+	async updateProviderUsers(
+		updateUserDto: UpdateUserDto,
+		user?: string,
+		id?: string
+	) {
+		try {
+			const userConverted = user as unknown as {
+				Name: string;
+				Value: string;
+			}[];
+			const email = userConverted[0]?.Value;
+
+			const userDb = await this.dbUserInstance.query('Email').eq(email).exec();
+
+			let params = {};
+			let usersProvider = [];
+			if (userDb[0].Type === 'PLATFORM' && id) {
+				usersProvider = await this.dbUserInstance
+					.scan('ServiceProviderId')
+					.eq(id)
+					.exec();
+
+				if (usersProvider[0].First) {
+					params = {
+						Id: usersProvider[0].Id,
+						FirstName: updateUserDto.firstName,
+						LastName: updateUserDto.lastName,
+						Email: updateUserDto.email,
+						Phone: updateUserDto.phone,
+						RoleId: updateUserDto.roleId,
+					};
+				} else {
+					params = {
+						Id: usersProvider[0].Id,
+						FirstName: updateUserDto.firstName,
+						LastName: updateUserDto.lastName,
+						Phone: updateUserDto.phone,
+						RoleId: updateUserDto.roleId,
+					};
+				}
+			} else if (userDb[0].Type === 'PROVIDER') {
+				usersProvider = await this.dbUserInstance
+					.scan('ServiceProviderId')
+					.eq(userDb[0].ServiceProviderId)
+					.exec();
+
+				if (usersProvider[0].First) {
+					params = {
+						Id: usersProvider[0].Id,
+						FirstName: updateUserDto.firstName,
+						LastName: updateUserDto.lastName,
+						Email: updateUserDto.email,
+						Phone: updateUserDto.phone,
+						RoleId: updateUserDto.roleId,
+					};
+				} else {
+					params = {
+						Id: usersProvider[0].Id,
+						FirstName: updateUserDto.firstName,
+						LastName: updateUserDto.lastName,
+						Phone: updateUserDto.phone,
+						RoleId: updateUserDto.roleId,
+					};
+				}
+			}
+			return await this.dbUserInstance.update(params);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error updating provider: ${error.message}`);
 		}
 	}
 }
