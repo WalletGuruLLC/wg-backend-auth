@@ -40,7 +40,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		if (user?.type === 'PROVIDER') {
+		if (user?.type === 'PLATFORM') {
 			if (requestedModuleId == 'SP95') {
 				if (!user?.serviceProviderId) {
 					throw new HttpException(
@@ -52,7 +52,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 					);
 				}
 
-				const permissionModule = role?.PermissionModules?.find(
+				const permissionModule = role?.PlatformModules?.find(
 					module => module[requestedModuleId]
 				);
 

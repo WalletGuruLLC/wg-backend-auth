@@ -244,10 +244,10 @@ export class RoleService {
 			};
 
 			const result = await docClient.get(getParams).promise();
-			const currentPermissionModules = result.Item?.PermissionModules || [];
+			const currentPermissionModules = result.Item?.PlatformModules || [];
 
 			if (!Array.isArray(currentPermissionModules)) {
-				throw new Error('PermissionModules is not an array');
+				throw new Error('PlatformModules is not an array');
 			}
 
 			let moduleIndex = currentPermissionModules.findIndex(
@@ -268,9 +268,9 @@ export class RoleService {
 			const updateParams = {
 				TableName: 'Roles',
 				Key: { Id: roleId },
-				UpdateExpression: `SET PermissionModules = :permissionModules`,
+				UpdateExpression: `SET PlatformModules = :platformModules`,
 				ExpressionAttributeValues: {
-					':permissionModules': currentPermissionModules,
+					':platformModules': currentPermissionModules,
 				},
 				ReturnValues: 'ALL_NEW',
 			};
@@ -289,11 +289,11 @@ export class RoleService {
 		const params = {
 			TableName: 'Roles',
 			Key: { Id: roleId },
-			ProjectionExpression: 'PermissionModules',
+			ProjectionExpression: 'PlatformModules',
 		};
 
 		const result = await docClient.get(params).promise();
-		return result.Item?.PermissionModules || {};
+		return result.Item?.PlatformModules || {};
 	}
 
 	async createOrUpdateAccessLevelModules(

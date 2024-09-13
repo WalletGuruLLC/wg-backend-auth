@@ -865,7 +865,7 @@ export class UserService {
 		const requiredMethod = method;
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		if (user?.type === 'PROVIDER') {
+		if (user?.type === 'PLATFORM') {
 			if (requestedModuleId == 'SP95') {
 				if (!user?.serviceProviderId) {
 					return {
@@ -874,7 +874,7 @@ export class UserService {
 					};
 				}
 
-				const permissionModule = role.PermissionModules.find(
+				const permissionModule = role.PlatformModules.find(
 					module => module[requestedModuleId]
 				);
 
