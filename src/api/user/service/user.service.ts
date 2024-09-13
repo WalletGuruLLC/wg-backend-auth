@@ -853,14 +853,10 @@ export class UserService {
 		);
 
 		if (!user) {
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0002',
-					customMessage: 'User not found.',
-				},
-				HttpStatus.NOT_FOUND
-			);
+			return {
+				statusCode: HttpStatus.NOT_FOUND,
+				customCode: 'WGE0002',
+			};
 		}
 
 		const userRoleId = user.roleId;
@@ -869,10 +865,8 @@ export class UserService {
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
 		if (user?.type === 'PLATFORM') {
-			console.log('entro', user?.type);
 			const serviceProviderId = headers['x-service-provider-id'] as string;
 			if (!serviceProviderId) {
-				console.log('entro serviceProviderId', serviceProviderId);
 				return {
 					statusCode: HttpStatus.BAD_REQUEST,
 					customCode: 'WGE0130',
@@ -884,13 +878,10 @@ export class UserService {
 			);
 
 			if (!permissionModule) {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.UNAUTHORIZED,
-						customCode: 'WGE0131',
-					},
-					HttpStatus.UNAUTHORIZED
-				);
+				return {
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0131',
+				};
 			}
 
 			const serviceProviderAccessLevel =
