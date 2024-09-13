@@ -7,6 +7,7 @@ import {
 import { Request, Response, NextFunction } from 'express';
 import { RoleService } from 'src/api/role/service/role.service';
 import { UserService } from '../service/user.service';
+import { buscarValorPorClave } from 'src/utils/helpers/findKeyValue';
 
 @Injectable()
 export class AccessControlMiddleware implements NestMiddleware {
@@ -40,11 +41,8 @@ export class AccessControlMiddleware implements NestMiddleware {
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
 		if (user?.type === 'PROVIDER') {
-			if (requiredMethod == '/api/v1/providers') {
-				const serviceProviderId = req.headers[
-					'x-service-provider-id'
-				] as string;
-				if (!serviceProviderId) {
+			if (requestedModuleId == 'SP95') {
+				if (!user?.serviceProviderId) {
 					throw new HttpException(
 						{
 							statusCode: HttpStatus.BAD_REQUEST,
@@ -54,7 +52,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 					);
 				}
 
-				const permissionModule = role.PermissionModules.find(
+				const permissionModule = role?.PermissionModules?.find(
 					module => module[requestedModuleId]
 				);
 
@@ -68,8 +66,10 @@ export class AccessControlMiddleware implements NestMiddleware {
 					);
 				}
 
-				const serviceProviderAccessLevel =
-					permissionModule[requestedModuleId][serviceProviderId];
+				const serviceProviderAccessLevel = buscarValorPorClave(
+					permissionModule[requestedModuleId],
+					user?.serviceProviderId
+				);
 
 				if (!serviceProviderAccessLevel) {
 					throw new HttpException(
