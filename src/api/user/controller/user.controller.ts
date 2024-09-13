@@ -1018,20 +1018,7 @@ export class UserController {
 				validateAccess?.method
 			);
 
-			if (resultAccess?.userAccessLevel === undefined) {
-				return res.status(HttpStatus.UNAUTHORIZED).send({
-					statusCode: HttpStatus.UNAUTHORIZED,
-					customCode: 'WGE0039',
-					customMessage: errorCodes.WGE0039?.description,
-					customMessageEs: errorCodes.WGE0039?.descriptionEs,
-				});
-			}
-
-			if (
-				resultAccess?.userAccessLevel < 8 ||
-				(resultAccess?.userAccessLevel & resultAccess?.requiredAccess) !==
-					resultAccess?.requiredAccess
-			) {
+			if (!resultAccess.hasAccess) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0038',
@@ -1091,6 +1078,45 @@ export class UserController {
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Patch(':id/toggle-contact')
+	@ApiOperation({ summary: 'Toggle the first field of a user' })
+	@ApiParam({ name: 'id', description: 'ID of the user', type: String })
+	@ApiResponse({
+		status: 200,
+		description: 'User first field toggled successfully.',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'User not found.',
+	})
+	async toggleContact(@Param('id') id: string) {
+		try {
+			const user = await this.userService.toggleContact(id);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0020',
+				customMessage: successCodes.WGE0020?.description,
+				customMessageEs: successCodes.WGE0020?.descriptionEs,
+				data: { user: user },
+			};
+		} catch (error) {
+			if (
+				error instanceof HttpException &&
+				error.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
+			) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0016',
+						...errorCodes.WGE0016,
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+			throw error;
 		}
 	}
 }

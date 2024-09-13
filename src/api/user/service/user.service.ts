@@ -628,6 +628,8 @@ export class UserService {
 		}[];
 		const emailRequest = userConverted[0]?.Value; // Safely extract Value
 
+		const userDb = await this.dbInstance.scan('Email').eq(emailRequest).exec();
+
 		let query = this.dbInstance.query('Type').eq(type);
 
 		if (email) {
@@ -661,6 +663,7 @@ export class UserService {
 		// Execute the query
 		const result = await query.exec();
 		let users = convertToCamelCase(result);
+		console.log('result', result);
 
 		// Apply regex search client-side if 'search' is provided
 		if (getUsersDto?.search) {
@@ -675,9 +678,17 @@ export class UserService {
 			);
 		}
 
-		users = users.filter(
-			(user: { email: string }) => user.email !== emailRequest
-		);
+		if (type === 'PROVIDER') {
+			users = users.filter(
+				(user: { email: string; serviceProviderId: string }) =>
+					user.email !== emailRequest &&
+					user.serviceProviderId === userDb[0].ServiceProviderId
+			);
+		} else {
+			users = users.filter(
+				(user: { email: string }) => user.email !== emailRequest
+			);
+		}
 
 		const roleIds = [...new Set(users.map(user => user.roleId))];
 		const roles = await this.roleService.getRolesByIds(roleIds);
@@ -831,33 +842,134 @@ export class UserService {
 	}
 
 	async validateAccessMiddleware(token: string, path: string, method: string) {
-		const userCognito = await this.getUserInfo(token);
-		const user = await this.findOneByEmail(
-			userCognito?.UserAttributes?.[0]?.Value
-		);
-		const userRoleId = user.roleId;
+		try {
+			const userCognito = await this.getUserInfo(token);
 
-		const requestedModuleId = this.getModuleIdFromPath(path);
-		const requiredMethod = method;
+			if (!userCognito?.UserAttributes?.[0]?.Value) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0021',
+						customMessage: errorCodes.WGE0021?.description,
+						customMessageEs: errorCodes.WGE0021?.descriptionEs,
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
 
-		const role = await this.roleService.getRoleInfo(userRoleId);
+			const user = await this.findOneByEmail(
+				userCognito.UserAttributes[0].Value
+			);
 
-		const userAccessLevel = role?.Modules[requestedModuleId];
+			if (!user) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0021',
+						customMessage: errorCodes.WGE0021?.description,
+						customMessageEs: errorCodes.WGE0021?.descriptionEs,
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
 
-		const accessMap = {
-			GET: 8,
-			POST: 4,
-			PUT: 2,
-			PATCH: 1,
-			DELETE: 1,
-		};
+			const userRoleId = user.roleId;
+			const requestedModuleId = this.getModuleIdFromPath(path);
+			const requiredMethod = method;
 
-		const requiredAccess = accessMap[requiredMethod];
+			const role = await this.roleService.getRoleInfo(userRoleId);
 
-		return {
-			requiredAccess,
-			userAccessLevel,
-		};
+			if (!role) {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.NOT_FOUND,
+						customCode: 'WGE0046',
+						customMessage: errorCodes.WGE0046?.description,
+						customMessageEs: errorCodes.WGE0046?.descriptionEs,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			const userAccessLevels = role?.Modules[requestedModuleId] || {};
+
+			if (!userAccessLevels && user.type !== 'WALLET') {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0039',
+						customMessage: errorCodes.WGE0039?.description,
+						customMessageEs: errorCodes.WGE0039?.descriptionEs,
+					},
+					HttpStatus.UNAUTHORIZED
+				);
+			}
+
+			const accessMap = {
+				GET: 8,
+				POST: 4,
+				PUT: 2,
+				PATCH: 1,
+				DELETE: 1,
+			};
+
+			const requiredAccess = accessMap[requiredMethod];
+
+			let hasAccess = false;
+
+			if (typeof userAccessLevels === 'object') {
+				hasAccess = Object.values(userAccessLevels).some((level: any) => {
+					const numericLevel =
+						typeof level === 'number' ? level : parseInt(level, 10);
+					return numericLevel >= requiredAccess;
+				});
+
+				if (!hasAccess && user.type !== 'WALLET') {
+					throw new HttpException(
+						{
+							statusCode: HttpStatus.UNAUTHORIZED,
+							customCode: 'WGE0038',
+							customMessage: errorCodes.WGE0038?.description,
+							customMessageEs: errorCodes.WGE0038?.descriptionEs,
+						},
+						HttpStatus.UNAUTHORIZED
+					);
+				}
+			} else {
+				if (
+					userAccessLevels < 8 ||
+					((userAccessLevels & requiredAccess) !== requiredAccess &&
+						user.type !== 'WALLET')
+				) {
+					throw new HttpException(
+						{
+							statusCode: HttpStatus.UNAUTHORIZED,
+							customCode: 'WGE0038',
+							customMessage: errorCodes.WGE0038?.description,
+							customMessageEs: errorCodes.WGE0038?.descriptionEs,
+						},
+						HttpStatus.UNAUTHORIZED
+					);
+				}
+			}
+
+			return {
+				requiredAccess,
+				userAccessLevels,
+				hasAccess,
+			};
+		} catch (error) {
+			console.error('Access Control Validation Error:', error?.message);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0035',
+					customMessage: errorCodes.WGE0035?.description,
+					customMessageEs: errorCodes.WGE0035?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 
 	private getModuleIdFromPath(path: string): string {
@@ -1012,5 +1124,24 @@ export class UserService {
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
+	}
+
+	async toggleContact(id: string) {
+		const user = await this.findOne(id);
+
+		if (!user) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0002',
+					...errorCodes.WGE0002,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+		user.contactUser = !user.contactUser;
+		const updatedUser = await this.dbInstance.update(id, {
+			ContactUser: user.contactUser,
+		});
+		return convertToCamelCase(updatedUser);
 	}
 }

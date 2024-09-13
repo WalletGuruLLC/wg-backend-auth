@@ -136,6 +136,10 @@ export const UserSchema = new dynamoose.Schema(
 		Avatar: {
 			type: String,
 		},
+		ContactUser: {
+			type: Boolean,
+			default: false,
+		},
 	},
 	{
 		timestamps: {

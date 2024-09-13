@@ -31,4 +31,5 @@ export class CreateUserDto {
 	dateOfBirth?: Date;
 	avatar?: string;
 	imageUrl: string;
+	ContactUser: boolean;
 }
