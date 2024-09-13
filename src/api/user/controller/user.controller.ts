@@ -989,60 +989,46 @@ export class UserController {
 
 	@UseGuards(CognitoAuthGuard)
 	@Post('/validate-access')
-	@ApiOkResponse({
-		description: 'Validate access successfully.',
-	})
+	@ApiOkResponse({ description: 'Validate access successfully.' })
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async validateAccessMiddleware(
+	async validateAccess(
 		@Body() validateAccess: ValidateAccessDto,
 		@Req() req,
 		@Res() res
 	) {
 		try {
-			const userInfo = req.user;
-			const userFind = await this.userService.findOneByEmail(
-				userInfo?.UserAttributes?.[0]?.Value
-			);
-			if (!userFind) {
-				return res.status(HttpStatus.NOT_FOUND).send({
-					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0002',
-					customMessage: errorCodes.WGE0002?.description,
-					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				});
-			}
-
-			const resultAccess = await this.userService.validateAccessMiddleware(
+			const resultAccess = await this.userService.validateAccess(
 				req.token,
-				validateAccess?.path,
-				validateAccess?.method
+				validateAccess.path,
+				validateAccess.method,
+				req.headers
 			);
+
+			if (resultAccess?.customCode) {
+				return res.status(resultAccess?.statusCode).send(resultAccess);
+			}
 
 			if (!resultAccess.hasAccess) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0038',
-					customMessage: errorCodes.WGE0038?.description,
-					customMessageEs: errorCodes.WGE0038?.descriptionEs,
 				});
 			}
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0078',
-				customMessage: successCodes.WGE0078?.description,
-				customMessageEs: successCodes.WGE0078?.descriptionEs,
 			});
 		} catch (error) {
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.BAD_REQUEST,
-					customCode: 'WGE0016',
-					customMessage: errorCodes.WGE0016?.description,
-					customMessageEs: errorCodes.WGE0016?.descriptionEs,
-				},
-				HttpStatus.BAD_REQUEST
-			);
+			const statusCode = error.status || HttpStatus.BAD_REQUEST;
+			const customCode = error.customCode || 'WGE0016';
+			const customMessage = error.customMessage || 'An error occurred.';
+
+			return res.status(statusCode).send({
+				statusCode,
+				customCode,
+				customMessage,
+			});
 		}
 	}
 
