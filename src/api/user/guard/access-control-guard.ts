@@ -41,10 +41,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
 		if (user?.type === 'PROVIDER') {
-			console.log('requestedModuleId', user?.type, requestedModuleId);
 			if (requestedModuleId == 'SP95') {
-				console.log('serviceProviderId', user?.serviceProviderId, user?.email);
-
 				if (!user?.serviceProviderId) {
 					throw new HttpException(
 						{
@@ -54,8 +51,6 @@ export class AccessControlMiddleware implements NestMiddleware {
 						HttpStatus.BAD_REQUEST
 					);
 				}
-
-				console.log('role?.PermissionModules', role?.PermissionModules);
 
 				const permissionModule = role?.PermissionModules?.find(
 					module => module[requestedModuleId]

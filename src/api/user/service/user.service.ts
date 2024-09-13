@@ -44,6 +44,7 @@ import {
 	DeleteObjectCommand,
 	PutObjectCommand,
 } from '@aws-sdk/client-s3';
+import { buscarValorPorClave } from '../../../utils/helpers/findKeyValue';
 
 @Injectable()
 export class UserService {
@@ -864,56 +865,58 @@ export class UserService {
 		const requiredMethod = method;
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		// Descomentar
-		// if (user?.type === 'PROVIDER') {
-		// 	const serviceProviderId = headers['x-service-provider-id'] as string;
-		// 	if (!serviceProviderId) {
-		// 		return {
-		// 			statusCode: HttpStatus.BAD_REQUEST,
-		// 			customCode: 'WGE0130',
-		// 		};
-		// 	}
+		if (user?.type === 'PROVIDER') {
+			if (requestedModuleId == 'SP95') {
+				if (!user?.serviceProviderId) {
+					return {
+						statusCode: HttpStatus.BAD_REQUEST,
+						customCode: 'WGE0130',
+					};
+				}
 
-		// 	const permissionModule = role.PermissionModules.find(
-		// 		module => module[requestedModuleId]
-		// 	);
+				const permissionModule = role.PermissionModules.find(
+					module => module[requestedModuleId]
+				);
 
-		// 	if (!permissionModule) {
-		// 		return {
-		// 			statusCode: HttpStatus.UNAUTHORIZED,
-		// 			customCode: 'WGE0131',
-		// 		};
-		// 	}
+				if (!permissionModule) {
+					return {
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0131',
+					};
+				}
 
-		// 	const serviceProviderAccessLevel =
-		// 		permissionModule[requestedModuleId][serviceProviderId];
+				const serviceProviderAccessLevel = buscarValorPorClave(
+					permissionModule[requestedModuleId],
+					user?.serviceProviderId
+				);
 
-		// 	if (!serviceProviderAccessLevel) {
-		// 		return {
-		// 			statusCode: HttpStatus.UNAUTHORIZED,
-		// 			customCode: 'WGE0132',
-		// 		};
-		// 	}
+				if (!serviceProviderAccessLevel) {
+					return {
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0132',
+					};
+				}
 
-		// 	const accessMap = {
-		// 		GET: 8,
-		// 		POST: 4,
-		// 		PUT: 2,
-		// 		PATCH: 1,
-		// 		DELETE: 1,
-		// 	};
+				const accessMap = {
+					GET: 8,
+					POST: 4,
+					PUT: 2,
+					PATCH: 1,
+					DELETE: 1,
+				};
 
-		// 	const requiredAccess = accessMap[requiredMethod];
+				const requiredAccess = accessMap[requiredMethod];
 
-		// 	if ((serviceProviderAccessLevel & requiredAccess) !== requiredAccess) {
-		// 		return {
-		// 			statusCode: HttpStatus.UNAUTHORIZED,
-		// 			customCode: 'WGE0038',
-		// 		};
-		// 	}
+				if ((serviceProviderAccessLevel & requiredAccess) !== requiredAccess) {
+					return {
+						statusCode: HttpStatus.UNAUTHORIZED,
+						customCode: 'WGE0038',
+					};
+				}
 
-		// 	return { hasAccess: true };
-		// }
+				return { hasAccess: true };
+			}
+		}
 
 		const userAccessLevel = role?.Modules[requestedModuleId];
 		const accessMap = {
