@@ -874,7 +874,7 @@ export class UserService {
 					};
 				}
 
-				const permissionModule = role.PermissionModules.find(
+				const permissionModule = role.PlatformModules.find(
 					module => module[requestedModuleId]
 				);
 
