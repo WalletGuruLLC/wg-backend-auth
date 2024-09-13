@@ -7,6 +7,7 @@ import {
 import { Request, Response, NextFunction } from 'express';
 import { RoleService } from 'src/api/role/service/role.service';
 import { UserService } from '../service/user.service';
+import { buscarValorPorClave } from 'src/utils/helpers/findKeyValue';
 
 @Injectable()
 export class AccessControlMiddleware implements NestMiddleware {
@@ -39,73 +40,71 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		// Descomentar
-		// if (user?.type === 'PROVIDER') {
-		// 	if (requiredMethod == '/api/v1/providers') {
-		// 		const serviceProviderId = req.headers[
-		// 			'x-service-provider-id'
-		// 		] as string;
-		// 		if (!serviceProviderId) {
-		// 			throw new HttpException(
-		// 				{
-		// 					statusCode: HttpStatus.BAD_REQUEST,
-		// 					customCode: 'WGE0130',
-		// 				},
-		// 				HttpStatus.BAD_REQUEST
-		// 			);
-		// 		}
+		if (user?.type === 'PLATFORM') {
+			if (requestedModuleId == 'SP95') {
+				if (!user?.serviceProviderId) {
+					throw new HttpException(
+						{
+							statusCode: HttpStatus.BAD_REQUEST,
+							customCode: 'WGE0130',
+						},
+						HttpStatus.BAD_REQUEST
+					);
+				}
 
-		// 		const permissionModule = role.PermissionModules.find(
-		// 			module => module[requestedModuleId]
-		// 		);
+				const permissionModule = role?.PlatformModules?.find(
+					module => module[requestedModuleId]
+				);
 
-		// 		if (!permissionModule) {
-		// 			throw new HttpException(
-		// 				{
-		// 					statusCode: HttpStatus.UNAUTHORIZED,
-		// 					customCode: 'WGE0131',
-		// 				},
-		// 				HttpStatus.UNAUTHORIZED
-		// 			);
-		// 		}
+				if (!permissionModule) {
+					throw new HttpException(
+						{
+							statusCode: HttpStatus.UNAUTHORIZED,
+							customCode: 'WGE0131',
+						},
+						HttpStatus.UNAUTHORIZED
+					);
+				}
 
-		// 		const serviceProviderAccessLevel =
-		// 			permissionModule[requestedModuleId][serviceProviderId];
+				const serviceProviderAccessLevel = buscarValorPorClave(
+					permissionModule[requestedModuleId],
+					user?.serviceProviderId
+				);
 
-		// 		if (!serviceProviderAccessLevel) {
-		// 			throw new HttpException(
-		// 				{
-		// 					statusCode: HttpStatus.UNAUTHORIZED,
-		// 					customCode: 'WGE0132',
-		// 				},
-		// 				HttpStatus.UNAUTHORIZED
-		// 			);
-		// 		}
+				if (!serviceProviderAccessLevel) {
+					throw new HttpException(
+						{
+							statusCode: HttpStatus.UNAUTHORIZED,
+							customCode: 'WGE0132',
+						},
+						HttpStatus.UNAUTHORIZED
+					);
+				}
 
-		// 		const accessMap = {
-		// 			GET: 8,
-		// 			POST: 4,
-		// 			PUT: 2,
-		// 			PATCH: 1,
-		// 			DELETE: 1,
-		// 		};
+				const accessMap = {
+					GET: 8,
+					POST: 4,
+					PUT: 2,
+					PATCH: 1,
+					DELETE: 1,
+				};
 
-		// 		const requiredAccess = accessMap[requiredMethod];
+				const requiredAccess = accessMap[requiredMethod];
 
-		// 		if ((serviceProviderAccessLevel & requiredAccess) !== requiredAccess) {
-		// 			throw new HttpException(
-		// 				{
-		// 					statusCode: HttpStatus.UNAUTHORIZED,
-		// 					customCode: 'WGE0038',
-		// 				},
-		// 				HttpStatus.UNAUTHORIZED
-		// 			);
-		// 		}
+				if ((serviceProviderAccessLevel & requiredAccess) !== requiredAccess) {
+					throw new HttpException(
+						{
+							statusCode: HttpStatus.UNAUTHORIZED,
+							customCode: 'WGE0038',
+						},
+						HttpStatus.UNAUTHORIZED
+					);
+				}
 
-		// 		next();
-		// 		return;
-		// 	}
-		// }
+				next();
+				return;
+			}
+		}
 
 		const userAccessLevel = role?.Modules[requestedModuleId];
 		if (userAccessLevel === undefined && user.type !== 'WALLET') {
