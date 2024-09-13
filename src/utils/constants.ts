@@ -217,9 +217,9 @@ export const errorCodes = {
 		descriptionEs: `No tienes permisos en el módulo especificado.`,
 	},
 	WGE0040: {
-		message: `Provider not found`,
-		description: `There is no provider with the id provided.`,
-		descriptionEs: `No hay ningún provider asociado con el id ingresado.`,
+		message: `User not found`,
+		description: `There is no user with the id provided.`,
+		descriptionEs: `No hay ningún usuário asociado con el id ingresado.`,
 	},
 	WGE0041: {
 		message: 'Edit provider failed',

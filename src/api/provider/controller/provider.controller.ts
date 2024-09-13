@@ -454,6 +454,11 @@ export class ProviderController {
 			},
 		},
 	})
+	@ApiParam({
+		name: 'id',
+		required: false,
+		description: 'Optional provider ID',
+	})
 	@ApiForbiddenResponse({ status: 403, description: 'Access forbidden.' })
 	async findAllUsers(
 		@Query() getProvidersDto: GetProvidersDto,
