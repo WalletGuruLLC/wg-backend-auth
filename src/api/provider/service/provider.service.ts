@@ -172,29 +172,12 @@ export class ProviderService {
 	}
 
 	async searchFindOneEmail(email: string) {
-		const docClient = new DocumentClient();
-		const params: DocumentClient.GetItemInput = {
-			TableName: 'Providers',
-			Key: { Email: email },
-		};
-
 		try {
-			const result = await docClient.get(params).promise();
-
-			if (!result.Item) {
-				throw new HttpException(
-					{
-						customCode: 'WGE0040',
-						...errorCodes.WGE0040,
-					},
-					HttpStatus.NOT_FOUND
-				);
-			}
-
-			return convertToCamelCase(result.Item);
+			const providers = await this.dbInstance.scan('Email').eq(email).exec();
+			return convertToCamelCase(providers[0]);
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new Error(`Error fetching provider by ID: ${error.message}`);
+			throw new Error(`Error retrieving provider: ${error.message}`);
 		}
 	}
 

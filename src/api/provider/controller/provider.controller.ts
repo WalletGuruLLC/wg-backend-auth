@@ -128,11 +128,11 @@ export class ProviderController {
 				});
 			}
 			const provider = await this.providerService.create(createProviderDto);
-			return {
+			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
 				customCode: 'WGS0077',
 				data: provider,
-			};
+			});
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
