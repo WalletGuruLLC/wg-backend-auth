@@ -40,70 +40,9 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		if (user?.type === 'PLATFORM') {
-			if (requestedModuleId == 'SP95') {
-				if (!user?.serviceProviderId) {
-					throw new HttpException(
-						{
-							statusCode: HttpStatus.BAD_REQUEST,
-							customCode: 'WGE0130',
-						},
-						HttpStatus.BAD_REQUEST
-					);
-				}
-
-				const permissionModule = role?.PlatformModules?.find(
-					module => module[requestedModuleId]
-				);
-
-				if (!permissionModule) {
-					throw new HttpException(
-						{
-							statusCode: HttpStatus.UNAUTHORIZED,
-							customCode: 'WGE0131',
-						},
-						HttpStatus.UNAUTHORIZED
-					);
-				}
-
-				const serviceProviderAccessLevel = buscarValorPorClave(
-					permissionModule[requestedModuleId],
-					user?.serviceProviderId
-				);
-
-				if (!serviceProviderAccessLevel) {
-					throw new HttpException(
-						{
-							statusCode: HttpStatus.UNAUTHORIZED,
-							customCode: 'WGE0132',
-						},
-						HttpStatus.UNAUTHORIZED
-					);
-				}
-
-				const accessMap = {
-					GET: 8,
-					POST: 4,
-					PUT: 2,
-					PATCH: 1,
-					DELETE: 1,
-				};
-
-				const requiredAccess = accessMap[requiredMethod];
-
-				if ((serviceProviderAccessLevel & requiredAccess) !== requiredAccess) {
-					throw new HttpException(
-						{
-							statusCode: HttpStatus.UNAUTHORIZED,
-							customCode: 'WGE0038',
-						},
-						HttpStatus.UNAUTHORIZED
-					);
-				}
-
-				next();
-				return;
-			}
+		if (user?.type === 'PLATFORM' && requestedModuleId == 'SP95') {
+			next();
+			return;
 		}
 
 		const userAccessLevel = role?.Modules[requestedModuleId];

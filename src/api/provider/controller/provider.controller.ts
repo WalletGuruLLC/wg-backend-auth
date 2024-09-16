@@ -41,6 +41,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { UserService } from 'src/api/user/service/user.service';
+import { RoleService } from 'src/api/role/service/role.service';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -48,7 +49,8 @@ import { UserService } from 'src/api/user/service/user.service';
 export class ProviderController {
 	constructor(
 		private readonly providerService: ProviderService,
-		private readonly userService: UserService
+		private readonly userService: UserService,
+		private readonly roleService: RoleService
 	) {}
 
 	@UseGuards(CognitoAuthGuard)
@@ -81,8 +83,6 @@ export class ProviderController {
 			example: {
 				statusCode: 201,
 				customCode: 'WGS0077',
-				customMessage: 'Provider created successfully.',
-				customMessageEs: 'Proveedor creado con éxito.',
 				data: {
 					Name: 'Provider Name',
 					Description: 'Provider description',
@@ -103,16 +103,36 @@ export class ProviderController {
 		},
 	})
 	@ApiResponse({ status: 500, description: 'Error creating provider.' })
-	async create(@Body() createProviderDto: CreateProviderDto) {
+	async create(@Body() createProviderDto: CreateProviderDto, @Res() res) {
 		try {
+			const providerFind = await this.providerService.searchFindOneEmail(
+				createProviderDto?.email
+			);
+			if (providerFind) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0133',
+				});
+			}
+			if (
+				!createProviderDto?.name ||
+				!createProviderDto?.einNumber ||
+				!createProviderDto?.companyAddress ||
+				!createProviderDto?.walletAddress ||
+				!createProviderDto?.contactInformation ||
+				!createProviderDto?.phone
+			) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0134',
+				});
+			}
 			const provider = await this.providerService.create(createProviderDto);
-			return {
+			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
 				customCode: 'WGS0077',
-				customMessage: successCodes.WGS0077?.description,
-				customMessageEs: successCodes.WGS0077?.descriptionEs,
 				data: provider,
-			};
+			});
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
@@ -140,8 +160,6 @@ export class ProviderController {
 			example: {
 				statusCode: 200,
 				customCode: 'WGE0073',
-				customMessage: 'Providers retrieved successfully.',
-				customMessageEs: 'Proveedores recuperados con éxito.',
 				data: {
 					providers: [
 						{
@@ -184,7 +202,21 @@ export class ProviderController {
 					customCode: 'WGE0017',
 				});
 			}
-			const providers = await this.providerService.findAll(getProvidersDto);
+			const userRoleId = userFind.roleId;
+			const requiredMethod = req.method;
+			const requestedModuleId = this.userService.getModuleIdFromPath(
+				req.route.path
+			);
+			const role = await this.roleService.getRoleInfo(userRoleId);
+			const permissionModule = role?.PlatformModules?.find(
+				module => module[requestedModuleId]
+			);
+			const providers = await this.providerService.findAll(
+				getProvidersDto,
+				permissionModule,
+				requestedModuleId,
+				requiredMethod
+			);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0073',
@@ -215,8 +247,6 @@ export class ProviderController {
 			example: {
 				statusCode: 200,
 				customCode: 'WGE0074',
-				customMessage: 'Provider found successfully.',
-				customMessageEs: 'Proveedor encontrado con éxito.',
 				data: {
 					id: '123',
 					name: 'Provider Name',
@@ -236,9 +266,20 @@ export class ProviderController {
 		},
 	})
 	@ApiResponse({ status: 404, description: 'Provider not found.' })
-	async findOne(@Param('id') id: string) {
+	async findOne(@Param('id') id: string, @Req() req) {
 		try {
-			const provider = await this.providerService.findOne(id);
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			const userRoleId = userFind.roleId;
+			const role = await this.roleService.getRoleInfo(userRoleId);
+			const provider = await this.providerService.findOne(id, role, id);
+			if (provider?.customCode) {
+				return {
+					customCode: provider?.customCode,
+				};
+			}
 			if (!provider) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
@@ -248,8 +289,6 @@ export class ProviderController {
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0074',
-				customMessage: successCodes?.WGE0074?.description,
-				customMessageEs: successCodes.WGE0074?.descriptionEs,
 				data: provider,
 			};
 		} catch (error) {
@@ -296,17 +335,34 @@ export class ProviderController {
 	@ApiResponse({ status: 500, description: 'Error updating provider.' })
 	async update(
 		@Param('id') id: string,
-		@Body() updateProviderDto: UpdateProviderDto
+		@Body() updateProviderDto: UpdateProviderDto,
+		@Req() req
 	) {
 		try {
-			const providerFind = await this.providerService.findOne(id);
+			const providerFind = await this.providerService.searchFindOne(id);
 			if (!providerFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0040',
 				};
 			}
-			const provider = await this.providerService.update(id, updateProviderDto);
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			const userRoleId = userFind.roleId;
+			const role = await this.roleService.getRoleInfo(userRoleId);
+			const provider = await this.providerService.update(
+				id,
+				updateProviderDto,
+				role,
+				id
+			);
+			if (provider?.customCode) {
+				return {
+					customCode: provider?.customCode,
+				};
+			}
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0034',
@@ -318,8 +374,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0041',
-					customMessage: errorCodes?.WGE0041?.description,
-					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -346,20 +400,34 @@ export class ProviderController {
 	@ApiResponse({ status: 500, description: 'Error updating provider status.' })
 	async activeInactiveProvider(
 		@Param('id') id: string,
-		@Body() changeStatusProvider: ChangeStatusProviderDto
+		@Body() changeStatusProvider: ChangeStatusProviderDto,
+		@Req() req
 	) {
 		try {
-			const providerFind = await this.providerService.findOne(id);
+			const providerFind = await this.providerService.searchFindOne(id);
 			if (!providerFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0040',
 				};
 			}
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			const userRoleId = userFind.roleId;
+			const role = await this.roleService.getRoleInfo(userRoleId);
 			const provider = await this.providerService.activeInactiveProvider(
 				id,
-				changeStatusProvider
+				changeStatusProvider,
+				role,
+				id
 			);
+			if (provider?.customCode) {
+				return {
+					customCode: provider?.customCode,
+				};
+			}
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0034',
@@ -371,8 +439,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0041',
-					customMessage: errorCodes?.WGE0041?.description,
-					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -396,8 +462,6 @@ export class ProviderController {
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0075',
-				customMessage: successCodes?.WGE0075?.description,
-				customMessageEs: successCodes.WGE0075?.descriptionEs,
 				data: { provider: convertToCamelCase(provider) },
 			};
 		} catch (error) {
@@ -406,8 +470,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0041',
-					customMessage: errorCodes?.WGE0041?.description,
-					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -427,8 +489,6 @@ export class ProviderController {
 			example: {
 				statusCode: 200,
 				customCode: 'WGE0073',
-				customMessage: 'Users retrieved successfully.',
-				customMessageEs: 'Usuários recuperados con éxito.',
 				data: {
 					providers: [
 						{
@@ -477,8 +537,6 @@ export class ProviderController {
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0073',
-				customMessage: successCodes.WGE0073?.description,
-				customMessageEs: successCodes.WGE0073?.descriptionEs,
 				data: { userProvider: convertToCamelCase(userProvider) },
 			});
 		} catch (error) {
@@ -487,8 +545,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0040',
-					customMessage: errorCodes?.WGE0040?.description,
-					customMessageEs: errorCodes.WGE0040?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -518,8 +574,6 @@ export class ProviderController {
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0075',
-				customMessage: successCodes?.WGE0075?.description,
-				customMessageEs: successCodes.WGE0075?.descriptionEs,
 				data: { users: convertToCamelCase(usersProvider) },
 			};
 		} catch (error) {
@@ -528,8 +582,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0041',
-					customMessage: errorCodes?.WGE0041?.description,
-					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
