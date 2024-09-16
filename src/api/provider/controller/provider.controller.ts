@@ -41,6 +41,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { UserService } from 'src/api/user/service/user.service';
+import { RoleService } from 'src/api/role/service/role.service';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -48,7 +49,8 @@ import { UserService } from 'src/api/user/service/user.service';
 export class ProviderController {
 	constructor(
 		private readonly providerService: ProviderService,
-		private readonly userService: UserService
+		private readonly userService: UserService,
+		private readonly roleService: RoleService
 	) {}
 
 	@UseGuards(CognitoAuthGuard)
@@ -184,7 +186,21 @@ export class ProviderController {
 					customCode: 'WGE0017',
 				});
 			}
-			const providers = await this.providerService.findAll(getProvidersDto);
+			const userRoleId = userFind.roleId;
+			const requiredMethod = req.method;
+			const requestedModuleId = this.userService.getModuleIdFromPath(
+				req.route.path
+			);
+			const role = await this.roleService.getRoleInfo(userRoleId);
+			const permissionModule = role?.PlatformModules?.find(
+				module => module[requestedModuleId]
+			);
+			const providers = await this.providerService.findAll(
+				getProvidersDto,
+				permissionModule,
+				requestedModuleId,
+				requiredMethod
+			);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0073',
@@ -236,9 +252,20 @@ export class ProviderController {
 		},
 	})
 	@ApiResponse({ status: 404, description: 'Provider not found.' })
-	async findOne(@Param('id') id: string) {
+	async findOne(@Param('id') id: string, @Req() req) {
 		try {
-			const provider = await this.providerService.findOne(id);
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			const userRoleId = userFind.roleId;
+			const role = await this.roleService.getRoleInfo(userRoleId);
+			const provider = await this.providerService.findOne(id, role, id);
+			if (provider?.customCode) {
+				return {
+					customCode: provider?.customCode,
+				};
+			}
 			if (!provider) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
@@ -296,17 +323,34 @@ export class ProviderController {
 	@ApiResponse({ status: 500, description: 'Error updating provider.' })
 	async update(
 		@Param('id') id: string,
-		@Body() updateProviderDto: UpdateProviderDto
+		@Body() updateProviderDto: UpdateProviderDto,
+		@Req() req
 	) {
 		try {
-			const providerFind = await this.providerService.findOne(id);
+			const providerFind = await this.providerService.searchFindOne(id);
 			if (!providerFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0040',
 				};
 			}
-			const provider = await this.providerService.update(id, updateProviderDto);
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			const userRoleId = userFind.roleId;
+			const role = await this.roleService.getRoleInfo(userRoleId);
+			const provider = await this.providerService.update(
+				id,
+				updateProviderDto,
+				role,
+				id
+			);
+			if (provider?.customCode) {
+				return {
+					customCode: provider?.customCode,
+				};
+			}
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0034',
@@ -346,20 +390,34 @@ export class ProviderController {
 	@ApiResponse({ status: 500, description: 'Error updating provider status.' })
 	async activeInactiveProvider(
 		@Param('id') id: string,
-		@Body() changeStatusProvider: ChangeStatusProviderDto
+		@Body() changeStatusProvider: ChangeStatusProviderDto,
+		@Req() req
 	) {
 		try {
-			const providerFind = await this.providerService.findOne(id);
+			const providerFind = await this.providerService.searchFindOne(id);
 			if (!providerFind) {
 				return {
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0040',
 				};
 			}
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			const userRoleId = userFind.roleId;
+			const role = await this.roleService.getRoleInfo(userRoleId);
 			const provider = await this.providerService.activeInactiveProvider(
 				id,
-				changeStatusProvider
+				changeStatusProvider,
+				role,
+				id
 			);
+			if (provider?.customCode) {
+				return {
+					customCode: provider?.customCode,
+				};
+			}
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0034',

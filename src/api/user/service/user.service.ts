@@ -865,7 +865,7 @@ export class UserService {
 		const requiredMethod = method;
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		if (user?.type === 'PLATFORM') {
+		if (user?.type === 'PROVIDER') {
 			if (requestedModuleId == 'SP95') {
 				if (!user?.serviceProviderId) {
 					return {
@@ -943,7 +943,7 @@ export class UserService {
 		return { hasAccess: true };
 	}
 
-	private getModuleIdFromPath(path: string): string {
+	getModuleIdFromPath(path: string): string {
 		const moduleIdMap = {
 			'/api/v1/users': 'U783',
 			'/api/v1/roles': 'R949',

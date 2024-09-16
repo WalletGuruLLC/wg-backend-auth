@@ -22,6 +22,8 @@ import {
 import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
 import { UpdateUserDto } from '../../user/dto/update-user.dto';
+import { buscarValorPorClave } from '../../../utils/helpers/findKeyValue';
+import { validarPermisos } from '../../../utils/helpers/getAccessServiceProviders';
 
 @Injectable()
 export class ProviderService {
@@ -55,7 +57,12 @@ export class ProviderService {
 		return this.dbInstance.create(provider);
 	}
 
-	async findAll(getProvidersDto: GetProvidersDto): Promise<{
+	async findAll(
+		getProvidersDto: GetProvidersDto,
+		permissionModule: any,
+		requestedModuleId: string,
+		requiredMethod: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+	): Promise<{
 		providers: [];
 		currentPage: number;
 		total: number;
@@ -72,12 +79,29 @@ export class ProviderService {
 			const result = await docClient.scan(params).promise();
 			let providers = convertToCamelCase(result.Items || []);
 
-			providers = providers.map(provider => ({
-				imageUrl: provider?.imageUrl,
-				name: provider?.name,
-				active: provider?.active,
-				id: provider?.id,
-			}));
+			const accessMap = {
+				GET: 8,
+				POST: 4,
+				PUT: 2,
+				PATCH: 1,
+				DELETE: 1,
+			};
+
+			const requiredAccess = accessMap[requiredMethod];
+
+			providers = providers.filter(provider => {
+				const serviceProviderId = provider.id;
+				const serviceProviderAccessLevel = buscarValorPorClave(
+					permissionModule[requestedModuleId],
+					serviceProviderId
+				);
+
+				if (!serviceProviderAccessLevel) {
+					return false;
+				}
+
+				return (serviceProviderAccessLevel & requiredAccess) === requiredAccess;
+			});
 
 			if (search) {
 				const regex = new RegExp(search, 'i');
@@ -95,10 +119,8 @@ export class ProviderService {
 				if (a.active !== b.active) {
 					return a.active ? -1 : 1;
 				}
-
 				const nameA = a?.name || '';
 				const nameB = b?.name || '';
-
 				return nameA.localeCompare(nameB);
 			});
 
@@ -122,7 +144,7 @@ export class ProviderService {
 		}
 	}
 
-	async findOne(id: string) {
+	async searchFindOne(id: string) {
 		const docClient = new DocumentClient();
 		const params: DocumentClient.GetItemInput = {
 			TableName: 'Providers',
@@ -149,7 +171,63 @@ export class ProviderService {
 		}
 	}
 
-	async update(id: string, updateProviderDto: UpdateProviderDto) {
+	async findOne(id: string, role, serviceProviderId) {
+		const permisos = validarPermisos({
+			role,
+			requestedModuleId: 'SP95',
+			requiredMethod: 'GET',
+			userId: id,
+			serviceProviderId,
+		});
+
+		if (!permisos.hasAccess) {
+			return { customCode: permisos.customCode };
+		}
+
+		const docClient = new DocumentClient();
+		const params: DocumentClient.GetItemInput = {
+			TableName: 'Providers',
+			Key: { Id: id },
+		};
+
+		try {
+			const result = await docClient.get(params).promise();
+
+			if (!result.Item) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0040',
+						...errorCodes.WGE0040,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			return convertToCamelCase(result.Item);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching provider by ID: ${error.message}`);
+		}
+	}
+
+	async update(
+		id: string,
+		updateProviderDto: UpdateProviderDto,
+		role,
+		serviceProviderId
+	) {
+		const permisos = validarPermisos({
+			role,
+			requestedModuleId: 'SP95',
+			requiredMethod: 'PUT',
+			userId: id,
+			serviceProviderId,
+		});
+
+		if (!permisos.hasAccess) {
+			return { customCode: permisos.customCode };
+		}
+
 		const docClient = new DocumentClient();
 		const updateExpressionParts = [];
 		const expressionAttributeNames = {};
@@ -187,8 +265,22 @@ export class ProviderService {
 
 	async activeInactiveProvider(
 		id: string,
-		changeStatusProvider: ChangeStatusProviderDto
+		changeStatusProvider: ChangeStatusProviderDto,
+		role,
+		serviceProviderId
 	) {
+		const permisos = validarPermisos({
+			role,
+			requestedModuleId: 'SP95',
+			requiredMethod: 'PATCH',
+			userId: id,
+			serviceProviderId,
+		});
+
+		if (!permisos.hasAccess) {
+			return { customCode: permisos.customCode };
+		}
+
 		const docClient = new DocumentClient();
 		const params: DocumentClient.UpdateItemInput = {
 			TableName: 'Providers',
