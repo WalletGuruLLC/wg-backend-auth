@@ -171,6 +171,33 @@ export class ProviderService {
 		}
 	}
 
+	async searchFindOneEmail(email: string) {
+		const docClient = new DocumentClient();
+		const params: DocumentClient.GetItemInput = {
+			TableName: 'Providers',
+			Key: { Email: email },
+		};
+
+		try {
+			const result = await docClient.get(params).promise();
+
+			if (!result.Item) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0040',
+						...errorCodes.WGE0040,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			return convertToCamelCase(result.Item);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching provider by ID: ${error.message}`);
+		}
+	}
+
 	async findOne(id: string, role, serviceProviderId) {
 		const permisos = validarPermisos({
 			role,

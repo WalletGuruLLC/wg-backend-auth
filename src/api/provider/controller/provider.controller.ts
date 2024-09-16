@@ -83,8 +83,6 @@ export class ProviderController {
 			example: {
 				statusCode: 201,
 				customCode: 'WGS0077',
-				customMessage: 'Provider created successfully.',
-				customMessageEs: 'Proveedor creado con éxito.',
 				data: {
 					Name: 'Provider Name',
 					Description: 'Provider description',
@@ -105,14 +103,34 @@ export class ProviderController {
 		},
 	})
 	@ApiResponse({ status: 500, description: 'Error creating provider.' })
-	async create(@Body() createProviderDto: CreateProviderDto) {
+	async create(@Body() createProviderDto: CreateProviderDto, @Res() res) {
 		try {
+			const providerFind = await this.providerService.searchFindOneEmail(
+				createProviderDto?.email
+			);
+			if (providerFind) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0133',
+				});
+			}
+			if (
+				!createProviderDto?.name ||
+				!createProviderDto?.einNumber ||
+				!createProviderDto?.companyAddress ||
+				!createProviderDto?.walletAddress ||
+				!createProviderDto?.contactInformation ||
+				!createProviderDto?.phone
+			) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0134',
+				});
+			}
 			const provider = await this.providerService.create(createProviderDto);
 			return {
 				statusCode: HttpStatus.CREATED,
 				customCode: 'WGS0077',
-				customMessage: successCodes.WGS0077?.description,
-				customMessageEs: successCodes.WGS0077?.descriptionEs,
 				data: provider,
 			};
 		} catch (error) {
@@ -142,8 +160,6 @@ export class ProviderController {
 			example: {
 				statusCode: 200,
 				customCode: 'WGE0073',
-				customMessage: 'Providers retrieved successfully.',
-				customMessageEs: 'Proveedores recuperados con éxito.',
 				data: {
 					providers: [
 						{
@@ -231,8 +247,6 @@ export class ProviderController {
 			example: {
 				statusCode: 200,
 				customCode: 'WGE0074',
-				customMessage: 'Provider found successfully.',
-				customMessageEs: 'Proveedor encontrado con éxito.',
 				data: {
 					id: '123',
 					name: 'Provider Name',
@@ -275,8 +289,6 @@ export class ProviderController {
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0074',
-				customMessage: successCodes?.WGE0074?.description,
-				customMessageEs: successCodes.WGE0074?.descriptionEs,
 				data: provider,
 			};
 		} catch (error) {
@@ -362,8 +374,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0041',
-					customMessage: errorCodes?.WGE0041?.description,
-					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -429,8 +439,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0041',
-					customMessage: errorCodes?.WGE0041?.description,
-					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -454,8 +462,6 @@ export class ProviderController {
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0075',
-				customMessage: successCodes?.WGE0075?.description,
-				customMessageEs: successCodes.WGE0075?.descriptionEs,
 				data: { provider: convertToCamelCase(provider) },
 			};
 		} catch (error) {
@@ -464,8 +470,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0041',
-					customMessage: errorCodes?.WGE0041?.description,
-					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -485,8 +489,6 @@ export class ProviderController {
 			example: {
 				statusCode: 200,
 				customCode: 'WGE0073',
-				customMessage: 'Users retrieved successfully.',
-				customMessageEs: 'Usuários recuperados con éxito.',
 				data: {
 					providers: [
 						{
@@ -535,8 +537,6 @@ export class ProviderController {
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0073',
-				customMessage: successCodes.WGE0073?.description,
-				customMessageEs: successCodes.WGE0073?.descriptionEs,
 				data: { userProvider: convertToCamelCase(userProvider) },
 			});
 		} catch (error) {
@@ -545,8 +545,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0040',
-					customMessage: errorCodes?.WGE0040?.description,
-					customMessageEs: errorCodes.WGE0040?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -576,8 +574,6 @@ export class ProviderController {
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0075',
-				customMessage: successCodes?.WGE0075?.description,
-				customMessageEs: successCodes.WGE0075?.descriptionEs,
 				data: { users: convertToCamelCase(usersProvider) },
 			};
 		} catch (error) {
@@ -586,8 +582,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0041',
-					customMessage: errorCodes?.WGE0041?.description,
-					customMessageEs: errorCodes.WGE0041?.descriptionEs,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
