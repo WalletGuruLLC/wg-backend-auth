@@ -842,12 +842,7 @@ export class UserService {
 		);
 	}
 
-	async validateAccess(
-		token: string,
-		path: string,
-		method: string,
-		headers?: any
-	) {
+	async validateAccess(token: string, path: string, method: string) {
 		const userCognito = await this.getUserInfo(token);
 		const user = await this.findOneByEmail(
 			userCognito?.UserAttributes?.[0]?.Value
@@ -865,57 +860,8 @@ export class UserService {
 		const requiredMethod = method;
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		if (user?.type === 'PROVIDER') {
-			if (requestedModuleId == 'SP95') {
-				if (!user?.serviceProviderId) {
-					return {
-						statusCode: HttpStatus.BAD_REQUEST,
-						customCode: 'WGE0130',
-					};
-				}
-
-				const permissionModule = role.PlatformModules.find(
-					module => module[requestedModuleId]
-				);
-
-				if (!permissionModule) {
-					return {
-						statusCode: HttpStatus.UNAUTHORIZED,
-						customCode: 'WGE0131',
-					};
-				}
-
-				const serviceProviderAccessLevel = buscarValorPorClave(
-					permissionModule[requestedModuleId],
-					user?.serviceProviderId
-				);
-
-				if (!serviceProviderAccessLevel) {
-					return {
-						statusCode: HttpStatus.UNAUTHORIZED,
-						customCode: 'WGE0132',
-					};
-				}
-
-				const accessMap = {
-					GET: 8,
-					POST: 4,
-					PUT: 2,
-					PATCH: 1,
-					DELETE: 1,
-				};
-
-				const requiredAccess = accessMap[requiredMethod];
-
-				if ((serviceProviderAccessLevel & requiredAccess) !== requiredAccess) {
-					return {
-						statusCode: HttpStatus.UNAUTHORIZED,
-						customCode: 'WGE0038',
-					};
-				}
-
-				return { hasAccess: true };
-			}
+		if (user?.type === 'PLATFORM' && requestedModuleId == 'SP95') {
+			return { hasAccess: true };
 		}
 
 		const userAccessLevel = role?.Modules[requestedModuleId];
