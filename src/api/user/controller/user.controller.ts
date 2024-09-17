@@ -1000,8 +1000,7 @@ export class UserController {
 			const resultAccess = await this.userService.validateAccess(
 				req.token,
 				validateAccess.path,
-				validateAccess.method,
-				req.headers
+				validateAccess.method
 			);
 
 			if (resultAccess?.customCode) {
