@@ -678,16 +678,14 @@ export class ProviderController {
 			);
 			return {
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0081',
-				customMessage: successCodes.WGE0081?.description,
-				customMessageEs: successCodes.WGE0081?.descriptionEs,
+				customCode: 'WGE0118',
 				data: paymentParameters,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
-					customCode: 'WGE0037',
+					customCode: 'WGE0119',
 					customMessageEs: error.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
