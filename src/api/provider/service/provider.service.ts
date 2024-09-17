@@ -25,6 +25,8 @@ import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { buscarValorPorClave } from '../../../utils/helpers/findKeyValue';
 import { validarPermisos } from '../../../utils/helpers/getAccessServiceProviders';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
+import { buildFilterExpressionDynamo } from '../../../utils/helpers/buildFilterExpressionDynamo';
+import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
 
 @Injectable()
 export class ProviderService {
@@ -548,6 +550,22 @@ export class ProviderService {
 		createProviderPaymentParameter: CreateProviderPaymentParameterDTO
 	): Promise<CreateProviderPaymentParameterDTO> {
 		const docClient = new DocumentClient();
+		const existingPaymentParameter = await this.getPaymentParameters(
+			createProviderPaymentParameter.serviceProviderId,
+			{
+				asset: createProviderPaymentParameter.asset,
+				frequency: createProviderPaymentParameter.frequency,
+			}
+		);
+
+		if (existingPaymentParameter.length > 0) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0117',
+				},
+				HttpStatus.BAD_REQUEST
+			);
+		}
 
 		const params = {
 			TableName: 'PaymentParameters',
@@ -569,5 +587,31 @@ export class ProviderService {
 		await docClient.put(params).promise();
 
 		return createProviderPaymentParameter;
+	}
+
+	async getPaymentParameters(
+		serviceProviderId: string,
+		paymentParametersFilter: GetProviderPaymentParametersDTO
+	): Promise<any> {
+		const docClient = new DocumentClient();
+
+		const expressionFilters = buildFilterExpressionDynamo(
+			paymentParametersFilter
+		);
+		const params= {
+			TableName: 'PaymentParameters',
+			IndexName: 'ServiceProviderIdIndex',
+			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
+			ExpressionAttributeValues: {
+				':serviceProviderId': serviceProviderId,
+			    ...(expressionFilters.expressionValues && {...expressionFilters.expressionValues})
+			},
+			...(expressionFilters.expression && {FilterExpression: expressionFilters.expression})
+			
+		};
+
+		const paymentParameterQuery = await docClient.query(params).promise();
+
+		return convertToCamelCase(paymentParameterQuery.Items);
 	}
 }
