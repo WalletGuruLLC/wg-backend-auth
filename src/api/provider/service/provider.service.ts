@@ -24,6 +24,7 @@ import { UserSchema } from '../../user/entities/user.schema';
 import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { buscarValorPorClave } from '../../../utils/helpers/findKeyValue';
 import { validarPermisos } from '../../../utils/helpers/getAccessServiceProviders';
+import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
 
 @Injectable()
 export class ProviderService {
@@ -540,5 +541,33 @@ export class ProviderService {
 			Sentry.captureException(error);
 			throw new Error(`Error updating provider: ${error.message}`);
 		}
+	}
+
+	async createOrUpdatePaymentParameter(
+		id: string,
+		createProviderPaymentParameter: CreateProviderPaymentParameterDTO
+	): Promise<CreateProviderPaymentParameterDTO> {
+		const docClient = new DocumentClient();
+
+		const params = {
+			TableName: 'PaymentParameters',
+			Item: {
+				Id: id ? id :  uuidv4(),
+				Name: createProviderPaymentParameter.name,
+				Description: createProviderPaymentParameter.description,
+				Cost: createProviderPaymentParameter.cost,
+				Frequency: createProviderPaymentParameter.frequency,
+				Interval: createProviderPaymentParameter.interval,
+				Asset: createProviderPaymentParameter.asset,
+				ServiceProviderId: createProviderPaymentParameter.serviceProviderId,
+				Percent: 1,
+				Comision: 0,
+				Base: 2,
+			},
+		};
+
+		await docClient.put(params).promise();
+
+		return createProviderPaymentParameter
 	}
 }
