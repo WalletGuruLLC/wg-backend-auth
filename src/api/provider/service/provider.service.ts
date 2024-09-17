@@ -562,6 +562,7 @@ export class ProviderService {
 			throw new HttpException(
 				{
 					customCode: 'WGE0117',
+					statusCode: HttpStatus.BAD_REQUEST,
 				},
 				HttpStatus.BAD_REQUEST
 			);
