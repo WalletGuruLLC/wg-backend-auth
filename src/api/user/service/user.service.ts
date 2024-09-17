@@ -645,6 +645,13 @@ export class UserService {
 			query = query.and().filter('ServiceProviderId').eq(serviceProviderId);
 		}
 
+		if (!serviceProviderId && userDb[0].ServiceProviderId) {
+			query = query
+				.and()
+				.filter('ServiceProviderId')
+				.eq(userDb[0].ServiceProviderId);
+		}
+
 		query.attributes([
 			'Id',
 			'Type',
@@ -664,7 +671,6 @@ export class UserService {
 		// Execute the query
 		const result = await query.exec();
 		let users = convertToCamelCase(result);
-		console.log('result', result);
 
 		// Apply regex search client-side if 'search' is provided
 		if (getUsersDto?.search) {
