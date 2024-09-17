@@ -1,6 +1,6 @@
 export enum Frequency {
 	MINUTES = 'MINUTES',
 	SECONDS = 'SECONDS',
-    HOUR    =   'HOUR',
-    MONTHLY =   'MONTHLY',
+	HOUR = 'HOUR',
+	MONTHLY = 'MONTHLY',
 }

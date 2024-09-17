@@ -552,7 +552,7 @@ export class ProviderService {
 		const params = {
 			TableName: 'PaymentParameters',
 			Item: {
-				Id: id ? id :  uuidv4(),
+				Id: id ? id : uuidv4(),
 				Name: createProviderPaymentParameter.name,
 				Description: createProviderPaymentParameter.description,
 				Cost: createProviderPaymentParameter.cost,
@@ -568,6 +568,6 @@ export class ProviderService {
 
 		await docClient.put(params).promise();
 
-		return createProviderPaymentParameter
+		return createProviderPaymentParameter;
 	}
 }

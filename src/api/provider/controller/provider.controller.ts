@@ -42,7 +42,7 @@ import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { UserService } from 'src/api/user/service/user.service';
 import { RoleService } from 'src/api/role/service/role.service';
-import {  CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
+import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')

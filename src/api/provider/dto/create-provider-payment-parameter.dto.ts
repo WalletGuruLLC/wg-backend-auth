@@ -1,5 +1,5 @@
-import { IsNumber, IsOptional, IsString } from "class-validator";
-import { Frequency } from "./frequency.enum";
+import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { Frequency } from './frequency.enum';
 
 export class CreateProviderPaymentParameterDTO {
 	@IsString()
