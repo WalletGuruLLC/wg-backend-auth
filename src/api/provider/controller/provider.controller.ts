@@ -621,7 +621,7 @@ export class ProviderController {
 		description: 'PaymentParameterId for service provider not found ',
 	})
 	@Post('payment-parameters/:paymentParameterId?')
-	async createOrUpdateAccessLevel(
+	async createOrUpdatePaymentParameters(
 		@Param('paymentParameterId') paymentParameterId: string | undefined,
 		@Body()
 		createProviderPaymentParameterDTO: CreateProviderPaymentParameterDTO,
