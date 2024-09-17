@@ -107,28 +107,30 @@ export class ProviderController {
 	@ApiResponse({ status: 500, description: 'Error creating provider.' })
 	async create(@Body() createProviderDto: CreateProviderDto, @Res() res) {
 		try {
-			const providerFind = await this.providerService.searchFindOneEmail(
-				createProviderDto?.email
-			);
-			if (providerFind) {
-				return res.status(HttpStatus.FORBIDDEN).send({
-					statusCode: HttpStatus.FORBIDDEN,
-					customCode: 'WGE0133',
-				});
-			}
 			if (
 				!createProviderDto?.name ||
 				!createProviderDto?.einNumber ||
 				!createProviderDto?.companyAddress ||
-				!createProviderDto?.walletAddress ||
-				!createProviderDto?.contactInformation ||
-				!createProviderDto?.phone
+				!createProviderDto?.walletAddress
 			) {
 				return res.status(HttpStatus.PARTIAL_CONTENT).send({
 					statusCode: HttpStatus.PARTIAL_CONTENT,
 					customCode: 'WGE0134',
 				});
 			}
+
+			if (createProviderDto?.email) {
+				const providerFind = await this.providerService.searchFindOneEmail(
+					createProviderDto?.email
+				);
+				if (providerFind) {
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
+						customCode: 'WGE0133',
+					});
+				}
+			}
+
 			const provider = await this.providerService.create(createProviderDto);
 			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
