@@ -42,6 +42,7 @@ import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { UserService } from 'src/api/user/service/user.service';
 import { RoleService } from 'src/api/role/service/role.service';
+import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -582,6 +583,69 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0041',
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@UsePipes(ValidationPipe)
+	@ApiOperation({
+		summary: 'Create or update a new payment parameters for service providers',
+	})
+	@ApiParam({
+		name: 'paymentParameterId',
+		description: 'ID del paymentParamter',
+		type: String,
+	})
+	@ApiBody({
+		schema: {
+			example: {
+				name: 'Provider1_Paramter',
+				description: 'Parameter for service provider 1',
+				cost: 10,
+				frequency: 'MINUTES',
+				interval: 30,
+				asset: 'USD',
+				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
+			},
+		},
+	})
+	@ApiResponse({
+		status: 201,
+		description: 'Payment Parameter created succefully',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'PaymentParameterId for service provider not found ',
+	})
+	@Post('payment-parameters/:paymentParameterId?')
+	async createOrUpdatePaymentParameters(
+		@Param('paymentParameterId') paymentParameterId: string | undefined,
+		@Body()
+		createProviderPaymentParameterDTO: CreateProviderPaymentParameterDTO,
+		@Res() res
+	) {
+		try {
+			const paymentParameter =
+				await this.providerService.createOrUpdatePaymentParameter(
+					paymentParameterId,
+					createProviderPaymentParameterDTO
+				);
+
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0116',
+				data: convertToCamelCase(paymentParameter),
+			});
+		} catch (error) {
+			Sentry.captureException(error);
+
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0115',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
