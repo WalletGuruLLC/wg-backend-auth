@@ -636,7 +636,7 @@ export class ProviderController {
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0075',
+				customCode: 'WGE0116',
 				data: convertToCamelCase(paymentParameter),
 			});
 		} catch (error) {
@@ -645,7 +645,7 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0041',
+					customCode: 'WGE0115',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
