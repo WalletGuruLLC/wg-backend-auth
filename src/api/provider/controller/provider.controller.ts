@@ -600,7 +600,17 @@ export class ProviderController {
 		type: String,
 	})
 	@ApiBody({
-		schema: { example: { accessLevel: 11, serviceProvider: 'provider1' } },
+		schema: {
+			example: {
+				name: 'Provider1_Paramter',
+				description: 'Parameter for service provider 1',
+				cost: 10,
+				frequency: 'MINUTES',
+				interval: 30,
+				asset: 'USD',
+				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
+			},
+		},
 	})
 	@ApiResponse({
 		status: 201,
@@ -631,7 +641,7 @@ export class ProviderController {
 			});
 		} catch (error) {
 			Sentry.captureException(error);
-			
+
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
