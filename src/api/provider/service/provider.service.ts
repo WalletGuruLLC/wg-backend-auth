@@ -598,16 +598,19 @@ export class ProviderService {
 		const expressionFilters = buildFilterExpressionDynamo(
 			paymentParametersFilter
 		);
-		const params= {
+		const params = {
 			TableName: 'PaymentParameters',
 			IndexName: 'ServiceProviderIdIndex',
 			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
 			ExpressionAttributeValues: {
 				':serviceProviderId': serviceProviderId,
-			    ...(expressionFilters.expressionValues && {...expressionFilters.expressionValues})
+				...(expressionFilters.expressionValues && {
+					...expressionFilters.expressionValues,
+				}),
 			},
-			...(expressionFilters.expression && {FilterExpression: expressionFilters.expression})
-			
+			...(expressionFilters.expression && {
+				FilterExpression: expressionFilters.expression,
+			}),
 		};
 
 		const paymentParameterQuery = await docClient.query(params).promise();
