@@ -43,6 +43,7 @@ import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { UserService } from 'src/api/user/service/user.service';
 import { RoleService } from 'src/api/role/service/role.service';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
+import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -646,6 +647,46 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0115',
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@ApiOperation({
+		summary: 'List payment parameters for a service providers',
+	})
+	@ApiParam({
+		name: 'id',
+		description: 'ID del service provider ',
+		type: String,
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Lista de parametros de pago obtenida con éxito.',
+	})
+	@Get(':id/payment-parameters')
+	async listPaymentParameters(
+		@Param('id') id: string,
+		@Query() getProviderPaymentParametersDTO: GetProviderPaymentParametersDTO
+	) {
+		try {
+			const paymentParameters = await this.providerService.getPaymentParameters(
+				id,
+				getProviderPaymentParametersDTO
+			);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0118',
+				data: paymentParameters,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					customCode: 'WGE0119',
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
