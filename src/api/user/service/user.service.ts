@@ -623,6 +623,8 @@ export class UserService {
 			ascending = true,
 		} = getUsersDto;
 
+		let providerId = null;
+
 		const userConverted = userRequest as unknown as {
 			Name: string;
 			Value: string;
@@ -643,6 +645,7 @@ export class UserService {
 
 		if (serviceProviderId) {
 			query = query.and().filter('ServiceProviderId').eq(serviceProviderId);
+			providerId = serviceProviderId;
 		}
 
 		if (!serviceProviderId && userDb[0].ServiceProviderId) {
@@ -650,6 +653,7 @@ export class UserService {
 				.and()
 				.filter('ServiceProviderId')
 				.eq(userDb[0].ServiceProviderId);
+			providerId = userDb[0].ServiceProviderId;
 		}
 
 		query.attributes([
@@ -688,8 +692,7 @@ export class UserService {
 		if (type === 'PROVIDER') {
 			users = users.filter(
 				(user: { email: string; serviceProviderId: string }) =>
-					user.email !== emailRequest &&
-					user.serviceProviderId === userDb[0].ServiceProviderId
+					user.email !== emailRequest && user.serviceProviderId === providerId
 			);
 		} else {
 			users = users.filter(
