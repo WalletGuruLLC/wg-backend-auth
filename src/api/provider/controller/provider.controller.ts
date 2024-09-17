@@ -686,7 +686,8 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					customCode: 'WGE0119',
-					customMessageEs: error.message,
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
