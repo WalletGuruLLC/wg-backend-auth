@@ -87,6 +87,10 @@ export class RoleService {
 		} else {
 			params = {
 				TableName: 'Roles',
+				FilterExpression: 'ProviderId = :providerId',
+				ExpressionAttributeValues: {
+					':providerId': 'EMPTY',
+				},
 			};
 		}
 
