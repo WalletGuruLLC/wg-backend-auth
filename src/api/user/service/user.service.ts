@@ -670,6 +670,7 @@ export class UserService {
 			'State',
 			'MfaEnabled',
 			'MfaType',
+			'ContactUser',
 		]);
 
 		// Execute the query
@@ -794,7 +795,13 @@ export class UserService {
 
 	async getUserInfo(authHeader: string) {
 		if (!authHeader || !authHeader.startsWith('Bearer ')) {
-			throw new UnauthorizedException('No token provided');
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0021',
+				},
+				HttpStatus.UNAUTHORIZED
+			);
 		}
 
 		const accessToken = authHeader.split(' ')[1];
@@ -808,7 +815,13 @@ export class UserService {
 			return userData;
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new UnauthorizedException('Invalid access token');
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0021',
+				},
+				HttpStatus.UNAUTHORIZED
+			);
 		}
 	}
 
