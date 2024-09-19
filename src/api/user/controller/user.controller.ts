@@ -66,8 +66,9 @@ export class UserController {
 		description: 'The record has been successfully created.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async create(@Body() createUserDto: CreateUserDto, @Res() res) {
+	async create(@Body() createUserDto: CreateUserDto, @Res() res, @Req() req) {
 		try {
+			const userRequest = req.user?.UserAttributes;
 			createUserDto.email = createUserDto?.email.toLowerCase();
 			if (!isValidEmail(createUserDto?.email)) {
 				return res.status(HttpStatus.FORBIDDEN).send({
@@ -114,7 +115,8 @@ export class UserController {
 					!createUserDto?.email ||
 					!createUserDto?.type ||
 					!createUserDto?.roleId ||
-					!createUserDto?.serviceProviderId ||
+					(createUserDto.type !== 'PROVIDER' &&
+						!createUserDto?.serviceProviderId) ||
 					!createUserDto?.phone
 				) {
 					return res.status(HttpStatus.PARTIAL_CONTENT).send({
@@ -174,7 +176,7 @@ export class UserController {
 				});
 			}
 
-			const result = await this.userService.create(createUserDto);
+			const result = await this.userService.create(createUserDto, userRequest);
 			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
 				customCode: 'WGE0018',
@@ -200,7 +202,11 @@ export class UserController {
 		description: 'The record has been successfully created.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async createApp(@Body() createUserDto: CreateUserDto, @Res() res) {
+	async createApp(
+		@Body() createUserDto: CreateUserDto,
+		@Res() res,
+		@Req() req
+	) {
 		try {
 			createUserDto.email = createUserDto?.email.toLowerCase();
 			if (!isValidEmail(createUserDto?.email)) {
