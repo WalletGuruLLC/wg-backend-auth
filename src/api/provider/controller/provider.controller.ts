@@ -34,7 +34,7 @@ import {
 	ApiResponse,
 	ApiTags,
 } from '@nestjs/swagger';
-import { errorCodes, successCodes } from '../../../utils/constants';
+import { errorCodes } from '../../../utils/constants';
 import { GetProvidersDto } from '../dto/getProviderDto';
 import { CognitoAuthGuard } from '../../user/guard/cognito-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
