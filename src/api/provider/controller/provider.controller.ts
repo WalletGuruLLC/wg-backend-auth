@@ -386,11 +386,12 @@ export class ProviderController {
 				data: provider,
 			};
 		} catch (error) {
+			console.log('error', error?.message);
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0041',
+					customCode: 'WGE0033',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

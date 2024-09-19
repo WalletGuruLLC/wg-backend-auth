@@ -242,13 +242,13 @@ export class ProviderService {
 		}
 
 		const allowedFields = [
-			'Name',
-			'Description',
-			'EINNumber',
-			'CompanyAddress',
-			'Logo',
-			'ContactInformation',
-			'Phone',
+			'name',
+			'description',
+			'einNumber',
+			'companyAddress',
+			'logo',
+			'contactInformation',
+			'phone',
 		];
 
 		const convertToPascalCase = (str: string) =>
@@ -261,7 +261,8 @@ export class ProviderService {
 
 		Object.entries(updateProviderDto).forEach(([key, value]) => {
 			if (allowedFields.includes(key) && value !== undefined) {
-				const pascalKey = convertToPascalCase(key);
+				const pascalKey =
+					key == 'einNumber' ? 'EINNumber' : convertToPascalCase(key);
 				const attributeKey = `#${pascalKey}`;
 				const valueKey = `:${pascalKey}`;
 
