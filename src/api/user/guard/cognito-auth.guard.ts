@@ -6,7 +6,6 @@ import {
 	HttpStatus,
 } from '@nestjs/common';
 import { UserService } from '../service/user.service';
-import { errorCodes } from '../../../utils/constants';
 import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
@@ -22,8 +21,6 @@ export class CognitoAuthGuard implements CanActivate {
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0021',
-					customMessage: errorCodes.WGE0021?.description,
-					customMessageEs: errorCodes.WGE0021?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
@@ -40,8 +37,6 @@ export class CognitoAuthGuard implements CanActivate {
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: 'WGE0021',
-					customMessage: errorCodes.WGE0021?.description,
-					customMessageEs: errorCodes.WGE0021?.descriptionEs,
 				},
 				HttpStatus.UNAUTHORIZED
 			);
