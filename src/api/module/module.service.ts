@@ -16,12 +16,17 @@ export class ModuleService {
 			waitForActive: false,
 		});
 	}
-	async findAll(belongs?: string) {
+	async findAll(belongs?: string, types?: Array<string>) {
 		let modules;
+
 		if (belongs) {
 			modules = await this.dbInstance.query('Belongs').eq(belongs).exec();
 		} else {
 			modules = await this.dbInstance.scan().exec();
+		}
+
+		if (types && types.length > 0) {
+			modules = modules.filter(module => types.includes(module.Belongs));
 		}
 
 		return modules.map(this.mapModuleToResponse);

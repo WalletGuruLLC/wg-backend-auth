@@ -4,16 +4,27 @@ import {
 	ApiTags,
 	ApiQuery,
 } from '@nestjs/swagger';
-import { Controller, Get, HttpStatus, UseGuards, Query } from '@nestjs/common';
+import {
+	Controller,
+	Get,
+	HttpStatus,
+	UseGuards,
+	Query,
+	Req,
+} from '@nestjs/common';
 
 import { ModuleService } from './module.service';
 import { CognitoAuthGuard } from '../../api/user/guard/cognito-auth.guard';
+import { UserService } from '../user/service/user.service';
 
 @Controller('api/v1/modules')
 @ApiTags('modules')
 @ApiBearerAuth('JWT')
 export class ModuleController {
-	constructor(private readonly moduleService: ModuleService) {}
+	constructor(
+		private readonly moduleService: ModuleService,
+		private readonly userService: UserService
+	) {}
 
 	@UseGuards(CognitoAuthGuard)
 	@Get()
@@ -21,8 +32,22 @@ export class ModuleController {
 	@ApiOkResponse({
 		description: 'Successfully returned modules',
 	})
-	async findAll(@Query('belongs') belongs?: string) {
-		const modules = await this.moduleService.findAll(belongs);
+	async findAll(
+		@Req() req,
+		@Query('belongs') belongs?: string,
+		@Query('isProvider') isProvider?: boolean
+	) {
+		const userInfo = req.user;
+		const user = await this.userService.findOneByEmail(
+			userInfo?.UserAttributes?.[0]?.Value
+		);
+
+		let types = ['AL', 'WG'];
+		if (user?.type == 'PROVIDER' || isProvider === true) {
+			types = ['AL', 'SP'];
+		}
+
+		const modules = await this.moduleService.findAll(belongs, types);
 		return {
 			statusCode: HttpStatus.OK,
 			message: 'Successfully returned modules',
