@@ -208,7 +208,6 @@ export class UserController {
 		@Req() req
 	) {
 		try {
-			const userRequest = req.user?.UserAttributes;
 			createUserDto.email = createUserDto?.email.toLowerCase();
 			if (!isValidEmail(createUserDto?.email)) {
 				return res.status(HttpStatus.FORBIDDEN).send({
@@ -282,7 +281,7 @@ export class UserController {
 				}
 			}
 
-			const result = await this.userService.create(createUserDto, userRequest);
+			const result = await this.userService.create(createUserDto);
 			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
 				customCode: 'WGE0018',
