@@ -9,6 +9,8 @@ import {
 	ForgotPasswordResponse,
 } from './cognito.types';
 import * as Sentry from '@sentry/nestjs';
+import { HttpException } from '@nestjs/common';
+import { HttpStatus } from '../../../utils/constants';
 
 export class CognitoService implements CognitoServiceInterface {
 	private cognitoISP: CognitoIdentityServiceProvider;
@@ -116,7 +118,13 @@ export class CognitoService implements CognitoServiceInterface {
 			return {};
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new Error(`Error changing password in Cognito: ${error.message}`);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0007',
+				},
+				HttpStatus.UNAUTHORIZED
+			);
 		}
 	}
 
