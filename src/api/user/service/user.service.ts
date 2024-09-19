@@ -189,7 +189,7 @@ export class UserService {
 		}
 	}
 
-	async create(createUserDto: CreateUserDto) {
+	async create(createUserDto: CreateUserDto, user: string) {
 		try {
 			const {
 				email,
@@ -205,6 +205,19 @@ export class UserService {
 				privacyPolicy,
 				passwordHash,
 			} = createUserDto;
+
+			const userConverted = user as unknown as {
+				Name: string;
+				Value: string;
+			}[];
+			const userEmail = userConverted[0]?.Value;
+
+			const users = await this.dbInstance.query('Email').eq(userEmail).exec();
+
+			const providerId: string =
+				users.length > 0 && type === 'PROVIDER'
+					? users[0]?.ServiceProviderId
+					: serviceProviderId;
 
 			// Generate password and hash it
 			const password =
@@ -235,7 +248,7 @@ export class UserService {
 				Email: email.toLowerCase(),
 				PasswordHash: hashedPassword,
 				MfaEnabled: mfaEnabled,
-				ServiceProviderId: type === 'PROVIDER' ? serviceProviderId : 'EMPTY',
+				ServiceProviderId: providerId ? providerId : 'EMPTY',
 				MfaType: mfaType,
 				RoleId: type === 'WALLET' ? 'EMPTY' : roleId,
 				Type: type,
