@@ -27,6 +27,7 @@ import { validarPermisos } from '../../../utils/helpers/getAccessServiceProvider
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
 import { buildFilterExpressionDynamo } from '../../../utils/helpers/buildFilterExpressionDynamo';
 import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
+import { removeSpaces } from '../../../utils/helpers/removeSpaces';
 
 @Injectable()
 export class ProviderService {
@@ -53,7 +54,7 @@ export class ProviderService {
 			City: createProviderDto.city,
 			ZipCode: createProviderDto.zipCode,
 			CompanyAddress: createProviderDto.companyAddress,
-			WalletAddress: createProviderDto.walletAddress,
+			WalletAddress: removeSpaces(createProviderDto.walletAddress),
 			Logo: createProviderDto.logo,
 			ContactInformation: createProviderDto.contactInformation,
 		};
