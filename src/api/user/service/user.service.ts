@@ -189,7 +189,7 @@ export class UserService {
 		}
 	}
 
-	async create(createUserDto: CreateUserDto, user: string) {
+	async create(createUserDto: CreateUserDto, user?: string) {
 		try {
 			const {
 				email,
