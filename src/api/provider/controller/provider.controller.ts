@@ -105,7 +105,11 @@ export class ProviderController {
 		},
 	})
 	@ApiResponse({ status: 500, description: 'Error creating provider.' })
-	async create(@Body() createProviderDto: CreateProviderDto, @Res() res) {
+	async create(
+		@Body() createProviderDto: CreateProviderDto,
+		@Res() res,
+		@Req() req
+	) {
 		try {
 			if (
 				!createProviderDto?.name ||
@@ -130,8 +134,17 @@ export class ProviderController {
 					});
 				}
 			}
-
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
 			const provider = await this.providerService.create(createProviderDto);
+			await this.roleService.createOrUpdateAccessLevel(
+				userFind?.roleId,
+				provider?.Id,
+				15,
+				'SP95'
+			);
 			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
 				customCode: 'WGS0077',

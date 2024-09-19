@@ -718,12 +718,12 @@ export class UserController {
 		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.BAD_REQUEST,
-					customCode: 'WGE0016',
-					customMessage: errorCodes.WGE0016?.description,
-					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0007',
+					customMessage: errorCodes.WGE0007?.description,
+					customMessageEs: errorCodes.WGE0007?.descriptionEs,
 				},
-				HttpStatus.BAD_REQUEST
+				HttpStatus.UNAUTHORIZED
 			);
 		}
 	}
