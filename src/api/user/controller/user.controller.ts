@@ -115,7 +115,8 @@ export class UserController {
 					!createUserDto?.email ||
 					!createUserDto?.type ||
 					!createUserDto?.roleId ||
-					!createUserDto?.serviceProviderId ||
+					(createUserDto.type !== 'PROVIDER' &&
+						!createUserDto?.serviceProviderId) ||
 					!createUserDto?.phone
 				) {
 					return res.status(HttpStatus.PARTIAL_CONTENT).send({
