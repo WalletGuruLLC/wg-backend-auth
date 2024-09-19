@@ -718,12 +718,12 @@ export class UserController {
 		} catch (error) {
 			throw new HttpException(
 				{
-					statusCode: HttpStatus.BAD_REQUEST,
-					customCode: 'WGE0016',
-					customMessage: errorCodes.WGE0016?.description,
-					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0007',
+					customMessage: errorCodes.WGE0007?.description,
+					customMessageEs: errorCodes.WGE0007?.descriptionEs,
 				},
-				HttpStatus.BAD_REQUEST
+				HttpStatus.UNAUTHORIZED
 			);
 		}
 	}
@@ -834,7 +834,7 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0017?.descriptionEs,
 				});
 			}
-			if (getUsersDto?.page > users?.totalPages) {
+			if (users?.total > 0 && getUsersDto?.page > users?.totalPages) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0023',

@@ -242,20 +242,40 @@ export class ProviderService {
 			return { customCode: permisos.customCode };
 		}
 
+		const allowedFields = [
+			'name',
+			'description',
+			'einNumber',
+			'companyAddress',
+			'logo',
+			'contactInformation',
+			'phone',
+		];
+
+		const convertToPascalCase = (str: string) =>
+			str.charAt(0).toUpperCase() + str.slice(1);
+
 		const docClient = new DocumentClient();
 		const updateExpressionParts = [];
 		const expressionAttributeNames = {};
 		const expressionAttributeValues = {};
 
 		Object.entries(updateProviderDto).forEach(([key, value]) => {
-			if (value !== undefined) {
-				const attributeKey = `#${key}`;
-				const valueKey = `:${key}`;
+			if (allowedFields.includes(key) && value !== undefined) {
+				const pascalKey =
+					key == 'einNumber' ? 'EINNumber' : convertToPascalCase(key);
+				const attributeKey = `#${pascalKey}`;
+				const valueKey = `:${pascalKey}`;
+
 				updateExpressionParts.push(`${attributeKey} = ${valueKey}`);
-				expressionAttributeNames[attributeKey] = key;
+				expressionAttributeNames[attributeKey] = pascalKey;
 				expressionAttributeValues[valueKey] = value;
 			}
 		});
+
+		if (updateExpressionParts.length === 0) {
+			throw new Error('No valid fields to update');
+		}
 
 		const updateExpression = `SET ${updateExpressionParts.join(', ')}`;
 

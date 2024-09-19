@@ -119,7 +119,7 @@ export class RoleController {
 					return res.status(HttpStatus.OK).send({
 						statusCode: HttpStatus.OK,
 						customCode: 'WGE0114',
-						data: { roles: convertToCamelCase(rolesServiceProvider) },
+						data: convertToCamelCase(rolesServiceProvider),
 					});
 				}
 			} else {
@@ -156,9 +156,17 @@ export class RoleController {
 		description: 'Active roles have been successfully retrieved.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async findAllActive(@Query('providerId') providerId?: string) {
+	async findAllActive(@Req() req, @Query('providerId') providerId?: string) {
 		try {
-			const roles = await this.roleService.findAllActive(providerId);
+			const userInfo = req.user;
+			const user = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			let providerIdValue = providerId;
+			if (user?.type == 'PROVIDER') {
+				providerIdValue = user?.serviceProviderId;
+			}
+			const roles = await this.roleService.findAllActive(providerIdValue);
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0031',
