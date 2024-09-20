@@ -206,17 +206,11 @@ export class UserService {
 				passwordHash,
 			} = createUserDto;
 
-			const userConverted = user as unknown as {
-				Name: string;
-				Value: string;
-			}[];
-			const userEmail = userConverted[0]?.Value;
-
-			const users = await this.dbInstance.query('Email').eq(userEmail).exec();
+			const userFind = await this.findOneByEmail(email);
 
 			const providerId: string =
-				users.length > 0 && type === 'PROVIDER'
-					? users[0]?.ServiceProviderId
+				userFind && userFind?.type === 'PROVIDER'
+					? userFind?.ServiceProviderId
 					: serviceProviderId;
 
 			// Generate password and hash it
