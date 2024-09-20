@@ -273,9 +273,10 @@ export class RoleController {
 		status: 404,
 		description: 'Role not found.',
 	})
-	async toggle(@Param('id') id: string) {
+	async toggle(@Param('id') id: string, @Req() req) {
 		try {
-			const role = await this.roleService.toggle(id);
+			const userRequest = req.user?.UserAttributes;
+			const role = await this.roleService.toggle(id, userRequest);
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0024',
