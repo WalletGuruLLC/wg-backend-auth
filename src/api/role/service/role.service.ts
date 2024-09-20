@@ -193,8 +193,18 @@ export class RoleService {
 		return this.mapRoleToResponse(updatedRole);
 	}
 
-	async toggle(id: string) {
-		const role = await this.findOne(id);
+	async toggle(id: string, user?: string) {
+		const userConverted = user as unknown as {
+			Name: string;
+			Value: string;
+		}[];
+		const userEmail = userConverted[0]?.Value;
+
+		const users = await this.dbUserInstance.query('Email').eq(userEmail).exec();
+		const providerId =
+			users[0]?.Type === 'PROVIDER' ? users[0]?.ServiceProviderId : null;
+
+		const role = await this.findOne(id, providerId);
 
 		role.Active = !role.Active;
 		const updatedRole = await this.dbInstance.update(id, {
@@ -203,9 +213,16 @@ export class RoleService {
 		return this.mapRoleToResponse(updatedRole);
 	}
 
-	private async findOne(id: string): Promise<Role> {
-		const role = await this.dbInstance.get(id);
-		if (!role) {
+	private async findOne(id: string, serviceProviderId?: string): Promise<Role> {
+		let role = this.dbInstance.query('Id').eq(id);
+
+		if (serviceProviderId) {
+			role = role.where('ProviderId').eq(serviceProviderId);
+		}
+
+		const result = await role.exec();
+
+		if (!result.length) {
 			throw new HttpException(
 				{
 					customCode: 'WGE0027',
@@ -214,7 +231,7 @@ export class RoleService {
 				HttpStatus.NOT_FOUND
 			);
 		}
-		return role;
+		return result[0];
 	}
 
 	async remove(id: string): Promise<void> {
