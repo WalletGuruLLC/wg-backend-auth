@@ -262,12 +262,13 @@ export class ProviderService {
 
 		const allowedFields = [
 			'name',
-			'description',
 			'einNumber',
 			'companyAddress',
-			'logo',
+			'country',
+			'city',
+			'zipCode',
+			'walletAddress',
 			'contactInformation',
-			'phone',
 		];
 
 		const convertToPascalCase = (str: string) =>
