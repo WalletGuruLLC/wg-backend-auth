@@ -134,6 +134,20 @@ export class ProviderController {
 					});
 				}
 			}
+
+			if (createProviderDto?.walletAddress) {
+				const providerFind =
+					await this.providerService.searchFindOneWalletAddress(
+						createProviderDto?.walletAddress
+					);
+				if (providerFind) {
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
+						customCode: 'WGE0138',
+					});
+				}
+			}
+
 			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
 				userInfo?.UserAttributes?.[0]?.Value

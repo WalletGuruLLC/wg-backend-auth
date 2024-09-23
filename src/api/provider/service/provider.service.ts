@@ -185,6 +185,19 @@ export class ProviderService {
 		}
 	}
 
+	async searchFindOneWalletAddress(walletAddress: string) {
+		try {
+			const providers = await this.dbInstance
+				.scan('WalletAddress')
+				.eq(walletAddress)
+				.exec();
+			return convertToCamelCase(providers[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error retrieving provider: ${error.message}`);
+		}
+	}
+
 	async findOne(id: string, role, serviceProviderId) {
 		const permisos = validarPermisos({
 			role,
