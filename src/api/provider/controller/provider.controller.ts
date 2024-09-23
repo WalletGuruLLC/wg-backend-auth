@@ -405,7 +405,7 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0033',
+					customCode: 'WGE0140',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

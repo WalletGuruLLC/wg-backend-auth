@@ -67,7 +67,7 @@ export class ProviderService {
 		requestedModuleId: string,
 		requiredMethod: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 	): Promise<{
-		providers: [];
+		providers: { id: string; name: string; logo: string; active: boolean }[];
 		currentPage: number;
 		total: number;
 		totalPages: number;
@@ -130,10 +130,15 @@ export class ProviderService {
 
 			const total = providers.length;
 			const offset = (Number(page) - 1) * Number(items);
-			const paginatedProviders = providers.slice(
-				offset,
-				offset + Number(items)
-			);
+			let paginatedProviders = providers.slice(offset, offset + Number(items));
+
+			paginatedProviders = paginatedProviders.map(provider => ({
+				id: provider?.id,
+				name: provider?.name,
+				imageUrl: provider?.imageUrl,
+				active: provider?.active,
+			}));
+
 			const totalPages = Math.ceil(total / Number(items));
 
 			return {
