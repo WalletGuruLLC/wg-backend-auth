@@ -316,11 +316,17 @@ export class UserController {
 			);
 
 			let accessLevel = {};
+			let platformAccessLevel = {};
 			if (userFind?.roleId !== 'EMPTY') {
 				accessLevel = await this.userService.listAccessLevels(userFind?.roleId);
+				platformAccessLevel =
+					await this.userService.listAccessLevelsPlatformModules(
+						userFind?.roleId
+					);
 			}
 
 			userFind.accessLevel = accessLevel;
+			userFind.platformAccessLevel = platformAccessLevel;
 
 			delete userFind?.passwordHash;
 			delete userFind?.otpTimestamp;
