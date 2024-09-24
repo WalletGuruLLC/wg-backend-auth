@@ -732,10 +732,9 @@ export class ProviderController {
 		description: 'Lista de intervalos de tiempo obtenida con éxito.',
 	})
 	@Get('list/time-intervals')
-	async listTimeIntervals(
-	) {
+	async listTimeIntervals() {
 		try {
-			const timeIntervals = await this.providerService.getTimeIntervals()
+			const timeIntervals = await this.providerService.getTimeIntervals();
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0118',
