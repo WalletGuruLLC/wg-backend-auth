@@ -722,4 +722,34 @@ export class ProviderController {
 			);
 		}
 	}
+
+	@UseGuards(CognitoAuthGuard)
+	@ApiOperation({
+		summary: 'List time intervals',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Lista de intervalos de tiempo obtenida con éxito.',
+	})
+	@Get('list/time-intervals')
+	async listTimeIntervals(
+	) {
+		try {
+			const timeIntervals = await this.providerService.getTimeIntervals()
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0118',
+				data: timeIntervals,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					customCode: 'WGE0119',
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
 }
