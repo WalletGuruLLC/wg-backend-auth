@@ -123,6 +123,18 @@ export class UserService {
 		return result.Item?.Modules || {};
 	}
 
+	async listAccessLevelsPlatformModules(roleId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'Roles',
+			Key: { Id: roleId },
+			ProjectionExpression: 'PlatformModules',
+		};
+
+		const result = await docClient.get(params).promise();
+		return result.Item?.PlatformModules || {};
+	}
+
 	async verifyOtp(verifyOtp: VerifyOtpDto) {
 		try {
 			const otpRecord = await this.dbOtpInstance
