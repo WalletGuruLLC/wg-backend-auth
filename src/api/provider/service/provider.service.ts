@@ -203,6 +203,15 @@ export class ProviderService {
 		}
 	}
 
+	async searchFindOneId(id: string) {
+		try {
+			const roles = await this.dbInstance.scan('Id').eq(id).exec();
+			return convertToCamelCase(roles[0]);
+		} catch (error) {
+			throw new Error(`Error retrieving provider: ${error.message}`);
+		}
+	}
+
 	async findOne(id: string, role, serviceProviderId) {
 		const permisos = validarPermisos({
 			role,
