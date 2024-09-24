@@ -590,15 +590,37 @@ export class ProviderService {
 		createProviderPaymentParameter: CreateProviderPaymentParameterDTO
 	): Promise<CreateProviderPaymentParameterDTO> {
 		const docClient = new DocumentClient();
+
+		const getProviderParams: DocumentClient.GetItemInput = {
+			TableName: 'Providers',
+			Key: { Id: createProviderPaymentParameter.serviceProviderId },
+		};
+
+		const provider = await docClient.get(getProviderParams).promise();
+
+		if (!provider.Item) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0040',
+					...errorCodes.WGE0040,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+
 		const existingPaymentParameter = await this.getPaymentParameters(
 			createProviderPaymentParameter.serviceProviderId,
 			{
 				asset: createProviderPaymentParameter.asset,
 				frequency: createProviderPaymentParameter.frequency,
-			}
+			},
+			id
 		);
 
-		if (existingPaymentParameter.length > 0) {
+		if (
+			(!id && existingPaymentParameter.length > 0) ||
+			(id && !existingPaymentParameter.length)
+		) {
 			throw new HttpException(
 				{
 					customCode: 'WGE0117',
@@ -632,7 +654,8 @@ export class ProviderService {
 
 	async getPaymentParameters(
 		serviceProviderId: string,
-		paymentParametersFilter: GetProviderPaymentParametersDTO
+		paymentParametersFilter: GetProviderPaymentParametersDTO,
+		paymentParameterId?: string
 	): Promise<any> {
 		const docClient = new DocumentClient();
 
@@ -641,10 +664,21 @@ export class ProviderService {
 		);
 		const params = {
 			TableName: 'PaymentParameters',
-			IndexName: 'ServiceProviderIdIndex',
-			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
+			...(!paymentParameterId && {
+				IndexName: 'ServiceProviderIdIndex',
+			}),
+			...(paymentParameterId && {
+				KeyConditionExpression: `Id = :paymentParameterId`,
+			}),
+
+			...(!paymentParameterId && {
+				KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
+			}),
 			ExpressionAttributeValues: {
-				':serviceProviderId': serviceProviderId,
+				...(paymentParameterId && {
+					':paymentParameterId': paymentParameterId,
+				}),
+				...(!paymentParameterId && { ':serviceProviderId': serviceProviderId }),
 				...(expressionFilters.expressionValues && {
 					...expressionFilters.expressionValues,
 				}),
