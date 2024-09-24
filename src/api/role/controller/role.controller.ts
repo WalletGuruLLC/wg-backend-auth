@@ -37,6 +37,7 @@ import * as Sentry from '@sentry/nestjs';
 import { GetRolesDto } from '../dto/get-user.dto';
 import { isNumberInRange } from 'src/utils/helpers/validateAccessLevel';
 import { UserService } from 'src/api/user/service/user.service';
+import { ProviderService } from 'src/api/provider/service/provider.service';
 
 @ApiTags('role')
 @Controller('api/v1/roles')
@@ -44,7 +45,8 @@ import { UserService } from 'src/api/user/service/user.service';
 export class RoleController {
 	constructor(
 		private readonly roleService: RoleService,
-		private readonly userService: UserService
+		private readonly userService: UserService,
+		private readonly providerService: ProviderService
 	) {}
 
 	@UseGuards(CognitoAuthGuard)
@@ -460,6 +462,104 @@ export class RoleController {
 				customCode: 'WGE0036',
 				customMessage: errorCodes.WGE0036?.description,
 				customMessageEs: errorCodes.WGE0036?.descriptionEs,
+			});
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@ApiOperation({
+		summary: 'Create or update a new access level',
+	})
+	@ApiParam({ name: 'roleId', description: 'ID del rol', type: String })
+	@ApiParam({ name: 'moduleId', description: 'ID del módulo', type: String })
+	@ApiBody({
+		schema: { example: { accessLevel: 11, serviceProvider: 'provider1' } },
+	})
+	@ApiResponse({
+		status: 201,
+		description: 'Access level created successfully.',
+	})
+	@ApiResponse({ status: 404, description: 'Role or Module not found' })
+	@Post('/general-access-level/:roleId/:moduleId')
+	async createOrUpdateGeneralAccessLevel(
+		@Param('roleId') roleId: string,
+		@Param('moduleId') moduleId: string,
+		@Body()
+		body: { accessLevel?: Record<string, number>; serviceProvider: string },
+		@Res() res
+	) {
+		try {
+			const role = await this.roleService.searchFindOneId(roleId);
+			if (!role) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0027',
+				});
+			}
+
+			const moduleExists = await this.roleService.validateModuleExists(
+				moduleId
+			);
+
+			if (!moduleExists) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0131',
+				});
+			}
+
+			if (!isNumberInRange(body.accessLevel)) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0049',
+				});
+			}
+
+			if (body.serviceProvider) {
+				const serviceProv = await this.providerService.searchFindOneId(
+					body.serviceProvider
+				);
+				if (!serviceProv) {
+					return res.status(HttpStatus.NOT_FOUND).send({
+						statusCode: HttpStatus.NOT_FOUND,
+						customCode: 'WGE0040',
+					});
+				}
+
+				await this.roleService.createOrUpdateAccessLevel(
+					roleId,
+					body.serviceProvider,
+					Number(body.accessLevel),
+					moduleId
+				);
+
+				const roleUpd = await this.roleService.getRoleInfo(roleId);
+
+				return res.status(HttpStatus.OK).send({
+					statusCode: HttpStatus.OK,
+					customCode: 'WGE0141',
+					data: convertToCamelCase(roleUpd),
+				});
+			} else {
+				await this.roleService.createOrUpdateAccessLevelModules(
+					roleId,
+					moduleId,
+					body.accessLevel
+				);
+
+				const roleUpd = await this.roleService.getRoleInfo(roleId);
+
+				return res.status(HttpStatus.OK).send({
+					statusCode: HttpStatus.OK,
+					customCode: 'WGE0141',
+					data: convertToCamelCase(roleUpd),
+				});
+			}
+		} catch (error) {
+			Sentry.captureException(error);
+			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0134',
 			});
 		}
 	}
