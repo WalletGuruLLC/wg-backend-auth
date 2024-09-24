@@ -168,6 +168,11 @@ export class RoleController {
 			if (user?.type == 'PROVIDER') {
 				providerIdValue = user?.serviceProviderId;
 			}
+
+			if (user?.type == 'PLATFORM' && !providerId) {
+				providerIdValue = 'EMPTY';
+			}
+
 			const roles = await this.roleService.findAllActive(providerIdValue);
 			return {
 				statusCode: HttpStatus.OK,
