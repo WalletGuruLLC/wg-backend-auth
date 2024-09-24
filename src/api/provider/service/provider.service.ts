@@ -658,4 +658,13 @@ export class ProviderService {
 
 		return convertToCamelCase(paymentParameterQuery.Items);
 	}
+	async getTimeIntervals(): Promise<any> {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'TimeIntervals',
+		};
+		const timeIntervals = await docClient.scan(params).promise();
+
+		return convertToCamelCase(timeIntervals.Items);
+	}
 }
