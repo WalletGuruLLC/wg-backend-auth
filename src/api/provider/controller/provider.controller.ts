@@ -687,7 +687,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0115',
-					message: error.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
