@@ -451,7 +451,6 @@ export class UserController {
 			}
 
 			if (userFind?.first === false && updateUserDto?.email) {
-				delete updateUserDto?.email;
 				updateUserDto.email = userFind?.email;
 			}
 
