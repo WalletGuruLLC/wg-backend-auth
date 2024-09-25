@@ -67,7 +67,7 @@ export class ProviderService {
 		requestedModuleId: string,
 		requiredMethod: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 	): Promise<{
-		providers: [];
+		providers: { id: string; name: string; logo: string; active: boolean }[];
 		currentPage: number;
 		total: number;
 		totalPages: number;
@@ -130,10 +130,15 @@ export class ProviderService {
 
 			const total = providers.length;
 			const offset = (Number(page) - 1) * Number(items);
-			const paginatedProviders = providers.slice(
-				offset,
-				offset + Number(items)
-			);
+			let paginatedProviders = providers.slice(offset, offset + Number(items));
+
+			paginatedProviders = paginatedProviders.map(provider => ({
+				id: provider?.id,
+				name: provider?.name,
+				imageUrl: provider?.imageUrl,
+				active: provider?.active,
+			}));
+
 			const totalPages = Math.ceil(total / Number(items));
 
 			return {
@@ -181,6 +186,28 @@ export class ProviderService {
 			return convertToCamelCase(providers[0]);
 		} catch (error) {
 			Sentry.captureException(error);
+			throw new Error(`Error retrieving provider: ${error.message}`);
+		}
+	}
+
+	async searchFindOneWalletAddress(walletAddress: string) {
+		try {
+			const providers = await this.dbInstance
+				.scan('WalletAddress')
+				.eq(walletAddress)
+				.exec();
+			return convertToCamelCase(providers[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error retrieving provider: ${error.message}`);
+		}
+	}
+
+	async searchFindOneId(id: string) {
+		try {
+			const roles = await this.dbInstance.scan('Id').eq(id).exec();
+			return convertToCamelCase(roles[0]);
+		} catch (error) {
 			throw new Error(`Error retrieving provider: ${error.message}`);
 		}
 	}
@@ -244,12 +271,13 @@ export class ProviderService {
 
 		const allowedFields = [
 			'name',
-			'description',
 			'einNumber',
 			'companyAddress',
-			'logo',
+			'country',
+			'city',
+			'zipCode',
+			'walletAddress',
 			'contactInformation',
-			'phone',
 		];
 
 		const convertToPascalCase = (str: string) =>
@@ -638,5 +666,14 @@ export class ProviderService {
 		const paymentParameterQuery = await docClient.query(params).promise();
 
 		return convertToCamelCase(paymentParameterQuery.Items);
+	}
+	async getTimeIntervals(): Promise<any> {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'TimeIntervals',
+		};
+		const timeIntervals = await docClient.scan(params).promise();
+
+		return convertToCamelCase(timeIntervals.Items);
 	}
 }

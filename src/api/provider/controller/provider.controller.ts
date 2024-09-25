@@ -134,6 +134,20 @@ export class ProviderController {
 					});
 				}
 			}
+
+			if (createProviderDto?.walletAddress) {
+				const providerFind =
+					await this.providerService.searchFindOneWalletAddress(
+						createProviderDto?.walletAddress
+					);
+				if (providerFind) {
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
+						customCode: 'WGE0138',
+					});
+				}
+			}
+
 			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
 				userInfo?.UserAttributes?.[0]?.Value
@@ -176,7 +190,7 @@ export class ProviderController {
 		schema: {
 			example: {
 				statusCode: 200,
-				customCode: 'WGE0073',
+				customCode: 'WGE0135',
 				data: {
 					providers: [
 						{
@@ -236,7 +250,7 @@ export class ProviderController {
 			);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0073',
+				customCode: 'WGE0135',
 				data: providers,
 			});
 		} catch (error) {
@@ -391,7 +405,7 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0033',
+					customCode: 'WGE0140',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -506,7 +520,7 @@ export class ProviderController {
 		schema: {
 			example: {
 				statusCode: 200,
-				customCode: 'WGE0073',
+				customCode: 'WGE0139',
 				data: {
 					providers: [
 						{
@@ -554,7 +568,7 @@ export class ProviderController {
 			);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0073',
+				customCode: 'WGE0139',
 				data: { userProvider: convertToCamelCase(userProvider) },
 			});
 		} catch (error) {
@@ -702,6 +716,35 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					customCode: 'WGE0119',
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@ApiOperation({
+		summary: 'List time intervals',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Lista de intervalos de tiempo obtenida con éxito.',
+	})
+	@Get('list/time-intervals')
+	async listTimeIntervals() {
+		try {
+			const timeIntervals = await this.providerService.getTimeIntervals();
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0120',
+				data: timeIntervals,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					customCode: 'WGE0121',
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
