@@ -659,6 +659,16 @@ export class ProviderController {
 		@Res() res
 	) {
 		try {
+			const provider = await this.providerService.searchFindOne(
+				createProviderPaymentParameterDTO.serviceProviderId
+			);
+
+			if (!provider) {
+				return {
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0040',
+				};
+			}
 			const paymentParameter =
 				await this.providerService.createOrUpdatePaymentParameter(
 					paymentParameterId,
