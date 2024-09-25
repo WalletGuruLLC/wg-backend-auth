@@ -168,6 +168,11 @@ export class RoleController {
 			if (user?.type == 'PROVIDER') {
 				providerIdValue = user?.serviceProviderId;
 			}
+
+			if (user?.type == 'PLATFORM' && !providerId) {
+				providerIdValue = 'EMPTY';
+			}
+
 			const roles = await this.roleService.findAllActive(providerIdValue);
 			return {
 				statusCode: HttpStatus.OK,
@@ -329,9 +334,14 @@ export class RoleController {
 			if (!role) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0046',
-					customMessage: errorCodes.WGE0046?.description,
-					customMessageEs: errorCodes.WGE0046?.descriptionEs,
+					customCode: 'WGE0027',
+				});
+			}
+
+			if (!body?.accessLevel) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0134',
 				});
 			}
 
@@ -342,9 +352,7 @@ export class RoleController {
 			if (!moduleExists) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0045',
-					customMessage: errorCodes.WGE0045?.description,
-					customMessageEs: errorCodes.WGE0045?.descriptionEs,
+					customCode: 'WGE0131',
 				});
 			}
 
@@ -352,8 +360,6 @@ export class RoleController {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0049',
-					customMessage: errorCodes.WGE0049?.description,
-					customMessageEs: errorCodes.WGE0049?.descriptionEs,
 				});
 			}
 
@@ -367,18 +373,14 @@ export class RoleController {
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0080',
-				customMessage: successCodes.WGE0080?.description,
-				customMessageEs: successCodes.WGE0080?.descriptionEs,
+				customCode: 'WGE0141',
 				data: convertToCamelCase(roleUpd),
 			});
 		} catch (error) {
 			Sentry.captureException(error);
 			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				customCode: 'WGE0036',
-				customMessage: errorCodes.WGE0036?.description,
-				customMessageEs: errorCodes.WGE0036?.descriptionEs,
+				customCode: 'WGE0134',
 			});
 		}
 	}
@@ -407,14 +409,31 @@ export class RoleController {
 		@Res() res
 	) {
 		try {
-			const role = await this.roleService.findRole(roleId);
+			const role = await this.roleService.searchFindOneId(roleId);
 			if (!role) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0046',
-					customMessage: errorCodes.WGE0046?.description,
-					customMessageEs: errorCodes.WGE0046?.descriptionEs,
+					customCode: 'WGE0027',
 				});
+			}
+
+			if (!body.serviceProvider || !body?.accessLevel) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0134',
+				});
+			}
+
+			if (body.serviceProvider) {
+				const serviceProv = await this.providerService.searchFindOneId(
+					body.serviceProvider
+				);
+				if (!serviceProv) {
+					return res.status(HttpStatus.NOT_FOUND).send({
+						statusCode: HttpStatus.NOT_FOUND,
+						customCode: 'WGE0040',
+					});
+				}
 			}
 
 			const moduleExists = await this.roleService.validateModuleExists(
@@ -424,9 +443,7 @@ export class RoleController {
 			if (!moduleExists) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0045',
-					customMessage: errorCodes.WGE0045?.description,
-					customMessageEs: errorCodes.WGE0045?.descriptionEs,
+					customCode: 'WGE0131',
 				});
 			}
 
@@ -434,8 +451,6 @@ export class RoleController {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0049',
-					customMessage: errorCodes.WGE0049?.description,
-					customMessageEs: errorCodes.WGE0049?.descriptionEs,
 				});
 			}
 
@@ -450,18 +465,15 @@ export class RoleController {
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0080',
-				customMessage: successCodes.WGE0080?.description,
-				customMessageEs: successCodes.WGE0080?.descriptionEs,
+				customCode: 'WGE0141',
 				data: convertToCamelCase(roleUpd),
 			});
 		} catch (error) {
+			console.log('error', error?.message);
 			Sentry.captureException(error);
 			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				customCode: 'WGE0036',
-				customMessage: errorCodes.WGE0036?.description,
-				customMessageEs: errorCodes.WGE0036?.descriptionEs,
+				customCode: 'WGE0134',
 			});
 		}
 	}

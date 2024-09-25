@@ -747,14 +747,14 @@ export class ProviderController {
 			const timeIntervals = await this.providerService.getTimeIntervals();
 			return {
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0120',
+				customCode: 'WGE0128',
 				data: timeIntervals,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
-					customCode: 'WGE0121',
+					customCode: 'WGE0129',
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
