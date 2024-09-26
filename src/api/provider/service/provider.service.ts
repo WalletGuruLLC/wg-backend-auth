@@ -627,6 +627,17 @@ export class ProviderService {
 			id
 		);
 
+		const feeConfigParams = {
+			TableName: 'FeeConfigurations',
+			IndexName: 'ServiceProviderIdIndex',
+			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
+			ExpressionAttributeValues: {
+				':serviceProviderId': createProviderPaymentParameter.serviceProviderId,
+			},
+		};
+
+		const feeConfigurations = await docClient.query(feeConfigParams).promise();
+
 		if (
 			(!id && existingPaymentParameter.length > 0) ||
 			(id && !existingPaymentParameter.length)
@@ -637,6 +648,28 @@ export class ProviderService {
 					statusCode: HttpStatus.BAD_REQUEST,
 				},
 				HttpStatus.BAD_REQUEST
+			);
+		}
+
+		if (!feeConfigurations.Items) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0140',
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+
+		const feeConfig = feeConfigurations.Items?.[0];
+
+		if (!feeConfig) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0145',
+					statusCode: HttpStatus.NOT_FOUND,
+				},
+				HttpStatus.NOT_FOUND
 			);
 		}
 
@@ -651,9 +684,9 @@ export class ProviderService {
 				Interval: createProviderPaymentParameter.interval,
 				Asset: createProviderPaymentParameter.asset,
 				ServiceProviderId: createProviderPaymentParameter.serviceProviderId,
-				Percent: 1,
-				Comision: 0,
-				Base: 2,
+				Percent: feeConfig.Percent,
+				Comision: feeConfig.Comission,
+				Base: feeConfig.Base,
 			},
 		};
 
@@ -734,7 +767,7 @@ export class ProviderService {
 			if (userFind && userFind.Type !== 'PLATFORM') {
 				throw new HttpException(
 					{
-						customCode: 'WGE0133',
+						customCode: 'WGE0146',
 					},
 					HttpStatus.BAD_REQUEST
 				);
@@ -793,7 +826,7 @@ export class ProviderService {
 			if (userFind && userFind.Type !== 'PLATFORM') {
 				throw new HttpException(
 					{
-						customCode: 'WGE0133',
+						customCode: 'WGE0146',
 					},
 					HttpStatus.BAD_REQUEST
 				);
@@ -858,7 +891,7 @@ export class ProviderService {
 			if (!result.Item) {
 				throw new HttpException(
 					{
-						customCode: 'WGE0040',
+						customCode: 'WGE0145',
 					},
 					HttpStatus.NOT_FOUND
 				);
