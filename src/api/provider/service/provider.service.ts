@@ -627,6 +627,17 @@ export class ProviderService {
 			id
 		);
 
+		const feeConfigParams = {
+			TableName: 'FeeConfigurations',
+			IndexName: 'ServiceProviderIdIndex',
+			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
+			ExpressionAttributeValues: {
+				':serviceProviderId': createProviderPaymentParameter.serviceProviderId,
+			},
+		};
+
+		const feeConfigurations = await docClient.query(feeConfigParams).promise();
+
 		if (
 			(!id && existingPaymentParameter.length > 0) ||
 			(id && !existingPaymentParameter.length)
@@ -640,6 +651,18 @@ export class ProviderService {
 			);
 		}
 
+		if (!feeConfigurations.Items.length) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0132',
+					statusCode: HttpStatus.NOT_FOUND,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+
+		const feeConfig = feeConfigurations.Items?.[0];
+
 		const params = {
 			TableName: 'PaymentParameters',
 			Item: {
@@ -651,9 +674,9 @@ export class ProviderService {
 				Interval: createProviderPaymentParameter.interval,
 				Asset: createProviderPaymentParameter.asset,
 				ServiceProviderId: createProviderPaymentParameter.serviceProviderId,
-				Percent: 1,
-				Comision: 0,
-				Base: 2,
+				Percent: feeConfig.Percent,
+				Comision: feeConfig.Comission,
+				Base: feeConfig.Base,
 			},
 		};
 
@@ -858,7 +881,7 @@ export class ProviderService {
 			if (!result.Item) {
 				throw new HttpException(
 					{
-						customCode: 'WGE0040',
+						customCode: 'WGE0132',
 					},
 					HttpStatus.NOT_FOUND
 				);
