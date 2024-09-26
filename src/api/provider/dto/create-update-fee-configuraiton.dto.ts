@@ -5,7 +5,7 @@ export class CreateUpdateFeeConfigurationDTO {
 	percent: number;
 
 	@IsNumber()
-	comision: number;
+	comission: number;
 
 	@IsNumber()
 	base: number;

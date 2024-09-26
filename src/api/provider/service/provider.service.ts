@@ -717,14 +717,17 @@ export class ProviderService {
 		user: string,
 		id?: string
 	): Promise<CreateUpdateFeeConfigurationDTO> {
-		const docClient = new DocumentClient();
-
-		const currentDate = Date.now();
-
 		try {
-			const provider = await this.searchFindOne(
-				createUpdateFeeConfigurationDTO.serviceProviderId
-			);
+			const docClient = new DocumentClient();
+
+			const currentDate = Date.now();
+			const getProviderParams: DocumentClient.GetItemInput = {
+				TableName: 'Providers',
+				Key: { Id: createUpdateFeeConfigurationDTO.serviceProviderId },
+			};
+			let providerFeeConfig;
+
+			const provider = await docClient.get(getProviderParams).promise();
 
 			const userConverted = user as unknown as {
 				Name: string;
@@ -738,7 +741,6 @@ export class ProviderService {
 				.exec();
 
 			const userFind = users?.[0];
-
 			if (userFind && userFind.Type !== 'PLATFORM') {
 				throw new HttpException(
 					{
@@ -758,7 +760,7 @@ export class ProviderService {
 			}
 
 			if (id) {
-				await this.getProviderFeeConfiguration(id);
+				providerFeeConfig = await this.getProviderFeeConfiguration(id);
 			}
 
 			const params = {
@@ -767,9 +769,14 @@ export class ProviderService {
 					Id: id ? id : uuidv4(),
 					ServiceProviderId: createUpdateFeeConfigurationDTO.serviceProviderId,
 					Percent: createUpdateFeeConfigurationDTO.percent,
-					Comision: createUpdateFeeConfigurationDTO.comision,
+					Comission: createUpdateFeeConfigurationDTO.comission,
 					Base: createUpdateFeeConfigurationDTO.base,
-					...(id && { UpdatedBy: userFind.Id, UpdatedDate: currentDate }),
+					...(id && {
+						CreatedDate: providerFeeConfig.createdDate,
+						CreatedBy: providerFeeConfig.createdBy,
+						UpdatedBy: userFind.Id,
+						UpdatedDate: currentDate,
+					}),
 					...(!id && {
 						UpdatedBy: userFind.Id,
 						UpdatedDate: currentDate,

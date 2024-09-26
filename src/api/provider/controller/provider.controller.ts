@@ -791,7 +791,7 @@ export class ProviderController {
 		status: 404,
 		description: 'feeConfigurationId for service provider not found ',
 	})
-	@Patch('fee-configurations/:feeConfigurationId?')
+	@Patch('create/fee-configurations/:feeConfigurationId?')
 	async createOrUpdateFeeConfiguration(
 		@Param('feeConfigurationId') feeConfigurationId: string | undefined,
 		@Body()
