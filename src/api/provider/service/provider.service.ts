@@ -722,12 +722,9 @@ export class ProviderService {
 		const currentDate = Date.now();
 
 		try {
-			const getProviderParams: DocumentClient.GetItemInput = {
-				TableName: 'Providers',
-				Key: { Id: createUpdateFeeConfigurationDTO.serviceProviderId },
-			};
-
-			const provider = await docClient.get(getProviderParams).promise();
+			const provider = await this.searchFindOne(
+				createUpdateFeeConfigurationDTO.serviceProviderId
+			);
 
 			const userConverted = user as unknown as {
 				Name: string;
