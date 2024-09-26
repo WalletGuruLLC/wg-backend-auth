@@ -712,6 +712,55 @@ export class ProviderService {
 		return convertToCamelCase(timeIntervals.Items);
 	}
 
+	async getFeeConfigurationsByProvider(
+		user: string,
+		serviceProviderId: string
+	): Promise<any> {
+		const docClient = new DocumentClient();
+
+		try {
+			const userConverted = user as unknown as {
+				Name: string;
+				Value: string;
+			}[];
+			const userEmail = userConverted[0]?.Value;
+
+			const users = await this.dbUserInstance
+				.query('Email')
+				.eq(userEmail)
+				.exec();
+
+			const userFind = users?.[0];
+			if (userFind && userFind.Type !== 'PLATFORM') {
+				throw new HttpException(
+					{
+						customCode: 'WGE0133',
+					},
+					HttpStatus.BAD_REQUEST
+				);
+			}
+
+			await this.searchFindOne(serviceProviderId);
+			const params = {
+				TableName: 'FeeConfigurations',
+				IndexName: 'ServiceProviderIdIndex',
+				KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
+				ExpressionAttributeValues: {
+					':serviceProviderId': serviceProviderId,
+				},
+			};
+
+			const feeConfigurations = await docClient.query(params).promise();
+
+			return convertToCamelCase(feeConfigurations.Items?.[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(
+				`Error fetching Fee Configuration by Provider ID: ${error.message}`
+			);
+		}
+	}
+
 	async createOrUpdateProviderFeeConfiguration(
 		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
 		user: string,
