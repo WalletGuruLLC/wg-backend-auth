@@ -451,12 +451,7 @@ export class UserController {
 			}
 
 			if (userFind?.first === false && updateUserDto?.email) {
-				return res.status(HttpStatus.UNAUTHORIZED).send({
-					statusCode: HttpStatus.UNAUTHORIZED,
-					customCode: 'WGE0024',
-					customMessage: errorCodes.WGE0024?.description,
-					customMessageEs: errorCodes.WGE0024?.descriptionEs,
-				});
+				updateUserDto.email = userFind?.email;
 			}
 
 			if (
