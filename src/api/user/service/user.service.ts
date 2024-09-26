@@ -219,21 +219,21 @@ export class UserService {
 			} = createUserDto;
 
 			let providerId = 'EMPTY';
-			if(type !== "WALLET"){
+			if (type !== 'WALLET') {
 				const userConverted = user as unknown as {
 					Name: string;
 					Value: string;
 				}[];
 				const userEmail = userConverted?.[0]?.Value;
-	
+
 				const userFind = await this.findOneByEmail(userEmail);
-	
-				 providerId =
+
+				providerId =
 					userFind && userFind?.type === 'PROVIDER'
 						? userFind?.ServiceProviderId
 						: userFind && userFind?.type === 'WALLET'
 						? 'EMPTY'
-						: serviceProviderId;	
+						: serviceProviderId;
 			}
 
 			// Generate password and hash it
