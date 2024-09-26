@@ -744,7 +744,7 @@ export class ProviderService {
 			if (userFind && userFind.Type !== 'PLATFORM') {
 				throw new HttpException(
 					{
-						customCode: 'WGE0040',
+						customCode: 'WGE0133',
 					},
 					HttpStatus.BAD_REQUEST
 				);

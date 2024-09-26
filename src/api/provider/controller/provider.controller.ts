@@ -810,7 +810,7 @@ export class ProviderController {
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0116',
+				customCode: 'WGE0129',
 				data: convertToCamelCase(feeConfiguration),
 			});
 		} catch (error) {
@@ -819,7 +819,7 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0115',
+					customCode: 'WGE0130',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
