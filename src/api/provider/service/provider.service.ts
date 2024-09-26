@@ -654,7 +654,7 @@ export class ProviderService {
 		if (!feeConfigurations.Items) {
 			throw new HttpException(
 				{
-					customCode: 'WGE0130',
+					customCode: 'WGE0140',
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
@@ -666,7 +666,7 @@ export class ProviderService {
 		if (!feeConfig) {
 			throw new HttpException(
 				{
-					customCode: 'WGE0132',
+					customCode: 'WGE0145',
 					statusCode: HttpStatus.NOT_FOUND,
 				},
 				HttpStatus.NOT_FOUND
