@@ -810,7 +810,7 @@ export class ProviderController {
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0129',
+				customCode: 'WGE0137',
 				data: convertToCamelCase(feeConfiguration),
 			});
 		} catch (error) {
@@ -819,7 +819,7 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0130',
+					customCode: 'WGE0140',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -849,14 +849,14 @@ export class ProviderController {
 				);
 			return {
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0131',
+				customCode: 'WGE0144',
 				data: feeConfiguration,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
-					customCode: 'WGE0132',
+					customCode: 'WGE0145',
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
