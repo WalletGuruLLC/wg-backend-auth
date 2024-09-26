@@ -651,7 +651,19 @@ export class ProviderService {
 			);
 		}
 
-		if (!feeConfigurations.Items.length) {
+		if (!feeConfigurations.Items) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0130',
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+
+		const feeConfig = feeConfigurations.Items?.[0];
+
+		if (!feeConfig) {
 			throw new HttpException(
 				{
 					customCode: 'WGE0132',
@@ -660,8 +672,6 @@ export class ProviderService {
 				HttpStatus.NOT_FOUND
 			);
 		}
-
-		const feeConfig = feeConfigurations.Items?.[0];
 
 		const params = {
 			TableName: 'PaymentParameters',
