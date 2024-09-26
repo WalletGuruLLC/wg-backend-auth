@@ -767,7 +767,7 @@ export class ProviderService {
 			if (userFind && userFind.Type !== 'PLATFORM') {
 				throw new HttpException(
 					{
-						customCode: 'WGE0133',
+						customCode: 'WGE0146',
 					},
 					HttpStatus.BAD_REQUEST
 				);
@@ -826,7 +826,7 @@ export class ProviderService {
 			if (userFind && userFind.Type !== 'PLATFORM') {
 				throw new HttpException(
 					{
-						customCode: 'WGE0133',
+						customCode: 'WGE0146',
 					},
 					HttpStatus.BAD_REQUEST
 				);
@@ -891,7 +891,7 @@ export class ProviderService {
 			if (!result.Item) {
 				throw new HttpException(
 					{
-						customCode: 'WGE0132',
+						customCode: 'WGE0145',
 					},
 					HttpStatus.NOT_FOUND
 				);
