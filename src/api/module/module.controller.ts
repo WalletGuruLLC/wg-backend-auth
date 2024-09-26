@@ -16,6 +16,7 @@ import {
 import { ModuleService } from './module.service';
 import { CognitoAuthGuard } from '../../api/user/guard/cognito-auth.guard';
 import { UserService } from '../user/service/user.service';
+import { parseStringToBoolean } from 'src/utils/helpers/parseStringToBoolean';
 
 @Controller('api/v1/modules')
 @ApiTags('modules')
@@ -43,13 +44,14 @@ export class ModuleController {
 		);
 
 		let types = ['AL', 'WG'];
-		if (user?.type == 'PROVIDER' || isProvider === true) {
+		if (user?.type == 'PROVIDER' || parseStringToBoolean(isProvider)) {
 			types = ['AL', 'SP'];
 		}
 
 		const modules = await this.moduleService.findAll(belongs, types);
 		return {
 			statusCode: HttpStatus.OK,
+			customCode: 'WGE0143',
 			message: 'Successfully returned modules',
 			data: modules,
 		};

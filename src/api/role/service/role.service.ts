@@ -12,7 +12,8 @@ import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
 import { Provider } from '../../provider/entities/provider.entity';
 import { ProviderSchema } from '../../provider/entities/provider.schema';
-import { QueryResponse, ScanResponse } from 'dynamoose/dist/DocumentRetriever';
+import { ScanResponse } from 'dynamoose/dist/DocumentRetriever';
+import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 
 @Injectable()
 export class RoleService {
@@ -232,6 +233,15 @@ export class RoleService {
 			);
 		}
 		return result[0];
+	}
+
+	async searchFindOneId(id: string) {
+		try {
+			const roles = await this.dbInstance.scan('Id').eq(id).exec();
+			return convertToCamelCase(roles[0]);
+		} catch (error) {
+			throw new Error(`Error retrieving role: ${error.message}`);
+		}
 	}
 
 	async remove(id: string): Promise<void> {

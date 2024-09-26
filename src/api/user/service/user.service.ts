@@ -123,6 +123,18 @@ export class UserService {
 		return result.Item?.Modules || {};
 	}
 
+	async listAccessLevelsPlatformModules(roleId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'Roles',
+			Key: { Id: roleId },
+			ProjectionExpression: 'PlatformModules',
+		};
+
+		const result = await docClient.get(params).promise();
+		return result.Item?.PlatformModules || {};
+	}
+
 	async verifyOtp(verifyOtp: VerifyOtpDto) {
 		try {
 			const otpRecord = await this.dbOtpInstance
@@ -206,18 +218,23 @@ export class UserService {
 				passwordHash,
 			} = createUserDto;
 
-			const userConverted = user as unknown as {
-				Name: string;
-				Value: string;
-			}[];
-			const userEmail = userConverted[0]?.Value;
+			let providerId = 'EMPTY';
+			if (type !== 'WALLET') {
+				const userConverted = user as unknown as {
+					Name: string;
+					Value: string;
+				}[];
+				const userEmail = userConverted?.[0]?.Value;
 
-			const users = await this.dbInstance.query('Email').eq(userEmail).exec();
+				const userFind = await this.findOneByEmail(userEmail);
 
-			const providerId: string =
-				users.length > 0 && type === 'PROVIDER'
-					? users[0]?.ServiceProviderId
-					: serviceProviderId;
+				providerId =
+					userFind && userFind?.type === 'PROVIDER'
+						? userFind?.ServiceProviderId
+						: userFind && userFind?.type === 'WALLET'
+						? 'EMPTY'
+						: serviceProviderId;
+			}
 
 			// Generate password and hash it
 			const password =

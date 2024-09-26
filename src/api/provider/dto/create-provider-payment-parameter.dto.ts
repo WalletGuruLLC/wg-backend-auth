@@ -1,5 +1,6 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Frequency } from './frequency.enum';
+import { Asset } from './asset.enum';
 
 export class CreateProviderPaymentParameterDTO {
 	@IsString()
@@ -15,14 +16,14 @@ export class CreateProviderPaymentParameterDTO {
 	@IsNumber()
 	cost: number;
 
-	@IsString()
+	@IsEnum(Frequency)
 	frequency: Frequency;
 
 	@IsNumber()
 	interval: number;
 
-	@IsString()
-	asset: string;
+	@IsEnum(Asset)
+	asset: Asset;
 
 	percent?: number;
 
