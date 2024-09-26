@@ -712,6 +712,33 @@ export class ProviderService {
 		return convertToCamelCase(timeIntervals.Items);
 	}
 
+	async getFeeConfigurationsByProvider(
+		serviceProviderId: string
+	): Promise<any> {
+		const docClient = new DocumentClient();
+
+		try {
+			const provider = await this.searchFindOne(serviceProviderId);
+			const params = {
+				TableName: 'FeeConfigurations',
+				IndexName: 'ServiceProviderIdIndex',
+				KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
+				ExpressionAttributeValues: {
+					':serviceProviderId': serviceProviderId,
+				},
+			};
+
+			const feeConfigurations = await docClient.query(params).promise();
+
+			return convertToCamelCase(feeConfigurations.Items?.[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(
+				`Error fetching Fee Configuration by Provider ID: ${error.message}`
+			);
+		}
+	}
+
 	async createOrUpdateProviderFeeConfiguration(
 		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
 		user: string,

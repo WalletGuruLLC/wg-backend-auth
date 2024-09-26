@@ -825,4 +825,34 @@ export class ProviderController {
 			);
 		}
 	}
+
+	@UseGuards(CognitoAuthGuard)
+	@ApiOperation({
+		summary: 'Get Provider Fee Configurations',
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Lista de configuraciones de fee obtenida con éxito.',
+	})
+	@Get('fee-configurations/:providerId')
+	async getFeeConfiguration(@Param('providerId') providerId: string) {
+		try {
+			const feeConfiguration =
+				await this.providerService.getFeeConfigurationsByProvider(providerId);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0128',
+				data: feeConfiguration,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					customCode: 'WGE0129',
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
 }
