@@ -849,14 +849,14 @@ export class ProviderController {
 				);
 			return {
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0128',
+				customCode: 'WGE0131',
 				data: feeConfiguration,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
-					customCode: 'WGE0129',
+					customCode: 'WGE0132',
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR

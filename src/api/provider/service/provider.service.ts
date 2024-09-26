@@ -713,12 +713,34 @@ export class ProviderService {
 	}
 
 	async getFeeConfigurationsByProvider(
+		user: string,
 		serviceProviderId: string
 	): Promise<any> {
 		const docClient = new DocumentClient();
 
 		try {
-			const provider = await this.searchFindOne(serviceProviderId);
+			const userConverted = user as unknown as {
+				Name: string;
+				Value: string;
+			}[];
+			const userEmail = userConverted[0]?.Value;
+
+			const users = await this.dbUserInstance
+				.query('Email')
+				.eq(userEmail)
+				.exec();
+
+			const userFind = users?.[0];
+			if (userFind && userFind.Type !== 'PLATFORM') {
+				throw new HttpException(
+					{
+						customCode: 'WGE0133',
+					},
+					HttpStatus.BAD_REQUEST
+				);
+			}
+
+			await this.searchFindOne(serviceProviderId);
 			const params = {
 				TableName: 'FeeConfigurations',
 				IndexName: 'ServiceProviderIdIndex',
