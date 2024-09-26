@@ -766,7 +766,7 @@ export class ProviderController {
 	@UseGuards(CognitoAuthGuard)
 	@UsePipes(ValidationPipe)
 	@ApiOperation({
-		summary: 'Create or update a new payment parameters for service providers',
+		summary: 'Create or update a fee configuration for service providers',
 	})
 	@ApiParam({
 		name: 'feeConfigurationId',
