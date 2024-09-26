@@ -44,6 +44,7 @@ import { UserService } from 'src/api/user/service/user.service';
 import { RoleService } from 'src/api/role/service/role.service';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
 import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
+import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -756,6 +757,69 @@ export class ProviderController {
 				{
 					customCode: 'WGE0129',
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@UsePipes(ValidationPipe)
+	@ApiOperation({
+		summary: 'Create or update a new payment parameters for service providers',
+	})
+	@ApiParam({
+		name: 'feeConfigurationId',
+		description: 'ID del fee',
+		type: String,
+	})
+	@ApiBody({
+		schema: {
+			example: {
+				comision: 1,
+				percent: 1,
+				base: 2,
+				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
+			},
+		},
+	})
+	@ApiResponse({
+		status: 201,
+		description: 'Fee Configuration created succefully',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'feeConfigurationId for service provider not found ',
+	})
+	@Patch('fee-configurations/:feeConfigurationId?')
+	async createOrUpdateFeeConfiguration(
+		@Param('feeConfigurationId') feeConfigurationId: string | undefined,
+		@Body()
+		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
+		@Res() res,
+		@Req() req
+	) {
+		try {
+			const userRequest = req.user?.UserAttributes;
+			const feeConfiguration =
+				await this.providerService.createOrUpdateProviderFeeConfiguration(
+					createUpdateFeeConfigurationDTO,
+					userRequest,
+					feeConfigurationId
+				);
+
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0116',
+				data: convertToCamelCase(feeConfiguration),
+			});
+		} catch (error) {
+			Sentry.captureException(error);
+
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0115',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

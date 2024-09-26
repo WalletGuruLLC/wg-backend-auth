@@ -28,6 +28,7 @@ import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-paymen
 import { buildFilterExpressionDynamo } from '../../../utils/helpers/buildFilterExpressionDynamo';
 import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
 import { removeSpaces } from '../../../utils/helpers/removeSpaces';
+import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
 
 @Injectable()
 export class ProviderService {
@@ -709,5 +710,113 @@ export class ProviderService {
 		const timeIntervals = await docClient.scan(params).promise();
 
 		return convertToCamelCase(timeIntervals.Items);
+	}
+
+	async createOrUpdateProviderFeeConfiguration(
+		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
+		user: string,
+		id?: string
+	): Promise<CreateUpdateFeeConfigurationDTO> {
+		const docClient = new DocumentClient();
+
+		const currentDate = Date.now();
+
+		try {
+			const getProviderParams: DocumentClient.GetItemInput = {
+				TableName: 'Providers',
+				Key: { Id: createUpdateFeeConfigurationDTO.serviceProviderId },
+			};
+
+			const provider = await docClient.get(getProviderParams).promise();
+
+			const userConverted = user as unknown as {
+				Name: string;
+				Value: string;
+			}[];
+			const userEmail = userConverted[0]?.Value;
+
+			const users = await this.dbUserInstance
+				.query('Email')
+				.eq(userEmail)
+				.exec();
+
+			const userFind = users?.[0];
+
+			if (userFind && userFind.Type !== 'PLATFORM') {
+				throw new HttpException(
+					{
+						customCode: 'WGE0040',
+					},
+					HttpStatus.BAD_REQUEST
+				);
+			}
+
+			if (!provider.Item) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0040',
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			if (id) {
+				await this.getProviderFeeConfiguration(id);
+			}
+
+			const params = {
+				TableName: 'FeeConfigurations',
+				Item: {
+					Id: id ? id : uuidv4(),
+					ServiceProviderId: createUpdateFeeConfigurationDTO.serviceProviderId,
+					Percent: createUpdateFeeConfigurationDTO.percent,
+					Comision: createUpdateFeeConfigurationDTO.comision,
+					Base: createUpdateFeeConfigurationDTO.base,
+					...(id && { UpdatedBy: userFind.Id, UpdatedDate: currentDate }),
+					...(!id && {
+						UpdatedBy: userFind.Id,
+						UpdatedDate: currentDate,
+						CreatedDate: currentDate,
+						CreatedBy: userFind.Id,
+					}),
+				},
+			};
+
+			await docClient.put(params).promise();
+
+			return convertToCamelCase(params.Item);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error Updating Fee Configuration: ${error.message}`);
+		}
+	}
+
+	async getProviderFeeConfiguration(feeConfigurationId: string) {
+		const docClient = new DocumentClient();
+
+		const getFeeConfigParams: DocumentClient.GetItemInput = {
+			TableName: 'FeeConfigurations',
+			Key: { Id: feeConfigurationId },
+		};
+
+		try {
+			const result = await docClient.get(getFeeConfigParams).promise();
+
+			if (!result.Item) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0040',
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			return convertToCamelCase(result.Item);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(
+				`Error fetching Fee Configuration by ID: ${error.message}`
+			);
+		}
 	}
 }
