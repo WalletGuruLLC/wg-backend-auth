@@ -835,10 +835,18 @@ export class ProviderController {
 		description: 'Lista de configuraciones de fee obtenida con éxito.',
 	})
 	@Get('fee-configurations/:providerId')
-	async getFeeConfiguration(@Param('providerId') providerId: string) {
+	async getFeeConfiguration(
+		@Param('providerId') providerId: string,
+		@Req() req
+	) {
 		try {
+			const userRequest = req.user?.UserAttributes;
+
 			const feeConfiguration =
-				await this.providerService.getFeeConfigurationsByProvider(providerId);
+				await this.providerService.getFeeConfigurationsByProvider(
+					userRequest,
+					providerId
+				);
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0128',
