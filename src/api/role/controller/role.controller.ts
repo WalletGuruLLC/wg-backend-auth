@@ -338,9 +338,9 @@ export class RoleController {
 				});
 			}
 
-			if (!body?.accessLevel) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+			if (!body?.accessLevel && Number(body?.accessLevel) !== 0) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0134',
 				});
 			}
@@ -417,9 +417,12 @@ export class RoleController {
 				});
 			}
 
-			if (!body.serviceProvider || !body?.accessLevel) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+			if (
+				!body.serviceProvider ||
+				(!body?.accessLevel && Number(body?.accessLevel) !== 0)
+			) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0134',
 				});
 			}
