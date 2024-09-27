@@ -467,29 +467,45 @@ export class UserController {
 				});
 			}
 
-			if (updateUserDto?.identificationType === `Driver’s License`) {
+			if (
+				updateUserDto?.identificationType &&
+				!updateUserDto?.identificationNumber
+			) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0122',
+				});
+			}
+
+			if (updateUserDto?.identificationType?.match(/license/i)) {
 				const { stateLocation, identificationNumber } = updateUserDto;
 
-				if (
-					stateLocation &&
-					identificationNumber &&
-					licenseFormats[
-						stateLocation.trim().replace(/\b\w/g, char => char.toUpperCase())
-					]
-				) {
-					const isValidLicense = await validateLicense(
-						stateLocation,
-						identificationNumber
-					);
+				const regex = /^[a-zA-Z0-9]+$/;
+				if (updateUserDto?.identificationNumber?.match(regex)) {
+					if (
+						stateLocation &&
+						identificationNumber &&
+						licenseFormats[
+							stateLocation.trim().replace(/\b\w/g, char => char.toUpperCase())
+						]
+					) {
+						const isValidLicense = await validateLicense(
+							stateLocation,
+							identificationNumber
+						);
 
-					if (!isValidLicense) {
-						return res.status(HttpStatus.PARTIAL_CONTENT).send({
-							statusCode: HttpStatus.PARTIAL_CONTENT,
-							customCode: 'WGE00019',
-							customMessage: errorCodes?.WGE00019?.description,
-							customMessageEs: errorCodes?.WGE00019?.descriptionEs,
-						});
+						if (!isValidLicense) {
+							return res.status(HttpStatus.PARTIAL_CONTENT).send({
+								statusCode: HttpStatus.PARTIAL_CONTENT,
+								customCode: 'WGE0159',
+							});
+						}
 					}
+				} else {
+					return res.status(HttpStatus.PARTIAL_CONTENT).send({
+						statusCode: HttpStatus.PARTIAL_CONTENT,
+						customCode: 'WGE0158',
+					});
 				}
 			}
 
