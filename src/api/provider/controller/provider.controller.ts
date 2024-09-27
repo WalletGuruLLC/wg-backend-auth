@@ -900,7 +900,7 @@ export class ProviderController {
 				);
 			return {
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0116',
+				customCode: 'WGE0160',
 				data: paymentParameter,
 			};
 		} catch (error) {
@@ -908,7 +908,7 @@ export class ProviderController {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0115',
+					customCode: 'WGE0161',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
