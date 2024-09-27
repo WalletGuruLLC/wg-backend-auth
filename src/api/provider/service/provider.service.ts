@@ -1046,4 +1046,99 @@ export class ProviderService {
 			throw new Error(`Error fetching payments parameters: ${error.message}`);
 		}
 	}
+
+	async togglePaymentParameter(
+		serviceProviderId: string,
+		paymentParameterId: string,
+		user: string
+	) {
+		const docClient = new DocumentClient();
+
+		const userConverted = user as unknown as {
+			Name: string;
+			Value: string;
+		}[];
+		const email = userConverted[0]?.Value;
+		try {
+			const userFind = await this.dbUserInstance
+				.query('Email')
+				.eq(email)
+				.exec();
+
+			const userDb = userFind?.[0];
+
+			const providerId =
+				userDb && userDb?.Type === 'PROVIDER'
+					? userDb?.ServiceProviderId
+					: serviceProviderId;
+
+			const params = {
+				TableName: 'PaymentParameters',
+				IndexName: 'ServiceProviderIdIndex',
+				KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
+				FilterExpression: 'Id = :paymentParameterId',
+				ExpressionAttributeValues: {
+					':serviceProviderId': providerId,
+					':paymentParameterId': paymentParameterId,
+				},
+			};
+
+			if (!userDb) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0040',
+						...errorCodes.WGE0040,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			if (userDb.Type === 'PLATFORM') {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+						customCode: 'WGE0115',
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+
+			const paymentParameter = await docClient.query(params).promise();
+
+			if (!paymentParameter?.Items?.[0]) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0119',
+						statusCode: HttpStatus.NOT_FOUND,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			const active =
+				!paymentParameter?.Items?.[0].Active ??
+				!!paymentParameter?.Items?.[0].Active;
+
+			const toggleParams = {
+				TableName: 'PaymentParameters',
+				Key: {
+					Id: paymentParameterId,
+				},
+				UpdateExpression: 'SET Active = :activePaymentParameter',
+				ExpressionAttributeValues: {
+					':activePaymentParameter': active,
+				},
+				ReturnValues: 'ALL_NEW',
+			};
+
+			const paymentParameterUpdaate = await docClient
+				.update(toggleParams)
+				.promise();
+
+			return paymentParameterUpdaate.Attributes;
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error Toggle payments parameters: ${error.message}`);
+		}
+	}
 }

@@ -867,4 +867,51 @@ export class ProviderController {
 			);
 		}
 	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Patch(':id?/payment-parameters/:paymentParameterId/toggle')
+	@ApiOperation({ summary: 'Toggle the active status of a payment parameter' })
+	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
+	@ApiParam({
+		name: 'paymentParameterId',
+		description: 'ID of the payment parameter',
+		type: String,
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Payment parameter status toggled successfully.',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'Payment parameter not found.',
+	})
+	async paymentParameterToggle(
+		@Param('paymentParameterId') paymentParameterId: string,
+		@Req() req,
+		@Param('id') id?: string
+	) {
+		try {
+			const userRequest = req.user?.UserAttributes;
+			const paymentParameter =
+				await this.providerService.togglePaymentParameter(
+					id,
+					paymentParameterId,
+					userRequest
+				);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0116',
+				data: paymentParameter,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0115',
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
 }
