@@ -29,6 +29,7 @@ import { buildFilterExpressionDynamo } from '../../../utils/helpers/buildFilterE
 import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
 import { removeSpaces } from '../../../utils/helpers/removeSpaces';
 import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
+import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 
 @Injectable()
 export class ProviderService {
@@ -593,13 +594,48 @@ export class ProviderService {
 
 	async createOrUpdatePaymentParameter(
 		id: string,
-		createProviderPaymentParameter: CreateProviderPaymentParameterDTO
+		createProviderPaymentParameter: CreateProviderPaymentParameterDTO,
+		user: string
 	): Promise<CreateProviderPaymentParameterDTO> {
 		const docClient = new DocumentClient();
 
+		const userConverted = user as unknown as {
+			Name: string;
+			Value: string;
+		}[];
+		const userEmail = userConverted[0]?.Value;
+
+		const users = await this.dbUserInstance.query('Email').eq(userEmail).exec();
+
+		const userFind = users?.[0];
+
+		if (!userFind) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0040',
+					...errorCodes.WGE0040,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+		if (userFind.Type === 'PLATFORM') {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0146`',
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+
+		const providerId =
+			userFind && userFind?.Type === 'PROVIDER'
+				? userFind?.ServiceProviderId
+				: createProviderPaymentParameter.serviceProviderId;
+
 		const getProviderParams: DocumentClient.GetItemInput = {
 			TableName: 'Providers',
-			Key: { Id: createProviderPaymentParameter.serviceProviderId },
+			Key: { Id: providerId },
 		};
 
 		const provider = await docClient.get(getProviderParams).promise();
@@ -628,7 +664,7 @@ export class ProviderService {
 			IndexName: 'ServiceProviderIdIndex',
 			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
 			ExpressionAttributeValues: {
-				':serviceProviderId': createProviderPaymentParameter.serviceProviderId,
+				':serviceProviderId': providerId,
 			},
 		};
 
@@ -669,20 +705,36 @@ export class ProviderService {
 			);
 		}
 
+		const paymentParameter = existingPaymentParameter?.[0];
+
+		if (!paymentParameter) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0119',
+					statusCode: HttpStatus.NOT_FOUND,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+
 		const params = {
 			TableName: 'PaymentParameters',
 			Item: {
 				Id: id ? id : uuidv4(),
 				Name: createProviderPaymentParameter.name,
-				Description: createProviderPaymentParameter.description,
+				...(createProviderPaymentParameter.description && {
+					Description: createProviderPaymentParameter.description,
+				}),
 				Cost: createProviderPaymentParameter.cost,
 				Frequency: createProviderPaymentParameter.frequency,
 				Interval: createProviderPaymentParameter.interval,
 				Asset: createProviderPaymentParameter.asset,
-				ServiceProviderId: createProviderPaymentParameter.serviceProviderId,
+				ServiceProviderId: providerId,
 				Percent: feeConfig.Percent,
 				Comision: feeConfig.Comission,
 				Base: feeConfig.Base,
+				...(!id && { Active: true }),
+				...(id && { Active: paymentParameter.active }),
 			},
 		};
 
@@ -899,6 +951,190 @@ export class ProviderService {
 			throw new Error(
 				`Error fetching Fee Configuration by ID: ${error.message}`
 			);
+		}
+	}
+
+	async getPaymentsParametersPaginated(
+		getPaymentsParametersPaginated: GetPaymentsParametersPaginated
+	): Promise<{
+		paymentParameters: {
+			id: string;
+			name: string;
+			active: boolean;
+			interval: string;
+			frequency: number;
+			cost: number;
+			asset: string;
+		}[];
+		currentPage: number;
+		total: number;
+		totalPages: number;
+	}> {
+		const {
+			page = 1,
+			items = 10,
+			search,
+			serviceProviderId,
+		} = getPaymentsParametersPaginated;
+		const docClient = new DocumentClient();
+
+		const params: DocumentClient.ScanInput = {
+			TableName: 'PaymentParameters',
+			IndexName: 'ServiceProviderIdIndex',
+			FilterExpression: 'ServiceProviderId = :serviceProviderId', // Expresión de filtro
+			ExpressionAttributeValues: {
+				':serviceProviderId': serviceProviderId,
+			},
+		};
+
+		try {
+			const result = await docClient.scan(params).promise();
+			let paymentParameters = convertToCamelCase(result.Items || []);
+
+			if (search) {
+				const regex = new RegExp(search, 'i');
+				paymentParameters = paymentParameters.filter(
+					paymentParameter =>
+						regex.test(paymentParameter.name) ||
+						regex.test(paymentParameter.interval) ||
+						regex.test(paymentParameter.asset)
+				);
+			}
+
+			paymentParameters.sort((a, b) => {
+				if (a.active !== b.active) {
+					return a.active ? -1 : 1;
+				}
+				const nameA = a?.name || '';
+				const nameB = b?.name || '';
+				return nameA.localeCompare(nameB);
+			});
+
+			const total = paymentParameters.length;
+			const offset = (Number(page) - 1) * Number(items);
+			let paginatedPaymentParameters = paymentParameters.slice(
+				offset,
+				offset + Number(items)
+			);
+
+			paginatedPaymentParameters = paginatedPaymentParameters.map(
+				paymentParameter => ({
+					id: paymentParameter?.id,
+					name: paymentParameter?.name,
+					active: paymentParameter?.active,
+					frequency: paymentParameter?.frequency,
+					interval: paymentParameter?.interval,
+					cost: paymentParameter?.cost,
+					asset: paymentParameter?.asset,
+				})
+			);
+
+			const totalPages = Math.ceil(total / Number(items));
+
+			return {
+				paymentParameters: paginatedPaymentParameters,
+				currentPage: Number(page),
+				total,
+				totalPages,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching payments parameters: ${error.message}`);
+		}
+	}
+
+	async togglePaymentParameter(
+		serviceProviderId: string,
+		paymentParameterId: string,
+		user: string
+	) {
+		const docClient = new DocumentClient();
+
+		const userConverted = user as unknown as {
+			Name: string;
+			Value: string;
+		}[];
+		const email = userConverted[0]?.Value;
+		try {
+			const userFind = await this.dbUserInstance
+				.query('Email')
+				.eq(email)
+				.exec();
+
+			const userDb = userFind?.[0];
+
+			const providerId =
+				userDb && userDb?.Type === 'PROVIDER'
+					? userDb?.ServiceProviderId
+					: serviceProviderId;
+
+			const params = {
+				TableName: 'PaymentParameters',
+				IndexName: 'ServiceProviderIdIndex',
+				KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
+				FilterExpression: 'Id = :paymentParameterId',
+				ExpressionAttributeValues: {
+					':serviceProviderId': providerId,
+					':paymentParameterId': paymentParameterId,
+				},
+			};
+
+			if (!userDb) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0040',
+						...errorCodes.WGE0040,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			if (userDb.Type === 'PLATFORM') {
+				throw new HttpException(
+					{
+						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+						customCode: 'WGE0146',
+					},
+					HttpStatus.INTERNAL_SERVER_ERROR
+				);
+			}
+
+			const paymentParameter = await docClient.query(params).promise();
+
+			if (!paymentParameter?.Items?.[0]) {
+				throw new HttpException(
+					{
+						customCode: 'WGE0119',
+						statusCode: HttpStatus.NOT_FOUND,
+					},
+					HttpStatus.NOT_FOUND
+				);
+			}
+
+			const active =
+				!paymentParameter?.Items?.[0].Active ??
+				!!paymentParameter?.Items?.[0].Active;
+
+			const toggleParams = {
+				TableName: 'PaymentParameters',
+				Key: {
+					Id: paymentParameterId,
+				},
+				UpdateExpression: 'SET Active = :activePaymentParameter',
+				ExpressionAttributeValues: {
+					':activePaymentParameter': active,
+				},
+				ReturnValues: 'ALL_NEW',
+			};
+
+			const paymentParameterUpdaate = await docClient
+				.update(toggleParams)
+				.promise();
+
+			return convertToCamelCase(paymentParameterUpdaate.Attributes);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error Toggle payments parameters: ${error.message}`);
 		}
 	}
 }

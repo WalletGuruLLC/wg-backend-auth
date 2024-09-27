@@ -1,4 +1,4 @@
-export enum Frequency {
+export enum Interval {
 	MINUTES = 'MINUTES',
 	SECONDS = 'SECONDS',
 	HOUR = 'HOUR',
