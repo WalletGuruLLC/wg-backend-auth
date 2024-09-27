@@ -131,14 +131,10 @@ export class ProviderService {
 
 			const total = providers.length;
 			const offset = (Number(page) - 1) * Number(items);
-			let paginatedProviders = providers.slice(offset, offset + Number(items));
-
-			paginatedProviders = paginatedProviders.map(provider => ({
-				id: provider?.id,
-				name: provider?.name,
-				imageUrl: provider?.imageUrl,
-				active: provider?.active,
-			}));
+			const paginatedProviders = providers.slice(
+				offset,
+				offset + Number(items)
+			);
 
 			const totalPages = Math.ceil(total / Number(items));
 
