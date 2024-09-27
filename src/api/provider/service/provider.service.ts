@@ -598,13 +598,48 @@ export class ProviderService {
 
 	async createOrUpdatePaymentParameter(
 		id: string,
-		createProviderPaymentParameter: CreateProviderPaymentParameterDTO
+		createProviderPaymentParameter: CreateProviderPaymentParameterDTO,
+		user: string
 	): Promise<CreateProviderPaymentParameterDTO> {
 		const docClient = new DocumentClient();
 
+		const userConverted = user as unknown as {
+			Name: string;
+			Value: string;
+		}[];
+		const userEmail = userConverted[0]?.Value;
+
+		const users = await this.dbUserInstance.query('Email').eq(userEmail).exec();
+
+		const userFind = users?.[0];
+
+		if (!userFind) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0040',
+					...errorCodes.WGE0040,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+		if (userFind.Type === 'PLATFORM') {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0146x`',
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+
+		const providerId =
+			userFind && userFind?.Type === 'PROVIDER'
+				? userFind?.ServiceProviderId
+				: createProviderPaymentParameter.serviceProviderId;
+
 		const getProviderParams: DocumentClient.GetItemInput = {
 			TableName: 'Providers',
-			Key: { Id: createProviderPaymentParameter.serviceProviderId },
+			Key: { Id: providerId },
 		};
 
 		const provider = await docClient.get(getProviderParams).promise();
@@ -633,7 +668,7 @@ export class ProviderService {
 			IndexName: 'ServiceProviderIdIndex',
 			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
 			ExpressionAttributeValues: {
-				':serviceProviderId': createProviderPaymentParameter.serviceProviderId,
+				':serviceProviderId': providerId,
 			},
 		};
 
@@ -698,7 +733,7 @@ export class ProviderService {
 				Frequency: createProviderPaymentParameter.frequency,
 				Interval: createProviderPaymentParameter.interval,
 				Asset: createProviderPaymentParameter.asset,
-				ServiceProviderId: createProviderPaymentParameter.serviceProviderId,
+				ServiceProviderId: providerId,
 				Percent: feeConfig.Percent,
 				Comision: feeConfig.Comission,
 				Base: feeConfig.Base,

@@ -657,8 +657,10 @@ export class ProviderController {
 		@Param('paymentParameterId') paymentParameterId: string | undefined,
 		@Body()
 		createProviderPaymentParameterDTO: CreateProviderPaymentParameterDTO,
-		@Res() res
+		@Res() res,
+		@Req() req
 	) {
+		const userRequest = req.user?.UserAttributes;
 		try {
 			const provider = await this.providerService.searchFindOne(
 				createProviderPaymentParameterDTO.serviceProviderId
@@ -673,7 +675,8 @@ export class ProviderController {
 			const paymentParameter =
 				await this.providerService.createOrUpdatePaymentParameter(
 					paymentParameterId,
-					createProviderPaymentParameterDTO
+					createProviderPaymentParameterDTO,
+					userRequest
 				);
 
 			return res.status(HttpStatus.OK).send({
