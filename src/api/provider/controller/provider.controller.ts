@@ -43,8 +43,8 @@ import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { UserService } from 'src/api/user/service/user.service';
 import { RoleService } from 'src/api/role/service/role.service';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
-import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
 import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
+import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -657,8 +657,10 @@ export class ProviderController {
 		@Param('paymentParameterId') paymentParameterId: string | undefined,
 		@Body()
 		createProviderPaymentParameterDTO: CreateProviderPaymentParameterDTO,
-		@Res() res
+		@Res() res,
+		@Req() req
 	) {
+		const userRequest = req.user?.UserAttributes;
 		try {
 			const provider = await this.providerService.searchFindOne(
 				createProviderPaymentParameterDTO.serviceProviderId
@@ -673,7 +675,8 @@ export class ProviderController {
 			const paymentParameter =
 				await this.providerService.createOrUpdatePaymentParameter(
 					paymentParameterId,
-					createProviderPaymentParameterDTO
+					createProviderPaymentParameterDTO,
+					userRequest
 				);
 
 			return res.status(HttpStatus.OK).send({
@@ -710,13 +713,14 @@ export class ProviderController {
 	@Get(':id/payment-parameters')
 	async listPaymentParameters(
 		@Param('id') id: string,
-		@Query() getProviderPaymentParametersDTO: GetProviderPaymentParametersDTO
+		@Query() getPaymentsParametersPaginated: GetPaymentsParametersPaginated
 	) {
 		try {
-			const paymentParameters = await this.providerService.getPaymentParameters(
-				id,
-				getProviderPaymentParametersDTO
-			);
+			const paymentParameters =
+				await this.providerService.getPaymentsParametersPaginated({
+					serviceProviderId: id,
+					...getPaymentsParametersPaginated,
+				});
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0118',
@@ -858,6 +862,53 @@ export class ProviderController {
 				{
 					customCode: 'WGE0145',
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Patch(':id?/payment-parameters/:paymentParameterId/toggle')
+	@ApiOperation({ summary: 'Toggle the active status of a payment parameter' })
+	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
+	@ApiParam({
+		name: 'paymentParameterId',
+		description: 'ID of the payment parameter',
+		type: String,
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Payment parameter status toggled successfully.',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'Payment parameter not found.',
+	})
+	async paymentParameterToggle(
+		@Param('paymentParameterId') paymentParameterId: string,
+		@Req() req,
+		@Param('id') id?: string
+	) {
+		try {
+			const userRequest = req.user?.UserAttributes;
+			const paymentParameter =
+				await this.providerService.togglePaymentParameter(
+					id,
+					paymentParameterId,
+					userRequest
+				);
+			return {
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0160',
+				data: paymentParameter,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0161',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
