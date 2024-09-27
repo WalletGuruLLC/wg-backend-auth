@@ -520,7 +520,6 @@ export class UserController {
 				data: user,
 			});
 		} catch (error) {
-			console.log('error', error?.message);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
