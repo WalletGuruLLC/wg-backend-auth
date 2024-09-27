@@ -626,7 +626,7 @@ export class ProviderService {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0146x`',
+					customCode: 'WGE0146`',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -1097,7 +1097,7 @@ export class ProviderService {
 				throw new HttpException(
 					{
 						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						customCode: 'WGE0115',
+						customCode: 'WGE0146',
 					},
 					HttpStatus.INTERNAL_SERVER_ERROR
 				);
