@@ -43,8 +43,8 @@ import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { UserService } from 'src/api/user/service/user.service';
 import { RoleService } from 'src/api/role/service/role.service';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
-import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
 import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
+import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -688,6 +688,7 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0115',
+					message: error.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -710,13 +711,14 @@ export class ProviderController {
 	@Get(':id/payment-parameters')
 	async listPaymentParameters(
 		@Param('id') id: string,
-		@Query() getProviderPaymentParametersDTO: GetProviderPaymentParametersDTO
+		@Query() getPaymentsParametersPaginated: GetPaymentsParametersPaginated
 	) {
 		try {
-			const paymentParameters = await this.providerService.getPaymentParameters(
-				id,
-				getProviderPaymentParametersDTO
-			);
+			const paymentParameters =
+				await this.providerService.getPaymentsParametersPaginated({
+					serviceProviderId: id,
+					...getPaymentsParametersPaginated,
+				});
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0118',

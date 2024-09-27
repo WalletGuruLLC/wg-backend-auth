@@ -29,6 +29,7 @@ import { buildFilterExpressionDynamo } from '../../../utils/helpers/buildFilterE
 import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
 import { removeSpaces } from '../../../utils/helpers/removeSpaces';
 import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
+import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 
 @Injectable()
 export class ProviderService {
@@ -673,12 +674,26 @@ export class ProviderService {
 			);
 		}
 
+		const paymentParameter = existingPaymentParameter?.[0];
+
+		if (!paymentParameter) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0119',
+					statusCode: HttpStatus.NOT_FOUND,
+				},
+				HttpStatus.NOT_FOUND
+			);
+		}
+
 		const params = {
 			TableName: 'PaymentParameters',
 			Item: {
 				Id: id ? id : uuidv4(),
 				Name: createProviderPaymentParameter.name,
-				Description: createProviderPaymentParameter.description,
+				...(createProviderPaymentParameter.description && {
+					Description: createProviderPaymentParameter.description,
+				}),
 				Cost: createProviderPaymentParameter.cost,
 				Frequency: createProviderPaymentParameter.frequency,
 				Interval: createProviderPaymentParameter.interval,
@@ -687,6 +702,8 @@ export class ProviderService {
 				Percent: feeConfig.Percent,
 				Comision: feeConfig.Comission,
 				Base: feeConfig.Base,
+				...(!id && { Active: true }),
+				...(id && { Active: paymentParameter.active }),
 			},
 		};
 
@@ -903,6 +920,95 @@ export class ProviderService {
 			throw new Error(
 				`Error fetching Fee Configuration by ID: ${error.message}`
 			);
+		}
+	}
+
+	async getPaymentsParametersPaginated(
+		getPaymentsParametersPaginated: GetPaymentsParametersPaginated
+	): Promise<{
+		paymentParameters: {
+			id: string;
+			name: string;
+			active: boolean;
+			interval: string;
+			frequency: number;
+			cost: number;
+			asset: string;
+		}[];
+		currentPage: number;
+		total: number;
+		totalPages: number;
+	}> {
+		const {
+			page = 1,
+			items = 10,
+			search,
+			serviceProviderId,
+		} = getPaymentsParametersPaginated;
+		const docClient = new DocumentClient();
+
+		const params: DocumentClient.ScanInput = {
+			TableName: 'PaymentParameters',
+			IndexName: 'ServiceProviderIdIndex',
+			FilterExpression: 'ServiceProviderId = :serviceProviderId', // Expresión de filtro
+			ExpressionAttributeValues: {
+				':serviceProviderId': serviceProviderId,
+			},
+		};
+
+		try {
+			const result = await docClient.scan(params).promise();
+			let paymentParameters = convertToCamelCase(result.Items || []);
+
+			if (search) {
+				const regex = new RegExp(search, 'i');
+				paymentParameters = paymentParameters.filter(
+					paymentParameter =>
+						regex.test(paymentParameter.name) ||
+						regex.test(paymentParameter.interval) ||
+						regex.test(paymentParameter.asset)
+				);
+			}
+
+			paymentParameters.sort((a, b) => {
+				if (a.active !== b.active) {
+					return a.active ? -1 : 1;
+				}
+				const nameA = a?.name || '';
+				const nameB = b?.name || '';
+				return nameA.localeCompare(nameB);
+			});
+
+			const total = paymentParameters.length;
+			const offset = (Number(page) - 1) * Number(items);
+			let paginatedPaymentParameters = paymentParameters.slice(
+				offset,
+				offset + Number(items)
+			);
+
+			paginatedPaymentParameters = paginatedPaymentParameters.map(
+				paymentParameter => ({
+					id: paymentParameter?.id,
+					name: paymentParameter?.name,
+					active: paymentParameter?.active,
+					frequency: paymentParameter?.frequency,
+					interval: paymentParameter?.interval,
+					cost: paymentParameter?.cost,
+					asset: paymentParameter?.asset,
+				})
+			);
+
+			const totalPages = Math.ceil(total / Number(items));
+
+			return {
+				paymentParameters: paginatedPaymentParameters,
+				currentPage: Number(page),
+				total,
+				totalPages,
+			};
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching providers: ${error.message}`);
 		}
 	}
 }
