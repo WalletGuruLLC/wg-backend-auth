@@ -368,7 +368,7 @@ export class RoleController {
 				});
 			}
 
-			if (user?.type == 'WALLET') {
+			if (user?.type == 'WALLET' || user?.type == 'PROVIDER') {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0038',
@@ -474,7 +474,7 @@ export class RoleController {
 				});
 			}
 
-			if (user?.type == 'WALLET') {
+			if (user?.type == 'WALLET' || user?.type == 'PROVIDER') {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0038',
@@ -560,7 +560,7 @@ export class RoleController {
 				});
 			}
 
-			if (user?.type == 'WALLET') {
+			if (user?.type == 'WALLET' || user?.type == 'PROVIDER') {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0038',
