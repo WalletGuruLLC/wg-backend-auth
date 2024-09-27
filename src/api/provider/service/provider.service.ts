@@ -1008,7 +1008,7 @@ export class ProviderService {
 			};
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new Error(`Error fetching providers: ${error.message}`);
+			throw new Error(`Error fetching payments parameters: ${error.message}`);
 		}
 	}
 }
