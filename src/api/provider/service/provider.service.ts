@@ -1135,7 +1135,7 @@ export class ProviderService {
 				.update(toggleParams)
 				.promise();
 
-			return paymentParameterUpdaate.Attributes;
+			return convertToCamelCase(paymentParameterUpdaate.Attributes);
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error Toggle payments parameters: ${error.message}`);
