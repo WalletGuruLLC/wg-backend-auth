@@ -5,5 +5,8 @@ export class GetProviderPaymentParametersDTO {
 	asset?: string;
 
 	@ApiProperty({ description: 'Payment parameter frequency', required: false })
-	frequency?: string;
+	frequency?: number;
+
+	@ApiProperty({ description: 'Payment parameter name', required: false })
+	name?: string;
 }

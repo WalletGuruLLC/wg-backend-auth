@@ -327,9 +327,14 @@ export class RoleController {
 		@Param('roleId') roleId: string,
 		@Param('moduleId') moduleId: string,
 		@Body() body: { accessLevel: Record<string, number> },
-		@Res() res
+		@Res() res,
+		@Req() req
 	) {
 		try {
+			const userInfo = req.user;
+			const user = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
 			const role = await this.roleService.findRole(roleId);
 			if (!role) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -338,9 +343,9 @@ export class RoleController {
 				});
 			}
 
-			if (!body?.accessLevel) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+			if (!body?.accessLevel && Number(body?.accessLevel) !== 0) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0134',
 				});
 			}
@@ -360,6 +365,13 @@ export class RoleController {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0049',
+				});
+			}
+
+			if (user?.type == 'WALLET' || user?.type == 'PROVIDER') {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0038',
 				});
 			}
 
@@ -406,9 +418,14 @@ export class RoleController {
 		@Param('moduleId') moduleId: string,
 		@Body()
 		body: { accessLevel: Record<string, number>; serviceProvider: string }, // Ajuste en Body para incluir serviceProvider
-		@Res() res
+		@Res() res,
+		@Req() req
 	) {
 		try {
+			const userInfo = req.user;
+			const user = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
 			const role = await this.roleService.searchFindOneId(roleId);
 			if (!role) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -417,9 +434,12 @@ export class RoleController {
 				});
 			}
 
-			if (!body.serviceProvider || !body?.accessLevel) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+			if (
+				!body.serviceProvider ||
+				(!body?.accessLevel && Number(body?.accessLevel) !== 0)
+			) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0134',
 				});
 			}
@@ -451,6 +471,13 @@ export class RoleController {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0049',
+				});
+			}
+
+			if (user?.type == 'WALLET' || user?.type == 'PROVIDER') {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0038',
 				});
 			}
 
@@ -498,9 +525,15 @@ export class RoleController {
 		@Param('moduleId') moduleId: string,
 		@Body()
 		body: { accessLevel?: Record<string, number>; serviceProvider: string },
-		@Res() res
+		@Res() res,
+		@Req() req
 	) {
 		try {
+			const userInfo = req.user;
+			const user = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+
 			const role = await this.roleService.searchFindOneId(roleId);
 			if (!role) {
 				return res.status(HttpStatus.NOT_FOUND).send({
@@ -524,6 +557,13 @@ export class RoleController {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0049',
+				});
+			}
+
+			if (user?.type == 'WALLET' || user?.type == 'PROVIDER') {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0038',
 				});
 			}
 
