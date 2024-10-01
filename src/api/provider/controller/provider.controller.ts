@@ -45,6 +45,8 @@ import { RoleService } from 'src/api/role/service/role.service';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
 import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
+import { validarEIN } from 'src/utils/helpers/validateEin';
+import { validarZipCode } from 'src/utils/helpers/validateZipcode';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -111,6 +113,7 @@ export class ProviderController {
 		@Res() res,
 		@Req() req
 	) {
+		const { einNumber, zipCode } = createProviderDto;
 		try {
 			if (
 				!createProviderDto?.name ||
@@ -147,6 +150,20 @@ export class ProviderController {
 						customCode: 'WGE0138',
 					});
 				}
+			}
+
+			if (!validarEIN(einNumber)) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0170',
+				});
+			}
+
+			if (!validarZipCode(zipCode)) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0171',
+				});
 			}
 
 			const userInfo = req.user;
@@ -368,8 +385,10 @@ export class ProviderController {
 	async update(
 		@Param('id') id: string,
 		@Body() updateProviderDto: UpdateProviderDto,
-		@Req() req
+		@Req() req,
+		@Res() res
 	) {
+		const { einNumber, zipCode } = updateProviderDto;
 		try {
 			const providerFind = await this.providerService.searchFindOne(id);
 			if (!providerFind) {
@@ -378,6 +397,21 @@ export class ProviderController {
 					customCode: 'WGE0040',
 				};
 			}
+
+			if (einNumber && !validarEIN(einNumber)) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0170',
+				});
+			}
+
+			if (zipCode && !validarZipCode(zipCode)) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0171',
+				});
+			}
+
 			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
 				userInfo?.UserAttributes?.[0]?.Value
