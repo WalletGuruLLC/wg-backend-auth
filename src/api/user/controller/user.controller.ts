@@ -877,7 +877,6 @@ export class UserController {
 				data: users,
 			});
 		} catch (error) {
-			console.log('error', error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
