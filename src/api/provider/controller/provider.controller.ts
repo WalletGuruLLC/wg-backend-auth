@@ -630,6 +630,7 @@ export class ProviderController {
 		name: 'paymentParameterId',
 		description: 'ID del paymentParamter',
 		type: String,
+		required: false,
 	})
 	@ApiBody({
 		schema: {
@@ -776,6 +777,7 @@ export class ProviderController {
 		name: 'feeConfigurationId',
 		description: 'ID del fee',
 		type: String,
+		required: false,
 	})
 	@ApiBody({
 		schema: {
@@ -797,11 +799,11 @@ export class ProviderController {
 	})
 	@Patch('create/fee-configurations/:feeConfigurationId?')
 	async createOrUpdateFeeConfiguration(
-		@Param('feeConfigurationId') feeConfigurationId: string | undefined,
 		@Body()
 		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
 		@Res() res,
-		@Req() req
+		@Req() req,
+		@Param('feeConfigurationId') feeConfigurationId?: string | undefined
 	) {
 		try {
 			const userRequest = req.user?.UserAttributes;
@@ -871,7 +873,12 @@ export class ProviderController {
 	@UseGuards(CognitoAuthGuard)
 	@Patch(':id?/payment-parameters/:paymentParameterId/toggle')
 	@ApiOperation({ summary: 'Toggle the active status of a payment parameter' })
-	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
+	@ApiParam({
+		name: 'id',
+		description: 'ID of the provider',
+		type: String,
+		required: false,
+	})
 	@ApiParam({
 		name: 'paymentParameterId',
 		description: 'ID of the payment parameter',
