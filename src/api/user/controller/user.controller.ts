@@ -849,7 +849,10 @@ export class UserController {
 				getUsersDto,
 				userRequest
 			);
-			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(getUsersDto.type)) {
+			if (
+				getUsersDto.type &&
+				!['WALLET', 'PLATFORM', 'PROVIDER'].includes(getUsersDto.type)
+			) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0017',
@@ -874,6 +877,7 @@ export class UserController {
 				data: users,
 			});
 		} catch (error) {
+			console.log('error', error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
