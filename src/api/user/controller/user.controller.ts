@@ -158,7 +158,7 @@ export class UserController {
 				if (!phone || !phone.trim() || !validatePhoneNumber(phone)) {
 					return res.status(HttpStatus.PARTIAL_CONTENT).send({
 						statusCode: HttpStatus.PARTIAL_CONTENT,
-						customCode: 'WGE0113',
+						customCode: 'WGE0127',
 					});
 				}
 			}
