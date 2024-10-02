@@ -324,7 +324,13 @@ export class ProviderController {
 			);
 			const userRoleId = userFind.roleId;
 			const role = await this.roleService.getRoleInfo(userRoleId);
-			const provider = await this.providerService.findOne(id, role, id);
+			var provider;
+			if (id === userFind?.serviceProviderId) {
+				provider = await this.providerService.searchFindOne(id);
+			}
+			else{
+				provider = await this.providerService.findOne(id, role, id);
+			}
 			if (provider?.customCode) {
 				return {
 					customCode: provider?.customCode,
