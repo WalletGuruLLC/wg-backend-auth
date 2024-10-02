@@ -617,15 +617,6 @@ export class ProviderService {
 				HttpStatus.NOT_FOUND
 			);
 		}
-		if (userFind.Type === 'PLATFORM') {
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0146`',
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
-		}
 
 		const providerId =
 			userFind && userFind?.Type === 'PROVIDER'

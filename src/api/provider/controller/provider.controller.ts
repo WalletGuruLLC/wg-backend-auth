@@ -831,8 +831,7 @@ export class ProviderController {
 		@Body()
 		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
 		@Res() res,
-		@Req() req,
-		@Param('feeConfigurationId') feeConfigurationId?: string | undefined
+		@Req() req
 	) {
 		try {
 			const userRequest = req.user?.UserAttributes;
