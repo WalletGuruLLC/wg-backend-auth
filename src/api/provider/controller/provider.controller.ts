@@ -43,10 +43,11 @@ import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { UserService } from 'src/api/user/service/user.service';
 import { RoleService } from 'src/api/role/service/role.service';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
-import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
+import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuration.dto';
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 import { validarEIN } from 'src/utils/helpers/validateEin';
 import { validarZipCode } from 'src/utils/helpers/validateZipcode';
+import { TogglePaymentParameterDTO } from '../dto/toggle-payment-parameter.dto';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -676,6 +677,7 @@ export class ProviderController {
 				interval: 30,
 				asset: 'USD',
 				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
+				paymentParameterId: '8bf931ea-3710-420b-ae68-921f94bcd937',
 			},
 		},
 	})
@@ -687,9 +689,8 @@ export class ProviderController {
 		status: 404,
 		description: 'PaymentParameterId for service provider not found ',
 	})
-	@Post('payment-parameters/:paymentParameterId?')
+	@Post('create/payment-parameters')
 	async createOrUpdatePaymentParameters(
-		@Param('paymentParameterId') paymentParameterId: string | undefined,
 		@Body()
 		createProviderPaymentParameterDTO: CreateProviderPaymentParameterDTO,
 		@Res() res,
@@ -709,7 +710,6 @@ export class ProviderController {
 			}
 			const paymentParameter =
 				await this.providerService.createOrUpdatePaymentParameter(
-					paymentParameterId,
 					createProviderPaymentParameterDTO,
 					userRequest
 				);
@@ -807,12 +807,6 @@ export class ProviderController {
 	@ApiOperation({
 		summary: 'Create or update a fee configuration for service providers',
 	})
-	@ApiParam({
-		name: 'feeConfigurationId',
-		description: 'ID del fee',
-		type: String,
-		required: false,
-	})
 	@ApiBody({
 		schema: {
 			example: {
@@ -820,6 +814,7 @@ export class ProviderController {
 				percent: 1,
 				base: 2,
 				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
+				feeConfigurationId: '8bf931ea-3710-420b-ae68-921f94bcd937',
 			},
 		},
 	})
@@ -831,7 +826,7 @@ export class ProviderController {
 		status: 404,
 		description: 'feeConfigurationId for service provider not found ',
 	})
-	@Patch('create/fee-configurations/:feeConfigurationId?')
+	@Patch('create/fee-configurations')
 	async createOrUpdateFeeConfiguration(
 		@Body()
 		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
@@ -841,11 +836,26 @@ export class ProviderController {
 	) {
 		try {
 			const userRequest = req.user?.UserAttributes;
+
+			const existingFeeConfig =
+				await this.providerService.getProviderFeeConfigurationByProvider(
+					createUpdateFeeConfigurationDTO.serviceProviderId
+				);
+
+			if (
+				!createUpdateFeeConfigurationDTO.feeConfigurationId &&
+				existingFeeConfig.length
+			) {
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0140',
+				});
+			}
+
 			const feeConfiguration =
 				await this.providerService.createOrUpdateProviderFeeConfiguration(
 					createUpdateFeeConfigurationDTO,
-					userRequest,
-					feeConfigurationId
+					userRequest
 				);
 
 			return res.status(HttpStatus.OK).send({
@@ -905,13 +915,15 @@ export class ProviderController {
 	}
 
 	@UseGuards(CognitoAuthGuard)
-	@Patch(':id?/payment-parameters/:paymentParameterId/toggle')
+	@Patch('payment-parameters/:paymentParameterId/toggle')
 	@ApiOperation({ summary: 'Toggle the active status of a payment parameter' })
-	@ApiParam({
-		name: 'id',
-		description: 'ID of the provider',
-		type: String,
+	@ApiBody({
 		required: false,
+		schema: {
+			example: {
+				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
+			},
+		},
 	})
 	@ApiParam({
 		name: 'paymentParameterId',
@@ -929,13 +941,14 @@ export class ProviderController {
 	async paymentParameterToggle(
 		@Param('paymentParameterId') paymentParameterId: string,
 		@Req() req,
-		@Param('id') id?: string
+		@Body()
+		togglePaymentParameterDTO: TogglePaymentParameterDTO
 	) {
 		try {
 			const userRequest = req.user?.UserAttributes;
 			const paymentParameter =
 				await this.providerService.togglePaymentParameter(
-					id,
+					togglePaymentParameterDTO.serviceProviderId,
 					paymentParameterId,
 					userRequest
 				);
@@ -950,6 +963,7 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0161',
+					message: error.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
