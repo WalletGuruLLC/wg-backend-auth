@@ -148,7 +148,7 @@ export class UserController {
 			if (validatePhoneNumber(createUserDto?.phone) === false) {
 				return res.status(HttpStatus.PARTIAL_CONTENT).send({
 					statusCode: HttpStatus.PARTIAL_CONTENT,
-					customCode: 'WGE0127',
+					customCode: 'WGE0113',
 				});
 			}
 
@@ -158,7 +158,7 @@ export class UserController {
 				if (!phone || !phone.trim() || !validatePhoneNumber(phone)) {
 					return res.status(HttpStatus.PARTIAL_CONTENT).send({
 						statusCode: HttpStatus.PARTIAL_CONTENT,
-						customCode: 'WGE0127',
+						customCode: 'WGE0113',
 					});
 				}
 			}
