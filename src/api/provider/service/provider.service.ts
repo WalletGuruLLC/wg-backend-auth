@@ -853,10 +853,6 @@ export class ProviderService {
 				Key: { Id: createUpdateFeeConfigurationDTO.serviceProviderId },
 			};
 
-			const getProviderFeeConfig: DocumentClient.GetItemInput = {
-				TableName: 'FeeConfigurations',
-				Key: { Id: createUpdateFeeConfigurationDTO.serviceProviderId },
-			};
 			let providerFeeConfig;
 
 			const provider = await docClient.get(getProviderParams).promise();
