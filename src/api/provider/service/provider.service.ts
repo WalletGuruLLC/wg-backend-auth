@@ -28,7 +28,7 @@ import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-paymen
 import { buildFilterExpressionDynamo } from '../../../utils/helpers/buildFilterExpressionDynamo';
 import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
 import { removeSpaces } from '../../../utils/helpers/removeSpaces';
-import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
+import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuration.dto';
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 
 @Injectable()
@@ -593,7 +593,6 @@ export class ProviderService {
 	}
 
 	async createOrUpdatePaymentParameter(
-		id: string,
 		createProviderPaymentParameter: CreateProviderPaymentParameterDTO,
 		user: string
 	): Promise<CreateProviderPaymentParameterDTO> {
@@ -616,15 +615,6 @@ export class ProviderService {
 					...errorCodes.WGE0040,
 				},
 				HttpStatus.NOT_FOUND
-			);
-		}
-		if (userFind.Type === 'PLATFORM') {
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0146`',
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
 
@@ -656,7 +646,7 @@ export class ProviderService {
 				asset: createProviderPaymentParameter.asset,
 				frequency: createProviderPaymentParameter.frequency,
 			},
-			id
+			createProviderPaymentParameter.paymentParameterId
 		);
 
 		const feeConfigParams = {
@@ -671,8 +661,10 @@ export class ProviderService {
 		const feeConfigurations = await docClient.query(feeConfigParams).promise();
 
 		if (
-			(!id && existingPaymentParameter.length > 0) ||
-			(id && !existingPaymentParameter.length)
+			(!createProviderPaymentParameter.paymentParameterId &&
+				existingPaymentParameter.length > 0) ||
+			(createProviderPaymentParameter.paymentParameterId &&
+				!existingPaymentParameter.length)
 		) {
 			throw new HttpException(
 				{
@@ -720,7 +712,9 @@ export class ProviderService {
 		const params = {
 			TableName: 'PaymentParameters',
 			Item: {
-				Id: id ? id : uuidv4(),
+				Id: createProviderPaymentParameter.paymentParameterId
+					? createProviderPaymentParameter.paymentParameterId
+					: uuidv4(),
 				Name: createProviderPaymentParameter.name,
 				...(createProviderPaymentParameter.description && {
 					Description: createProviderPaymentParameter.description,
@@ -733,8 +727,12 @@ export class ProviderService {
 				Percent: feeConfig.Percent,
 				Comision: feeConfig.Comission,
 				Base: feeConfig.Base,
-				...(!id && { Active: true }),
-				...(id && { Active: paymentParameter.active }),
+				...(!createProviderPaymentParameter.paymentParameterId && {
+					Active: true,
+				}),
+				...(createProviderPaymentParameter.paymentParameterId && {
+					Active: paymentParameter.active,
+				}),
 			},
 		};
 
@@ -844,8 +842,7 @@ export class ProviderService {
 
 	async createOrUpdateProviderFeeConfiguration(
 		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
-		user: string,
-		id?: string
+		user: string
 	): Promise<CreateUpdateFeeConfigurationDTO> {
 		try {
 			const docClient = new DocumentClient();
@@ -855,6 +852,7 @@ export class ProviderService {
 				TableName: 'Providers',
 				Key: { Id: createUpdateFeeConfigurationDTO.serviceProviderId },
 			};
+
 			let providerFeeConfig;
 
 			const provider = await docClient.get(getProviderParams).promise();
@@ -889,25 +887,29 @@ export class ProviderService {
 				);
 			}
 
-			if (id) {
-				providerFeeConfig = await this.getProviderFeeConfiguration(id);
+			if (createUpdateFeeConfigurationDTO.feeConfigurationId) {
+				providerFeeConfig = await this.getProviderFeeConfiguration(
+					createUpdateFeeConfigurationDTO.feeConfigurationId
+				);
 			}
 
 			const params = {
 				TableName: 'FeeConfigurations',
 				Item: {
-					Id: id ? id : uuidv4(),
+					Id: createUpdateFeeConfigurationDTO.feeConfigurationId
+						? createUpdateFeeConfigurationDTO.feeConfigurationId
+						: uuidv4(),
 					ServiceProviderId: createUpdateFeeConfigurationDTO.serviceProviderId,
 					Percent: createUpdateFeeConfigurationDTO.percent,
 					Comission: createUpdateFeeConfigurationDTO.comission,
 					Base: createUpdateFeeConfigurationDTO.base,
-					...(id && {
+					...(createUpdateFeeConfigurationDTO.feeConfigurationId && {
 						CreatedDate: providerFeeConfig.createdDate,
 						CreatedBy: providerFeeConfig.createdBy,
 						UpdatedBy: userFind.Id,
 						UpdatedDate: currentDate,
 					}),
-					...(!id && {
+					...(!createUpdateFeeConfigurationDTO.feeConfigurationId && {
 						UpdatedBy: userFind.Id,
 						UpdatedDate: currentDate,
 						CreatedDate: currentDate,
@@ -950,6 +952,31 @@ export class ProviderService {
 			Sentry.captureException(error);
 			throw new Error(
 				`Error fetching Fee Configuration by ID: ${error.message}`
+			);
+		}
+	}
+
+	async getProviderFeeConfigurationByProvider(serviceProviderId: string) {
+		const docClient = new DocumentClient();
+
+		const getFeeConfigParams: DocumentClient.QueryInput = {
+			TableName: 'FeeConfigurations',
+			IndexName: 'ServiceProviderIdIndex',
+			KeyConditionExpression: 'ServiceProviderId = :serviceProviderId',
+			ExpressionAttributeValues: {
+				':serviceProviderId': serviceProviderId,
+			},
+		};
+
+		try {
+			const result = await docClient.query(getFeeConfigParams).promise();
+			console;
+
+			return convertToCamelCase(result.Items);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(
+				`Error fetching payments parameters by serviceProvider: ${error.message}`
 			);
 		}
 	}
@@ -1086,16 +1113,6 @@ export class ProviderService {
 						...errorCodes.WGE0040,
 					},
 					HttpStatus.NOT_FOUND
-				);
-			}
-
-			if (userDb.Type === 'PLATFORM') {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						customCode: 'WGE0146',
-					},
-					HttpStatus.INTERNAL_SERVER_ERROR
 				);
 			}
 

@@ -28,4 +28,8 @@ export class CreateProviderPaymentParameterDTO {
 
 	@IsString()
 	serviceProviderId: string;
+
+	@IsString()
+	@IsOptional()
+	paymentParameterId?: string;
 }

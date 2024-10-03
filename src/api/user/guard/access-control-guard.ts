@@ -41,18 +41,19 @@ export class AccessControlMiddleware implements NestMiddleware {
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
 		// if the user is a provider, we allow them to access their own data only for GET
-		if (req.path === `/api/v1/providers/${user.serviceProviderId}` && requiredMethod === 'GET') {
+		if (
+			req.path === `/api/v1/providers/${user.serviceProviderId}` &&
+			requiredMethod === 'GET'
+		) {
 			next();
-			return ;
+			return;
 		}
 
 		if (user?.type === 'PLATFORM' && requestedModuleId == 'SP95') {
 			next();
 			return;
 		}
-
 		const userAccessLevel = role?.Modules[requestedModuleId];
-
 
 		if (userAccessLevel === undefined && user.type !== 'WALLET') {
 			throw new HttpException(
