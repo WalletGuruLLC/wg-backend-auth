@@ -609,86 +609,22 @@ export class ProviderService {
 
 	async createOrUpdatePaymentParameter(
 		createProviderPaymentParameter: CreateProviderPaymentParameterDTO,
-		user: string
+		serviceProviderId: string,
+		paymentParameter: any,
+		timeInterval: any
 	): Promise<CreateProviderPaymentParameterDTO> {
 		const docClient = new DocumentClient();
-
-		const userConverted = user as unknown as {
-			Name: string;
-			Value: string;
-		}[];
-		const userEmail = userConverted[0]?.Value;
-
-		const users = await this.dbUserInstance.query('Email').eq(userEmail).exec();
-
-		const userFind = users?.[0];
-
-		if (!userFind) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0040',
-					...errorCodes.WGE0040,
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
-
-		const providerId =
-			userFind && userFind?.Type === 'PROVIDER'
-				? userFind?.ServiceProviderId
-				: createProviderPaymentParameter.serviceProviderId;
-
-		const getProviderParams: DocumentClient.GetItemInput = {
-			TableName: 'Providers',
-			Key: { Id: providerId },
-		};
-
-		const provider = await docClient.get(getProviderParams).promise();
-
-		if (!provider.Item) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0040',
-					...errorCodes.WGE0040,
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
-
-		const existingPaymentParameter = await this.getPaymentParameters(
-			createProviderPaymentParameter.serviceProviderId,
-			{
-				asset: createProviderPaymentParameter.asset,
-				frequency: createProviderPaymentParameter.frequency,
-			},
-			createProviderPaymentParameter.paymentParameterId
-		);
 
 		const feeConfigParams = {
 			TableName: 'FeeConfigurations',
 			IndexName: 'ServiceProviderIdIndex',
 			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
 			ExpressionAttributeValues: {
-				':serviceProviderId': providerId,
+				':serviceProviderId': serviceProviderId,
 			},
 		};
 
 		const feeConfigurations = await docClient.query(feeConfigParams).promise();
-
-		if (
-			(!createProviderPaymentParameter.paymentParameterId &&
-				existingPaymentParameter.length > 0) ||
-			(createProviderPaymentParameter.paymentParameterId &&
-				!existingPaymentParameter.length)
-		) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0117',
-					statusCode: HttpStatus.BAD_REQUEST,
-				},
-				HttpStatus.BAD_REQUEST
-			);
-		}
 
 		if (!feeConfigurations.Items) {
 			throw new HttpException(
@@ -712,18 +648,6 @@ export class ProviderService {
 			);
 		}
 
-		const paymentParameter = existingPaymentParameter?.[0];
-
-		if (!paymentParameter) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0119',
-					statusCode: HttpStatus.NOT_FOUND,
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
-
 		const params = {
 			TableName: 'PaymentParameters',
 			Item: {
@@ -735,10 +659,10 @@ export class ProviderService {
 					Description: createProviderPaymentParameter.description,
 				}),
 				Cost: createProviderPaymentParameter.cost,
-				Frequency: createProviderPaymentParameter.frequency,
-				Interval: createProviderPaymentParameter.interval,
+				Frequency: createProviderPaymentParameter?.frequency,
+				Interval: timeInterval?.name,
 				Asset: createProviderPaymentParameter.asset,
-				ServiceProviderId: providerId,
+				ServiceProviderId: serviceProviderId,
 				Percent: feeConfig.Percent,
 				Comision: feeConfig.Comission,
 				Base: feeConfig.Base,
@@ -756,45 +680,17 @@ export class ProviderService {
 		return createProviderPaymentParameter;
 	}
 
-	async getPaymentParameters(
-		serviceProviderId: string,
-		paymentParametersFilter: GetProviderPaymentParametersDTO,
-		paymentParameterId?: string
-	): Promise<any> {
+	async getPaymentParameters(paymentParameterId?: string): Promise<any> {
 		const docClient = new DocumentClient();
 
-		const expressionFilters = buildFilterExpressionDynamo(
-			paymentParametersFilter
-		);
 		const params = {
+			Key: { Id: paymentParameterId },
 			TableName: 'PaymentParameters',
-			...(!paymentParameterId && {
-				IndexName: 'ServiceProviderIdIndex',
-			}),
-			...(paymentParameterId && {
-				KeyConditionExpression: `Id = :paymentParameterId`,
-			}),
-
-			...(!paymentParameterId && {
-				KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
-			}),
-			ExpressionAttributeValues: {
-				...(paymentParameterId && {
-					':paymentParameterId': paymentParameterId,
-				}),
-				...(!paymentParameterId && { ':serviceProviderId': serviceProviderId }),
-				...(expressionFilters.expressionValues && {
-					...expressionFilters.expressionValues,
-				}),
-			},
-			...(expressionFilters.expression && {
-				FilterExpression: expressionFilters.expression,
-			}),
 		};
 
-		const paymentParameterQuery = await docClient.query(params).promise();
+		const paymentParameterQuery = await docClient.get(params).promise();
 
-		return convertToCamelCase(paymentParameterQuery.Items);
+		return convertToCamelCase(paymentParameterQuery.Item);
 	}
 	async getTimeIntervals(): Promise<any> {
 		const docClient = new DocumentClient();
@@ -804,6 +700,17 @@ export class ProviderService {
 		const timeIntervals = await docClient.scan(params).promise();
 
 		return convertToCamelCase(timeIntervals.Items);
+	}
+
+	async getTimeIntervalById(id: string): Promise<any> {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'TimeIntervals',
+			Key: { Id: id },
+		};
+		const timeIntervals = await docClient.get(params).promise();
+
+		return convertToCamelCase(timeIntervals?.Item);
 	}
 
 	async getFeeConfigurationsByProvider(
@@ -1168,5 +1075,24 @@ export class ProviderService {
 			Sentry.captureException(error);
 			throw new Error(`Error Toggle payments parameters: ${error.message}`);
 		}
+	}
+
+	async getProviderId(providerId: string, user: string) {
+		const userConverted = user as unknown as {
+			Name: string;
+			Value: string;
+		}[];
+		const userEmail = userConverted[0]?.Value;
+
+		const users = await this.dbUserInstance.query('Email').eq(userEmail).exec();
+
+		const userFind = users?.[0];
+
+		const serviceProviderId =
+			userFind && userFind?.Type === 'PROVIDER'
+				? userFind?.ServiceProviderId
+				: providerId;
+
+		return serviceProviderId;
 	}
 }
