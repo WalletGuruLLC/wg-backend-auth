@@ -2,22 +2,22 @@ import { GetProvidersDto } from './../dto/getProviderDto';
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { errorCodes } from '../../../utils/constants';
 import { Provider } from '../entities/provider.entity';
 import { ProviderSchema } from '../entities/provider.schema';
 import {
-	CreateProviderDto,
 	ChangeStatusProviderDto,
+	CreateProviderDto,
 	UpdateProviderDto,
 } from '../dto/provider';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import { v4 as uuidv4 } from 'uuid';
 import {
-	S3Client,
 	DeleteObjectCommand,
 	PutObjectCommand,
+	S3Client,
 } from '@aws-sdk/client-s3';
 import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
@@ -229,6 +229,18 @@ export class ProviderService {
 			Key: { Id: id },
 		};
 
+		const getKeysParam: DocumentClient.ScanInput = {
+			TableName: 'SocketKeys',
+			FilterExpression: '#ServiceProviderId = :ServiceProviderId',
+			ExpressionAttributeNames: {
+				'#ServiceProviderId': 'ServiceProviderId',
+			},
+			ExpressionAttributeValues: {
+				':ServiceProviderId': id,
+			},
+		};
+		const result = await docClient.scan(getKeysParam).promise();
+		const SocketKeys = result.Items[0];
 		try {
 			const result = await docClient.get(params).promise();
 
@@ -241,8 +253,11 @@ export class ProviderService {
 					HttpStatus.NOT_FOUND
 				);
 			}
-
-			return convertToCamelCase(result.Item);
+			const provider = convertToCamelCase(result.Item);
+			if (SocketKeys) {
+				provider.socketKeys = convertToCamelCase(SocketKeys);
+			}
+			return provider;
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error fetching provider by ID: ${error.message}`);
