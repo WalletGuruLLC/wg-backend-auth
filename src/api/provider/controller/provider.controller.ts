@@ -431,15 +431,17 @@ export class ProviderController {
 				id
 			);
 			if (provider?.customCode) {
-				return {
+				return res.status(HttpStatus.UNAUTHORIZED).send({
+					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: provider?.customCode,
-				};
+				});
 			}
-			return {
+
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0034',
 				data: provider,
-			};
+			});
 		} catch (error) {
 			console.log('error', error?.message);
 			Sentry.captureException(error);
@@ -967,7 +969,6 @@ export class ProviderController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0161',
-					message: error.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
