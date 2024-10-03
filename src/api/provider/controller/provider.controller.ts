@@ -668,20 +668,13 @@ export class ProviderController {
 	@ApiOperation({
 		summary: 'Create or update a new payment parameters for service providers',
 	})
-	@ApiParam({
-		name: 'paymentParameterId',
-		description: 'ID del paymentParamter',
-		type: String,
-		required: false,
-	})
 	@ApiBody({
 		schema: {
 			example: {
 				name: 'Provider1_Paramter',
-				description: 'Parameter for service provider 1',
 				cost: 10,
-				frequency: 'MINUTES',
-				interval: 30,
+				frequency: 30,
+				timeIntervalId: '5894d088-0cc6-4aea-9df5-ba348c9d364d',
 				asset: 'USD',
 				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
 				paymentParameterId: '8bf931ea-3710-420b-ae68-921f94bcd937',
@@ -705,20 +698,55 @@ export class ProviderController {
 	) {
 		const userRequest = req.user?.UserAttributes;
 		try {
-			const provider = await this.providerService.searchFindOne(
-				createProviderPaymentParameterDTO.serviceProviderId
+			let existingPaymentParameter;
+
+			if (createProviderPaymentParameterDTO.paymentParameterId) {
+				existingPaymentParameter =
+					await this.providerService.getPaymentParameters(
+						createProviderPaymentParameterDTO.paymentParameterId
+					);
+
+				if (
+					createProviderPaymentParameterDTO.paymentParameterId &&
+					!existingPaymentParameter
+				) {
+					return res.status(HttpStatus.NOT_FOUND).send({
+						statusCode: HttpStatus.NOT_FOUND,
+						customCode: 'WGE0119',
+					});
+				}
+			}
+
+			const providerId = await this.providerService.getProviderId(
+				createProviderPaymentParameterDTO.serviceProviderId,
+				userRequest
 			);
 
-			if (!provider) {
-				return {
+			if (!providerId) {
+				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0040',
-				};
+				});
 			}
+			await this.providerService.searchFindOne(providerId);
+
+			const timeInterval = await this.providerService.getTimeIntervalById(
+				createProviderPaymentParameterDTO.timeIntervalId
+			);
+
+			if (!timeInterval) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0115',
+				});
+			}
+
 			const paymentParameter =
 				await this.providerService.createOrUpdatePaymentParameter(
 					createProviderPaymentParameterDTO,
-					userRequest
+					providerId,
+					existingPaymentParameter,
+					timeInterval
 				);
 
 			return res.status(HttpStatus.OK).send({
