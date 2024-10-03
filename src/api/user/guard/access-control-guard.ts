@@ -23,7 +23,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
-					customCode: 'WGE0021',
+					customCode: 'WGE0126',
 				},
 				HttpStatus.UNAUTHORIZED
 			);
