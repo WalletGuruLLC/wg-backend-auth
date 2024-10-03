@@ -344,7 +344,7 @@ export class ProviderController {
 			return {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0074',
-				data: { provider: provider },
+				data: provider,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
