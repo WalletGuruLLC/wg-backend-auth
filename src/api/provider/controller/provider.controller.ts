@@ -324,11 +324,10 @@ export class ProviderController {
 			);
 			const userRoleId = userFind.roleId;
 			const role = await this.roleService.getRoleInfo(userRoleId);
-			var provider;
+			let provider;
 			if (id == userFind?.serviceProviderId) {
 				provider = await this.providerService.searchFindOne(id); // if the user is a provider, we allow them to access their own data only
-			}
-			else{
+			} else {
 				provider = await this.providerService.findOne(id, role, id);
 			}
 			if (provider?.customCode) {
