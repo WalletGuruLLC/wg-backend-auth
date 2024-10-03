@@ -433,7 +433,7 @@ export class ProviderController {
 			if (provider?.customCode) {
 				return res.status(HttpStatus.UNAUTHORIZED).send({
 					statusCode: HttpStatus.UNAUTHORIZED,
-					customCode: 'WGE0131',
+					customCode: provider?.customCode,
 				});
 			}
 
