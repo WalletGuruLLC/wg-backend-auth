@@ -643,7 +643,7 @@ export class UserService {
 		totalPages: number;
 	}> {
 		const {
-			type = 'WALLET',
+			type = 'PROVIDER',
 			email,
 			serviceProviderId,
 			id,
@@ -678,7 +678,11 @@ export class UserService {
 			providerId = serviceProviderId;
 		}
 
-		if (!serviceProviderId && userDb[0].ServiceProviderId) {
+		if (
+			!serviceProviderId &&
+			userDb[0].ServiceProviderId &&
+			userDb[0].Type === 'PROVIDER'
+		) {
 			query = query
 				.and()
 				.filter('ServiceProviderId')

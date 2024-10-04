@@ -20,12 +20,16 @@ export class CreateProviderPaymentParameterDTO {
 	@IsNumber()
 	frequency: number;
 
-	@IsEnum(Interval)
-	interval: Interval;
+	@IsString()
+	timeIntervalId: string;
 
 	@IsEnum(Asset)
 	asset: Asset;
 
 	@IsString()
 	serviceProviderId: string;
+
+	@IsString()
+	@IsOptional()
+	paymentParameterId?: string;
 }

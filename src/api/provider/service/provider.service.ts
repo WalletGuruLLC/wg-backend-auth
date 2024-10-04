@@ -2,22 +2,22 @@ import { GetProvidersDto } from './../dto/getProviderDto';
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { errorCodes } from '../../../utils/constants';
 import { Provider } from '../entities/provider.entity';
 import { ProviderSchema } from '../entities/provider.schema';
 import {
-	CreateProviderDto,
 	ChangeStatusProviderDto,
+	CreateProviderDto,
 	UpdateProviderDto,
 } from '../dto/provider';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import { v4 as uuidv4 } from 'uuid';
 import {
-	S3Client,
 	DeleteObjectCommand,
 	PutObjectCommand,
+	S3Client,
 } from '@aws-sdk/client-s3';
 import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
@@ -28,7 +28,7 @@ import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-paymen
 import { buildFilterExpressionDynamo } from '../../../utils/helpers/buildFilterExpressionDynamo';
 import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
 import { removeSpaces } from '../../../utils/helpers/removeSpaces';
-import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
+import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuration.dto';
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 
 @Injectable()
@@ -229,6 +229,18 @@ export class ProviderService {
 			Key: { Id: id },
 		};
 
+		const getKeysParam: DocumentClient.ScanInput = {
+			TableName: 'SocketKeys',
+			FilterExpression: '#ServiceProviderId = :ServiceProviderId',
+			ExpressionAttributeNames: {
+				'#ServiceProviderId': 'ServiceProviderId',
+			},
+			ExpressionAttributeValues: {
+				':ServiceProviderId': id,
+			},
+		};
+		const result = await docClient.scan(getKeysParam).promise();
+		const SocketKeys = result.Items[0];
 		try {
 			const result = await docClient.get(params).promise();
 
@@ -241,8 +253,11 @@ export class ProviderService {
 					HttpStatus.NOT_FOUND
 				);
 			}
-
-			return convertToCamelCase(result.Item);
+			const provider = convertToCamelCase(result.Item);
+			if (SocketKeys) {
+				provider.socketKeys = convertToCamelCase(SocketKeys);
+			}
+			return provider;
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error fetching provider by ID: ${error.message}`);
@@ -593,95 +608,23 @@ export class ProviderService {
 	}
 
 	async createOrUpdatePaymentParameter(
-		id: string,
 		createProviderPaymentParameter: CreateProviderPaymentParameterDTO,
-		user: string
+		serviceProviderId: string,
+		paymentParameter: any,
+		timeInterval: any
 	): Promise<CreateProviderPaymentParameterDTO> {
 		const docClient = new DocumentClient();
-
-		const userConverted = user as unknown as {
-			Name: string;
-			Value: string;
-		}[];
-		const userEmail = userConverted[0]?.Value;
-
-		const users = await this.dbUserInstance.query('Email').eq(userEmail).exec();
-
-		const userFind = users?.[0];
-
-		if (!userFind) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0040',
-					...errorCodes.WGE0040,
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
-		if (userFind.Type === 'PLATFORM') {
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0146`',
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
-		}
-
-		const providerId =
-			userFind && userFind?.Type === 'PROVIDER'
-				? userFind?.ServiceProviderId
-				: createProviderPaymentParameter.serviceProviderId;
-
-		const getProviderParams: DocumentClient.GetItemInput = {
-			TableName: 'Providers',
-			Key: { Id: providerId },
-		};
-
-		const provider = await docClient.get(getProviderParams).promise();
-
-		if (!provider.Item) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0040',
-					...errorCodes.WGE0040,
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
-
-		const existingPaymentParameter = await this.getPaymentParameters(
-			createProviderPaymentParameter.serviceProviderId,
-			{
-				asset: createProviderPaymentParameter.asset,
-				frequency: createProviderPaymentParameter.frequency,
-			},
-			id
-		);
 
 		const feeConfigParams = {
 			TableName: 'FeeConfigurations',
 			IndexName: 'ServiceProviderIdIndex',
 			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
 			ExpressionAttributeValues: {
-				':serviceProviderId': providerId,
+				':serviceProviderId': serviceProviderId,
 			},
 		};
 
 		const feeConfigurations = await docClient.query(feeConfigParams).promise();
-
-		if (
-			(!id && existingPaymentParameter.length > 0) ||
-			(id && !existingPaymentParameter.length)
-		) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0117',
-					statusCode: HttpStatus.BAD_REQUEST,
-				},
-				HttpStatus.BAD_REQUEST
-			);
-		}
 
 		if (!feeConfigurations.Items) {
 			throw new HttpException(
@@ -705,36 +648,30 @@ export class ProviderService {
 			);
 		}
 
-		const paymentParameter = existingPaymentParameter?.[0];
-
-		if (!paymentParameter) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0119',
-					statusCode: HttpStatus.NOT_FOUND,
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
-
 		const params = {
 			TableName: 'PaymentParameters',
 			Item: {
-				Id: id ? id : uuidv4(),
+				Id: createProviderPaymentParameter.paymentParameterId
+					? createProviderPaymentParameter.paymentParameterId
+					: uuidv4(),
 				Name: createProviderPaymentParameter.name,
 				...(createProviderPaymentParameter.description && {
 					Description: createProviderPaymentParameter.description,
 				}),
 				Cost: createProviderPaymentParameter.cost,
-				Frequency: createProviderPaymentParameter.frequency,
-				Interval: createProviderPaymentParameter.interval,
+				Frequency: createProviderPaymentParameter?.frequency,
+				Interval: timeInterval?.name,
 				Asset: createProviderPaymentParameter.asset,
-				ServiceProviderId: providerId,
+				ServiceProviderId: serviceProviderId,
 				Percent: feeConfig.Percent,
 				Comision: feeConfig.Comission,
 				Base: feeConfig.Base,
-				...(!id && { Active: true }),
-				...(id && { Active: paymentParameter.active }),
+				...(!createProviderPaymentParameter.paymentParameterId && {
+					Active: true,
+				}),
+				...(createProviderPaymentParameter.paymentParameterId && {
+					Active: paymentParameter.active,
+				}),
 			},
 		};
 
@@ -743,45 +680,17 @@ export class ProviderService {
 		return createProviderPaymentParameter;
 	}
 
-	async getPaymentParameters(
-		serviceProviderId: string,
-		paymentParametersFilter: GetProviderPaymentParametersDTO,
-		paymentParameterId?: string
-	): Promise<any> {
+	async getPaymentParameters(paymentParameterId?: string): Promise<any> {
 		const docClient = new DocumentClient();
 
-		const expressionFilters = buildFilterExpressionDynamo(
-			paymentParametersFilter
-		);
 		const params = {
+			Key: { Id: paymentParameterId },
 			TableName: 'PaymentParameters',
-			...(!paymentParameterId && {
-				IndexName: 'ServiceProviderIdIndex',
-			}),
-			...(paymentParameterId && {
-				KeyConditionExpression: `Id = :paymentParameterId`,
-			}),
-
-			...(!paymentParameterId && {
-				KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
-			}),
-			ExpressionAttributeValues: {
-				...(paymentParameterId && {
-					':paymentParameterId': paymentParameterId,
-				}),
-				...(!paymentParameterId && { ':serviceProviderId': serviceProviderId }),
-				...(expressionFilters.expressionValues && {
-					...expressionFilters.expressionValues,
-				}),
-			},
-			...(expressionFilters.expression && {
-				FilterExpression: expressionFilters.expression,
-			}),
 		};
 
-		const paymentParameterQuery = await docClient.query(params).promise();
+		const paymentParameterQuery = await docClient.get(params).promise();
 
-		return convertToCamelCase(paymentParameterQuery.Items);
+		return convertToCamelCase(paymentParameterQuery.Item);
 	}
 	async getTimeIntervals(): Promise<any> {
 		const docClient = new DocumentClient();
@@ -791,6 +700,17 @@ export class ProviderService {
 		const timeIntervals = await docClient.scan(params).promise();
 
 		return convertToCamelCase(timeIntervals.Items);
+	}
+
+	async getTimeIntervalById(id: string): Promise<any> {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'TimeIntervals',
+			Key: { Id: id },
+		};
+		const timeIntervals = await docClient.get(params).promise();
+
+		return convertToCamelCase(timeIntervals?.Item);
 	}
 
 	async getFeeConfigurationsByProvider(
@@ -844,8 +764,7 @@ export class ProviderService {
 
 	async createOrUpdateProviderFeeConfiguration(
 		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
-		user: string,
-		id?: string
+		user: string
 	): Promise<CreateUpdateFeeConfigurationDTO> {
 		try {
 			const docClient = new DocumentClient();
@@ -855,6 +774,7 @@ export class ProviderService {
 				TableName: 'Providers',
 				Key: { Id: createUpdateFeeConfigurationDTO.serviceProviderId },
 			};
+
 			let providerFeeConfig;
 
 			const provider = await docClient.get(getProviderParams).promise();
@@ -889,25 +809,29 @@ export class ProviderService {
 				);
 			}
 
-			if (id) {
-				providerFeeConfig = await this.getProviderFeeConfiguration(id);
+			if (createUpdateFeeConfigurationDTO.feeConfigurationId) {
+				providerFeeConfig = await this.getProviderFeeConfiguration(
+					createUpdateFeeConfigurationDTO.feeConfigurationId
+				);
 			}
 
 			const params = {
 				TableName: 'FeeConfigurations',
 				Item: {
-					Id: id ? id : uuidv4(),
+					Id: createUpdateFeeConfigurationDTO.feeConfigurationId
+						? createUpdateFeeConfigurationDTO.feeConfigurationId
+						: uuidv4(),
 					ServiceProviderId: createUpdateFeeConfigurationDTO.serviceProviderId,
 					Percent: createUpdateFeeConfigurationDTO.percent,
 					Comission: createUpdateFeeConfigurationDTO.comission,
 					Base: createUpdateFeeConfigurationDTO.base,
-					...(id && {
+					...(createUpdateFeeConfigurationDTO.feeConfigurationId && {
 						CreatedDate: providerFeeConfig.createdDate,
 						CreatedBy: providerFeeConfig.createdBy,
 						UpdatedBy: userFind.Id,
 						UpdatedDate: currentDate,
 					}),
-					...(!id && {
+					...(!createUpdateFeeConfigurationDTO.feeConfigurationId && {
 						UpdatedBy: userFind.Id,
 						UpdatedDate: currentDate,
 						CreatedDate: currentDate,
@@ -950,6 +874,31 @@ export class ProviderService {
 			Sentry.captureException(error);
 			throw new Error(
 				`Error fetching Fee Configuration by ID: ${error.message}`
+			);
+		}
+	}
+
+	async getProviderFeeConfigurationByProvider(serviceProviderId: string) {
+		const docClient = new DocumentClient();
+
+		const getFeeConfigParams: DocumentClient.QueryInput = {
+			TableName: 'FeeConfigurations',
+			IndexName: 'ServiceProviderIdIndex',
+			KeyConditionExpression: 'ServiceProviderId = :serviceProviderId',
+			ExpressionAttributeValues: {
+				':serviceProviderId': serviceProviderId,
+			},
+		};
+
+		try {
+			const result = await docClient.query(getFeeConfigParams).promise();
+			console;
+
+			return convertToCamelCase(result.Items);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(
+				`Error fetching payments parameters by serviceProvider: ${error.message}`
 			);
 		}
 	}
@@ -1089,16 +1038,6 @@ export class ProviderService {
 				);
 			}
 
-			if (userDb.Type === 'PLATFORM') {
-				throw new HttpException(
-					{
-						statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-						customCode: 'WGE0146',
-					},
-					HttpStatus.INTERNAL_SERVER_ERROR
-				);
-			}
-
 			const paymentParameter = await docClient.query(params).promise();
 
 			if (!paymentParameter?.Items?.[0]) {
@@ -1136,5 +1075,24 @@ export class ProviderService {
 			Sentry.captureException(error);
 			throw new Error(`Error Toggle payments parameters: ${error.message}`);
 		}
+	}
+
+	async getProviderId(providerId: string, user: string) {
+		const userConverted = user as unknown as {
+			Name: string;
+			Value: string;
+		}[];
+		const userEmail = userConverted[0]?.Value;
+
+		const users = await this.dbUserInstance.query('Email').eq(userEmail).exec();
+
+		const userFind = users?.[0];
+
+		const serviceProviderId =
+			userFind && userFind?.Type === 'PROVIDER'
+				? userFind?.ServiceProviderId
+				: providerId;
+
+		return serviceProviderId;
 	}
 }

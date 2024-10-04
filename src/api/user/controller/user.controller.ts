@@ -148,7 +148,7 @@ export class UserController {
 			if (validatePhoneNumber(createUserDto?.phone) === false) {
 				return res.status(HttpStatus.PARTIAL_CONTENT).send({
 					statusCode: HttpStatus.PARTIAL_CONTENT,
-					customCode: 'WGE0127',
+					customCode: 'WGE0113',
 				});
 			}
 
@@ -461,7 +461,7 @@ export class UserController {
 			) {
 				return res.status(HttpStatus.PARTIAL_CONTENT).send({
 					statusCode: HttpStatus.PARTIAL_CONTENT,
-					customCode: 'WGE00044',
+					customCode: 'WGE0113',
 					customMessage: errorCodes?.WGE00044?.description,
 					customMessageEs: errorCodes?.WGE00044?.descriptionEs,
 				});
@@ -849,7 +849,10 @@ export class UserController {
 				getUsersDto,
 				userRequest
 			);
-			if (!['WALLET', 'PLATFORM', 'PROVIDER'].includes(getUsersDto.type)) {
+			if (
+				getUsersDto.type &&
+				!['WALLET', 'PLATFORM', 'PROVIDER'].includes(getUsersDto.type)
+			) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0017',
