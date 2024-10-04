@@ -161,6 +161,19 @@ export class ProviderService {
 		try {
 			const result = await docClient.get(params).promise();
 
+			const getKeysParam: DocumentClient.ScanInput = {
+				TableName: 'SocketKeys',
+				FilterExpression: '#ServiceProviderId = :ServiceProviderId',
+				ExpressionAttributeNames: {
+					'#ServiceProviderId': 'ServiceProviderId',
+				},
+				ExpressionAttributeValues: {
+					':ServiceProviderId': id,
+				},
+			};
+			const resultKeys = await docClient.scan(getKeysParam).promise();
+			const SocketKeys = resultKeys.Items[0];
+
 			if (!result.Item) {
 				throw new HttpException(
 					{
@@ -171,7 +184,13 @@ export class ProviderService {
 				);
 			}
 
-			return convertToCamelCase(result.Item);
+			const provider = convertToCamelCase(result.Item);
+
+			if (SocketKeys) {
+				provider.socketKeys = convertToCamelCase(SocketKeys);
+			}
+
+			return provider;
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error fetching provider by ID: ${error.message}`);
