@@ -379,7 +379,6 @@ export class ProviderService {
 			'country',
 			'city',
 			'zipCode',
-			'walletAddress',
 			'contactInformation',
 		];
 
