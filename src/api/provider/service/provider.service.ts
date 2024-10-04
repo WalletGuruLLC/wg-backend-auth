@@ -10,6 +10,7 @@ import { ProviderSchema } from '../entities/provider.schema';
 import {
 	ChangeStatusProviderDto,
 	CreateProviderDto,
+	CreateSocketDto,
 	UpdateProviderDto,
 } from '../dto/provider';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
@@ -30,11 +31,15 @@ import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParame
 import { removeSpaces } from '../../../utils/helpers/removeSpaces';
 import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuration.dto';
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
+import axios from 'axios';
+import { SocketKey } from '../entities/socket.entity';
+import { SocketKeySchema } from '../entities/socket.schema';
 
 @Injectable()
 export class ProviderService {
 	private readonly dbInstance: Model<Provider>;
 	private dbUserInstance: Model<User>;
+	private dbInstanceSocket: Model<SocketKey>;
 
 	constructor() {
 		const tableName = 'Providers';
@@ -43,6 +48,90 @@ export class ProviderService {
 			waitForActive: false,
 		});
 		this.dbUserInstance = dynamoose.model<User>('Users', UserSchema);
+		this.dbInstanceSocket = dynamoose.model<SocketKey>(
+			'SocketKeys',
+			SocketKeySchema
+		);
+	}
+
+	async filterRafikiAssetByName(assets: Array<any>, assetName: string) {
+		const filteredAsset = assets.find(asset => asset?.code == assetName);
+
+		if (!filteredAsset) {
+			return {};
+		}
+
+		return filteredAsset;
+	}
+
+	async getAndFilterAssetsByName(assetName: string, token: string) {
+		try {
+			const url = process.env.WALLET_URL + '/api/v1/wallets-rafiki/assets';
+
+			const response = await axios.get(url, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			const assets = response?.data?.data?.rafikiAssets;
+
+			const assetValue = await this.filterRafikiAssetByName(assets, assetName);
+
+			return assetValue?.id ?? '';
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error getting assets',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	async createWalletAddressServiceProvider(
+		assetName: string,
+		addressName: string,
+		token: string,
+		providerName: string
+	) {
+		try {
+			const url =
+				process.env.WALLET_URL +
+				'/api/v1/wallets-rafiki/service-provider-address';
+
+			const assetIdValue = await this.getAndFilterAssetsByName(
+				assetName,
+				token
+			);
+
+			const body = {
+				addressName,
+				assetId: assetIdValue,
+				providerName,
+			};
+
+			const response = await axios.post(url, body, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			return response.data;
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error creating wallet address',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	async createSocketKey(
+		createSocketKeyDto: CreateSocketDto
+	): Promise<SocketKey> {
+		const socketKey = {
+			PublicKey: createSocketKeyDto.publicKey,
+			SecretKey: createSocketKeyDto.secretKey,
+			ServiceProviderId: createSocketKeyDto.serviceProviderId,
+		};
+		return this.dbInstanceSocket.create(socketKey);
 	}
 
 	async create(createProviderDto: CreateProviderDto): Promise<Provider> {
@@ -59,6 +148,7 @@ export class ProviderService {
 			WalletAddress: removeSpaces(createProviderDto.walletAddress),
 			Logo: createProviderDto.logo,
 			ContactInformation: createProviderDto.contactInformation,
+			Asset: createProviderDto.asset,
 		};
 		return this.dbInstance.create(provider);
 	}
@@ -441,7 +531,6 @@ export class ProviderService {
 			}
 		} catch (error) {
 			Sentry.captureException(error);
-			console.log('error', error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.FORBIDDEN,
