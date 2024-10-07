@@ -173,12 +173,15 @@ export class ProviderController {
 				userInfo?.UserAttributes?.[0]?.Value
 			);
 			const provider = await this.providerService.create(createProviderDto);
-			await this.roleService.createOrUpdateAccessLevel(
-				userFind?.roleId,
-				provider?.Id,
-				15,
-				'SP95'
-			);
+			const accessLevels = ['SP95', 'U783', 'R949', 'SE37'];
+			for (const level of accessLevels) {
+				await this.roleService.createOrUpdateAccessLevel(
+					userFind?.roleId,
+					provider?.Id,
+					15,
+					level
+				);
+			}
 			const token = req.token;
 			await this.providerService.createWalletAddressServiceProvider(
 				createProviderDto?.asset,
