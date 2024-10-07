@@ -48,6 +48,7 @@ import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-pa
 import { validarEIN } from 'src/utils/helpers/validateEin';
 import { validarZipCode } from 'src/utils/helpers/validateZipcode';
 import { TogglePaymentParameterDTO } from '../dto/toggle-payment-parameter.dto';
+import { generateCleanUUID } from 'src/utils/helpers/generateCleanUUID';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -178,6 +179,19 @@ export class ProviderController {
 				15,
 				'SP95'
 			);
+			const token = req.token;
+			await this.providerService.createWalletAddressServiceProvider(
+				createProviderDto?.asset,
+				createProviderDto?.walletAddress,
+				token?.split(' ')?.[1],
+				createProviderDto?.name
+			);
+			await this.providerService.createSocketKey({
+				publicKey: generateCleanUUID(),
+				secretKey: generateCleanUUID(),
+				serviceProviderId: provider?.Id,
+			});
+
 			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
 				customCode: 'WGS0077',
@@ -443,7 +457,6 @@ export class ProviderController {
 				data: provider,
 			});
 		} catch (error) {
-			console.log('error', error?.message);
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
