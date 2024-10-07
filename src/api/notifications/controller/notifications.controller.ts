@@ -53,7 +53,7 @@ export class NotificationsController {
 			if (!user) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0027',
+					customCode: 'WGE0002',
 					message: 'User not found',
 				});
 			}
@@ -63,13 +63,13 @@ export class NotificationsController {
 			);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0141',
+				customCode: 'WGE0188',
 				data: { notificationsActive: isActive },
 			});
 		} catch (error) {
 			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				customCode: 'WGE0134',
+				customCode: 'WGE0189',
 				message: 'Internal server error',
 			});
 		}
@@ -104,7 +104,7 @@ export class NotificationsController {
 			if (!user) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0027',
+					customCode: 'WGE0002',
 					message: 'User not found',
 				});
 			}
@@ -112,7 +112,7 @@ export class NotificationsController {
 			if (typeof body.notificationsActive !== 'boolean') {
 				return res.status(HttpStatus.BAD_REQUEST).send({
 					statusCode: HttpStatus.BAD_REQUEST,
-					customCode: 'WGE0134',
+					customCode: 'WGE0190',
 					message: 'Invalid value for notificationsActive',
 				});
 			}
@@ -124,13 +124,13 @@ export class NotificationsController {
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0141',
+				customCode: 'WGE0191',
 				message: 'Notifications status updated successfully',
 			});
 		} catch (error) {
 			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				customCode: 'WGE0134',
+				customCode: 'WGE0192',
 				message: 'Internal server error',
 			});
 		}
@@ -172,7 +172,7 @@ export class NotificationsController {
 			if (!user) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0027',
+					customCode: 'WGE0002',
 					message: 'User not found',
 				});
 			}
@@ -181,7 +181,7 @@ export class NotificationsController {
 			if (!validDurations.includes(muteDto.duration)) {
 				return res.status(HttpStatus.BAD_REQUEST).send({
 					statusCode: HttpStatus.BAD_REQUEST,
-					customCode: 'WGE0049',
+					customCode: 'WGE0193',
 					message: 'Invalid mute duration',
 				});
 			}
@@ -193,13 +193,13 @@ export class NotificationsController {
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0141',
+				customCode: 'WGE0194',
 				message: 'Notifications muted successfully',
 			});
 		} catch (error) {
 			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				customCode: 'WGE0134',
+				customCode: 'WGE0195',
 				message: 'Internal server error',
 			});
 		}
