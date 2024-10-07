@@ -155,15 +155,15 @@ export class ProviderController {
 			}
 
 			if (!validarEIN(einNumber)) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
 					customCode: 'WGE0170',
 				});
 			}
 
 			if (!validarZipCode(zipCode)) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
 					customCode: 'WGE0171',
 				});
 			}
@@ -173,12 +173,15 @@ export class ProviderController {
 				userInfo?.UserAttributes?.[0]?.Value
 			);
 			const provider = await this.providerService.create(createProviderDto);
-			await this.roleService.createOrUpdateAccessLevel(
-				userFind?.roleId,
-				provider?.Id,
-				15,
-				'SP95'
-			);
+			const accessLevels = ['SP95', 'U783', 'R949', 'SE37'];
+			for (const level of accessLevels) {
+				await this.roleService.createOrUpdateAccessLevel(
+					userFind?.roleId,
+					provider?.Id,
+					15,
+					level
+				);
+			}
 			const token = req.token;
 			await this.providerService.createWalletAddressServiceProvider(
 				createProviderDto?.asset,
