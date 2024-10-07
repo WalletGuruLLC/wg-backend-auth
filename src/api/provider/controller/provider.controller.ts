@@ -155,15 +155,15 @@ export class ProviderController {
 			}
 
 			if (!validarEIN(einNumber)) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
 					customCode: 'WGE0170',
 				});
 			}
 
 			if (!validarZipCode(zipCode)) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
 					customCode: 'WGE0171',
 				});
 			}
