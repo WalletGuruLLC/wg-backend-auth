@@ -10,6 +10,10 @@ export const NotificationSettingsSchema = new dynamoose.Schema(
 		},
 		UserId: {
 			type: String,
+			index: {
+				global: true,
+				name: 'UserIdIndex',
+			},
 		},
 		NotificationsActive: {
 			type: Boolean,

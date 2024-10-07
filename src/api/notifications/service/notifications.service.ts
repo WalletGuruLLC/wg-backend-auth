@@ -1,6 +1,7 @@
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
+import { Injectable } from '@nestjs/common';
 import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
@@ -14,7 +15,7 @@ export class NotificationsService {
 	private dbUserInstance: Model<User>;
 
 	constructor() {
-		const tableName = 'Notifications';
+		const tableName = 'NotificationSettings';
 		this.dbInstance = dynamoose.model<NotificationSettings>(
 			tableName,
 			NotificationSettingsSchema
@@ -22,24 +23,49 @@ export class NotificationsService {
 		this.dbUserInstance = dynamoose.model<User>('Users', UserSchema);
 	}
 	async getUserNotificationSettings(userId: string) {
-		const settings = await this.dbInstance.get(userId);
-		return settings;
+		const settings = await this.dbInstance.scan('UserId').eq(userId).exec();
+		return settings?.[0];
 	}
 
 	async toggleNotifications(userId: string, isActive: boolean) {
-		const settings = await this.dbInstance.get(userId);
-		settings.NotificationsActive = isActive;
-		settings.MuteUntil = 0;
-		await settings.save();
-		return convertToCamelCase(settings);
+		let settings: any = await this.dbInstance.scan('UserId').eq(userId).exec();
+
+		if (!settings || settings.length === 0) {
+			const newSetting = {
+				Id: uuidv4(),
+				UserId: userId,
+				NotificationsActive: true,
+				MuteUntil: 0,
+			};
+			await this.dbInstance.create(newSetting);
+			settings = [newSetting];
+		}
+
+		const result = await this.dbInstance.update({
+			Id: settings[0].Id,
+			MuteUntil: 0,
+			NotificationsActive: isActive,
+		});
+
+		return convertToCamelCase(result);
 	}
 
 	async muteNotifications(userId: string, duration: string) {
-		const settings = await this.dbInstance.get(userId);
+		let settings: any = await this.dbInstance.scan('UserId').eq(userId).exec();
+
+		if (!settings || settings.length === 0) {
+			const newSetting = {
+				Id: uuidv4(),
+				UserId: userId,
+				NotificationsActive: true,
+				MuteUntil: 0,
+			};
+			await this.dbInstance.create(newSetting);
+			settings = [newSetting];
+		}
 
 		let MuteUntil: number;
 		const now = moment();
-
 		switch (duration) {
 			case '30m':
 				MuteUntil = now.add(30, 'minutes').unix();
@@ -51,13 +77,17 @@ export class NotificationsService {
 				MuteUntil = -1;
 				break;
 			default:
-				throw new BadRequestException('Invalid mute duration');
+				MuteUntil = -1;
+				break;
 		}
 
-		settings.MuteUntil = MuteUntil;
-		settings.NotificationsActive = false;
-		await settings.save();
-		return convertToCamelCase(settings);
+		const result = await this.dbInstance.update({
+			Id: settings[0].Id,
+			MuteUntil: MuteUntil,
+			NotificationsActive: false,
+		});
+
+		return convertToCamelCase(result);
 	}
 
 	async areNotificationsActive(userId: string) {

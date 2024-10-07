@@ -7,6 +7,7 @@ import {
 	UseGuards,
 	Res,
 	Req,
+	Get,
 } from '@nestjs/common';
 import {
 	ApiBearerAuth,
@@ -30,6 +31,49 @@ export class NotificationsController {
 		private readonly notificationsService: NotificationsService,
 		private readonly userService: UserService
 	) {}
+
+	@UseGuards(CognitoAuthGuard)
+	@ApiOperation({
+		summary: 'Check if notifications are active for a user',
+	})
+	@ApiParam({
+		name: 'userId',
+		description: 'ID of the user',
+		type: String,
+	})
+	@ApiResponse({
+		status: 200,
+		description: 'Notification status retrieved successfully.',
+	})
+	@ApiResponse({ status: 404, description: 'User not found' })
+	@Get('/status/:userId')
+	async areNotificationsActive(@Param('userId') userId: string, @Res() res) {
+		try {
+			const user = await this.userService.findOneById(userId);
+			if (!user) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0027',
+					message: 'User not found',
+				});
+			}
+
+			const isActive = await this.notificationsService.areNotificationsActive(
+				userId
+			);
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0141',
+				data: { notificationsActive: isActive },
+			});
+		} catch (error) {
+			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0134',
+				message: 'Internal server error',
+			});
+		}
+	}
 
 	@UseGuards(CognitoAuthGuard)
 	@ApiOperation({
