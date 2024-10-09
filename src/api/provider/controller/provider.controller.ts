@@ -789,18 +789,12 @@ export class ProviderController {
 	@ApiOperation({
 		summary: 'List payment parameters for a service providers',
 	})
-	@ApiParam({
-		name: 'id',
-		description: 'ID del service provider ',
-		type: String,
-	})
 	@ApiResponse({
 		status: 200,
 		description: 'Lista de parametros de pago obtenida con éxito.',
 	})
-	@Get(':id/payment-parameters')
+	@Get('list/payment-parameters')
 	async listPaymentParameters(
-		@Param('id') id: string,
 		@Req() req,
 		@Res() res,
 		@Query() getPaymentsParametersPaginated: GetPaymentsParametersPaginated
@@ -823,7 +817,7 @@ export class ProviderController {
 
 			const paymentParameters =
 				await this.providerService.getPaymentsParametersPaginated({
-					serviceProviderId: id,
+					serviceProviderId: providerId,
 					...getPaymentsParametersPaginated,
 				});
 
