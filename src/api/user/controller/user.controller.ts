@@ -170,7 +170,7 @@ export class UserController {
 			if (userPhone) {
 				return res.status(HttpStatus.FORBIDDEN).send({
 					statusCode: HttpStatus.FORBIDDEN,
-					customCode: 'WGE0113'
+					customCode: 'WGE0113',
 				});
 			}
 
