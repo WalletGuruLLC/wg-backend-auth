@@ -738,13 +738,14 @@ export class ProviderController {
 				userRequest
 			);
 
-			if (!providerId) {
+			const provider = await this.providerService.searchFindOneId(providerId);
+
+			if (!provider) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0040',
 				});
 			}
-			const provider = await this.providerService.searchFindOne(providerId);
 
 			const timeInterval = await this.providerService.getTimeIntervalById(
 				createProviderPaymentParameterDTO.timeIntervalId
