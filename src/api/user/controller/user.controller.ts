@@ -524,8 +524,6 @@ export class UserController {
 				return res.status(HttpStatus.PARTIAL_CONTENT).send({
 					statusCode: HttpStatus.PARTIAL_CONTENT,
 					customCode: 'WGE0113',
-					customMessage: errorCodes?.WGE00044?.description,
-					customMessageEs: errorCodes?.WGE00044?.descriptionEs,
 				});
 			}
 
