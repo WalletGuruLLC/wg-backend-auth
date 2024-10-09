@@ -716,9 +716,10 @@ export class ProviderService {
 
 	async createOrUpdatePaymentParameter(
 		createProviderPaymentParameter: CreateProviderPaymentParameterDTO,
-		serviceProviderId: string,
+		serviceProvider: any,
 		paymentParameter: any,
-		timeInterval: any
+		timeInterval: any,
+		token: string
 	): Promise<CreateProviderPaymentParameterDTO> {
 		const docClient = new DocumentClient();
 
@@ -727,7 +728,7 @@ export class ProviderService {
 			IndexName: 'ServiceProviderIdIndex',
 			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
 			ExpressionAttributeValues: {
-				':serviceProviderId': serviceProviderId,
+				':serviceProviderId': serviceProvider?.id,
 			},
 		};
 
@@ -755,6 +756,12 @@ export class ProviderService {
 			);
 		}
 
+		const wallet = await this.getServiceProviderWallet(
+			serviceProvider.walletAddress
+		);
+
+		const asset = await this.getAssetByWalletAddress(wallet?.rafikiId, token);
+
 		const params = {
 			TableName: 'PaymentParameters',
 			Item: {
@@ -768,8 +775,8 @@ export class ProviderService {
 				Cost: createProviderPaymentParameter.cost,
 				Frequency: createProviderPaymentParameter?.frequency,
 				Interval: timeInterval?.name,
-				Asset: createProviderPaymentParameter.asset,
-				ServiceProviderId: serviceProviderId,
+				Asset: asset?.code,
+				ServiceProviderId: serviceProvider?.id,
 				Percent: feeConfig.Percent,
 				Comision: feeConfig.Comission,
 				Base: feeConfig.Base,
@@ -999,7 +1006,6 @@ export class ProviderService {
 
 		try {
 			const result = await docClient.query(getFeeConfigParams).promise();
-			console;
 
 			return convertToCamelCase(result.Items);
 		} catch (error) {
@@ -1157,9 +1163,7 @@ export class ProviderService {
 				);
 			}
 
-			const active =
-				!paymentParameter?.Items?.[0].Active ??
-				!!paymentParameter?.Items?.[0].Active;
+			const active = !paymentParameter?.Items?.[0].Active;
 
 			const toggleParams = {
 				TableName: 'PaymentParameters',
@@ -1201,5 +1205,52 @@ export class ProviderService {
 				: providerId;
 
 		return serviceProviderId;
+	}
+
+	async getServiceProviderWallet(walletAddress: string) {
+		const docClient = new DocumentClient();
+
+		const getWalletAddressParams: DocumentClient.QueryInput = {
+			TableName: 'Wallets',
+			FilterExpression: 'contains(WalletAddress, :walletAddress)',
+			ExpressionAttributeValues: {
+				':walletAddress': walletAddress,
+			},
+		};
+
+		try {
+			const result = await docClient.scan(getWalletAddressParams).promise();
+			const filteredResult = result.Items.filter(x =>
+				x.WalletAddress.endsWith(walletAddress)
+			);
+
+			return convertToCamelCase(filteredResult?.[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(
+				`Error fetching wallet address by serviceProvider: ${error.message}`
+			);
+		}
+	}
+
+	async getAssetByWalletAddress(rafikiId: string, token: string) {
+		try {
+			const url =
+				process.env.WALLET_URL + `/api/v1/wallets-rafiki/${rafikiId}/asset`;
+
+			const response = await axios.get(url, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			const asset = response?.data?.data?.asset;
+			return asset;
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error getting asset by wallet address',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 }
