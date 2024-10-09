@@ -1210,19 +1210,21 @@ export class ProviderService {
 	async getServiceProviderWallet(walletAddress: string) {
 		const docClient = new DocumentClient();
 
-		const getFeeConfigParams: DocumentClient.QueryInput = {
+		const getWalletAddressParams: DocumentClient.QueryInput = {
 			TableName: 'Wallets',
-			IndexName: 'WalletAddressIndex',
-			KeyConditionExpression: 'WalletAddress = :walletAddress',
+			FilterExpression: 'contains(WalletAddress, :walletAddress)',
 			ExpressionAttributeValues: {
 				':walletAddress': walletAddress,
 			},
 		};
 
 		try {
-			const result = await docClient.query(getFeeConfigParams).promise();
+			const result = await docClient.scan(getWalletAddressParams).promise();
+			const filteredResult = result.Items.filter(x =>
+				x.WalletAddress.endsWith(walletAddress)
+			);
 
-			return convertToCamelCase(result.Items?.[0]);
+			return convertToCamelCase(filteredResult?.[0]);
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(
@@ -1242,9 +1244,8 @@ export class ProviderService {
 				},
 			});
 
-			const assets = response?.data?.data;
-
-			return assets?.code ?? '';
+			const asset = response?.data?.data?.asset;
+			return asset;
 		} catch (error) {
 			throw new HttpException(
 				error.response?.data || 'Error getting asset by wallet address',
