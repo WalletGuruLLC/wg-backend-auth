@@ -187,7 +187,8 @@ export class ProviderController {
 				createProviderDto?.asset,
 				createProviderDto?.walletAddress,
 				token?.split(' ')?.[1],
-				createProviderDto?.name
+				createProviderDto?.name,
+				provider?.Id
 			);
 			await this.providerService.createSocketKey({
 				publicKey: generateCleanUUID(),
