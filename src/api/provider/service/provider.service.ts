@@ -91,7 +91,8 @@ export class ProviderService {
 		assetName: string,
 		addressName: string,
 		token: string,
-		providerName: string
+		providerName: string,
+		providerId
 	) {
 		try {
 			const url =
@@ -107,6 +108,7 @@ export class ProviderService {
 				addressName,
 				assetId: assetIdValue,
 				providerName,
+				providerId,
 			};
 
 			const response = await axios.post(url, body, {
