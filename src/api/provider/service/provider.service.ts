@@ -91,7 +91,8 @@ export class ProviderService {
 		assetName: string,
 		addressName: string,
 		token: string,
-		providerName: string
+		providerName: string,
+		providerId
 	) {
 		try {
 			const url =
@@ -107,6 +108,7 @@ export class ProviderService {
 				addressName,
 				assetId: assetIdValue,
 				providerName,
+				providerId,
 			};
 
 			const response = await axios.post(url, body, {
@@ -720,7 +722,7 @@ export class ProviderService {
 		paymentParameter: any,
 		timeInterval: any,
 		token: string
-	): Promise<CreateProviderPaymentParameterDTO> {
+	): Promise<any> {
 		const docClient = new DocumentClient();
 
 		const feeConfigParams = {
@@ -756,9 +758,7 @@ export class ProviderService {
 			);
 		}
 
-		const wallet = await this.getServiceProviderWallet(
-			serviceProvider.walletAddress
-		);
+		const wallet = await this.getServiceProviderWallet(serviceProvider?.id);
 
 		const asset = await this.getAssetByWalletAddress(wallet?.rafikiId, token);
 
@@ -789,9 +789,19 @@ export class ProviderService {
 			},
 		};
 
+		const paymentParameterDTO = {
+			id: params.Item.Id,
+			name: params.Item.Name,
+			cost: params.Item.Cost,
+			frequency: params.Item.Frequency,
+			asset: params.Item.Asset,
+			interval: params.Item.Interval,
+			active: params.Item.Active,
+		};
+
 		await docClient.put(params).promise();
 
-		return createProviderPaymentParameter;
+		return paymentParameterDTO;
 	}
 
 	async getPaymentParameters(paymentParameterId?: string): Promise<any> {
@@ -1207,24 +1217,22 @@ export class ProviderService {
 		return serviceProviderId;
 	}
 
-	async getServiceProviderWallet(walletAddress: string) {
+	async getServiceProviderWallet(serviceProviderId: string) {
 		const docClient = new DocumentClient();
 
 		const getWalletAddressParams: DocumentClient.QueryInput = {
 			TableName: 'Wallets',
-			FilterExpression: 'contains(WalletAddress, :walletAddress)',
+			IndexName: 'ProviderIdIndex',
+			KeyConditionExpression: `ProviderId = :serviceProviderId`,
 			ExpressionAttributeValues: {
-				':walletAddress': walletAddress,
+				':serviceProviderId': serviceProviderId,
 			},
 		};
 
 		try {
-			const result = await docClient.scan(getWalletAddressParams).promise();
-			const filteredResult = result.Items.filter(x =>
-				x.WalletAddress.endsWith(walletAddress)
-			);
+			const result = await docClient.query(getWalletAddressParams).promise();
 
-			return convertToCamelCase(filteredResult?.[0]);
+			return convertToCamelCase(result.Items?.[0]);
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(

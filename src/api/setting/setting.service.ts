@@ -4,6 +4,8 @@ import { Injectable } from '@nestjs/common';
 
 import { SettingSchema } from './entities/setting.schema';
 import { Setting } from './entities/setting.entity';
+import { convertToCamelCase } from 'src/utils/helpers/convertCamelCase';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @Injectable()
 export class SettingService {
@@ -36,5 +38,33 @@ export class SettingService {
 			createDate: setting.CreateDate,
 			updateDate: setting.UpdateDate,
 		};
+	}
+
+	async findOneById(id: string) {
+		try {
+			const users = await this.dbInstance.query('Id').eq(id).exec();
+			return convertToCamelCase(users[0]);
+		} catch (error) {
+			throw new Error(`Error retrieving user: ${error.message}`);
+		}
+	}
+
+	async update(id: string, updateSettings: UpdateSettingsDto) {
+		try {
+			const settings = await this.findOneById(id);
+
+			if (!settings) {
+				throw new Error(`Setting with ID ${id} not found.`);
+			}
+
+			const result = await this.dbInstance.update({
+				Id: id,
+				Value: updateSettings.value,
+			});
+
+			return convertToCamelCase(result);
+		} catch (error) {
+			throw new Error(`Error updating settings: ${error.message}`);
+		}
 	}
 }
