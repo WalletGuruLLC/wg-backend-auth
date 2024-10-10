@@ -691,7 +691,6 @@ export class ProviderController {
 				cost: 10,
 				frequency: 30,
 				timeIntervalId: '5894d088-0cc6-4aea-9df5-ba348c9d364d',
-				asset: 'USD',
 				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
 				paymentParameterId: '8bf931ea-3710-420b-ae68-921f94bcd937',
 			},
@@ -713,6 +712,7 @@ export class ProviderController {
 		@Req() req
 	) {
 		const userRequest = req.user?.UserAttributes;
+		const token = req?.token.toString().split(' ')?.[1];
 		try {
 			let existingPaymentParameter;
 
@@ -734,17 +734,18 @@ export class ProviderController {
 			}
 
 			const providerId = await this.providerService.getProviderId(
-				createProviderPaymentParameterDTO.serviceProviderId,
+				createProviderPaymentParameterDTO?.serviceProviderId,
 				userRequest
 			);
 
-			if (!providerId) {
+			const provider = await this.providerService.searchFindOneId(providerId);
+
+			if (!provider) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0040',
 				});
 			}
-			await this.providerService.searchFindOne(providerId);
 
 			const timeInterval = await this.providerService.getTimeIntervalById(
 				createProviderPaymentParameterDTO.timeIntervalId
@@ -760,9 +761,10 @@ export class ProviderController {
 			const paymentParameter =
 				await this.providerService.createOrUpdatePaymentParameter(
 					createProviderPaymentParameterDTO,
-					providerId,
+					provider,
 					existingPaymentParameter,
-					timeInterval
+					timeInterval,
+					token
 				);
 
 			return res.status(HttpStatus.OK).send({
@@ -787,31 +789,43 @@ export class ProviderController {
 	@ApiOperation({
 		summary: 'List payment parameters for a service providers',
 	})
-	@ApiParam({
-		name: 'id',
-		description: 'ID del service provider ',
-		type: String,
-	})
 	@ApiResponse({
 		status: 200,
 		description: 'Lista de parametros de pago obtenida con éxito.',
 	})
-	@Get(':id/payment-parameters')
+	@Get('list/payment-parameters')
 	async listPaymentParameters(
-		@Param('id') id: string,
+		@Req() req,
+		@Res() res,
 		@Query() getPaymentsParametersPaginated: GetPaymentsParametersPaginated
 	) {
 		try {
+			const userRequest = req.user?.UserAttributes;
+
+			const providerId = await this.providerService.getProviderId(
+				getPaymentsParametersPaginated?.serviceProviderId,
+				userRequest
+			);
+			const provider = await this.providerService.searchFindOneId(providerId);
+
+			if (!provider) {
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0147',
+				});
+			}
+
 			const paymentParameters =
 				await this.providerService.getPaymentsParametersPaginated({
-					serviceProviderId: id,
+					serviceProviderId: providerId,
 					...getPaymentsParametersPaginated,
 				});
-			return {
+
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0118',
 				data: paymentParameters,
-			};
+			});
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(

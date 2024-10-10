@@ -170,9 +170,7 @@ export class UserController {
 			if (userPhone) {
 				return res.status(HttpStatus.FORBIDDEN).send({
 					statusCode: HttpStatus.FORBIDDEN,
-					customCode: 'WGE0003',
-					customMessage: errorCodes?.WGE0003?.description,
-					customMessageEs: errorCodes.WGE0003?.descriptionEs,
+					customCode: 'WGE0113',
 				});
 			}
 
@@ -296,6 +294,68 @@ export class UserController {
 					customCode: 'WGE0016',
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Put('/update-profile/:id')
+	@ApiOkResponse({
+		description: 'The record has been successfully updated.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async updateAdmin(
+		@Param('id') id: string,
+		@Body() updateUserDto: UpdateUserDto,
+		@Res() res
+	) {
+		try {
+			const userFind = await this.userService.findOne(id);
+			if (!userFind) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0002',
+				});
+			}
+
+			if (
+				updateUserDto?.phone &&
+				updateUserDto?.phone?.trim() !== '' &&
+				validatePhoneNumber(updateUserDto?.phone) === false
+			) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0127',
+				});
+			}
+
+			const userPhone = await this.userService.findOneByPhone(
+				updateUserDto?.phone
+			);
+
+			if (userPhone) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0113',
+				});
+			}
+
+			const user = await this.userService.update(id, updateUserDto);
+			delete user.passwordHash;
+
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGS0018',
+				data: user,
+			});
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0016',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -462,8 +522,6 @@ export class UserController {
 				return res.status(HttpStatus.PARTIAL_CONTENT).send({
 					statusCode: HttpStatus.PARTIAL_CONTENT,
 					customCode: 'WGE0113',
-					customMessage: errorCodes?.WGE00044?.description,
-					customMessageEs: errorCodes?.WGE00044?.descriptionEs,
 				});
 			}
 
