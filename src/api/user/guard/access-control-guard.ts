@@ -7,16 +7,18 @@ import {
 import { Request, Response, NextFunction } from 'express';
 import { RoleService } from 'src/api/role/service/role.service';
 import { UserService } from '../service/user.service';
-import { buscarValorPorClave } from 'src/utils/helpers/findKeyValue';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AccessControlMiddleware implements NestMiddleware {
 	constructor(
 		private readonly roleService: RoleService,
-		private readonly authService: UserService
+		private readonly authService: UserService,
+		private readonly configService: ConfigService
 	) {}
 
 	async use(req: Request, res: Response, next: NextFunction): Promise<void> {
+
 		const authHeader = req.headers.authorization;
 
 		if (!authHeader) {
@@ -27,6 +29,13 @@ export class AccessControlMiddleware implements NestMiddleware {
 				},
 				HttpStatus.UNAUTHORIZED
 			);
+		}
+
+		const secret = this.configService.get<string>('APP_SECRET');
+
+		if (`Bearer ${secret}` == authHeader) {
+			next();
+			return;
 		}
 
 		const userCognito = await this.authService.getUserInfo(authHeader);
@@ -40,7 +49,6 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		// if the user is a provider, we allow them to access their own data only for GET
 		if (
 			req.path === `/api/v1/providers/${user.serviceProviderId}` &&
 			requiredMethod === 'GET'
@@ -105,3 +113,4 @@ export class AccessControlMiddleware implements NestMiddleware {
 		return moduleIdMap[normalizedPath] || '';
 	}
 }
+
