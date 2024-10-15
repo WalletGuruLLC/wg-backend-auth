@@ -1089,15 +1089,20 @@ export class ProviderService {
 				offset + Number(items)
 			);
 
-			paginatedPaymentParameters = paginatedPaymentParameters.map(
-				paymentParameter => ({
-					id: paymentParameter?.id,
-					name: paymentParameter?.name,
-					active: paymentParameter?.active,
-					frequency: paymentParameter?.frequency,
-					interval: paymentParameter?.interval,
-					cost: paymentParameter?.cost,
-					asset: paymentParameter?.asset,
+			paginatedPaymentParameters = await Promise.all(
+				paginatedPaymentParameters.map(async paginatedPaymentParameter => {
+					const timeInterval = await this.getTimeInterval(
+						paginatedPaymentParameter?.interval
+					);
+					return {
+						id: paginatedPaymentParameter?.id,
+						name: paginatedPaymentParameter?.name,
+						active: paginatedPaymentParameter?.active,
+						frequency: paginatedPaymentParameter?.frequency,
+						timeIntervalId: timeInterval?.id,
+						cost: paginatedPaymentParameter?.cost,
+						asset: paginatedPaymentParameter?.asset,
+					};
 				})
 			);
 
@@ -1238,6 +1243,30 @@ export class ProviderService {
 			throw new Error(
 				`Error fetching wallet address by serviceProvider: ${error.message}`
 			);
+		}
+	}
+
+	async getTimeInterval(timeIntervalName: string) {
+		const docClient = new DocumentClient();
+
+		const getTimeIntervalByName: DocumentClient.ScanInput = {
+			TableName: 'TimeIntervals',
+			FilterExpression: '#name = :timerIntervalName',
+			ExpressionAttributeNames: {
+				'#name': 'Name',
+			},
+			ExpressionAttributeValues: {
+				':timerIntervalName': timeIntervalName,
+			},
+		};
+
+		try {
+			const result = await docClient.scan(getTimeIntervalByName).promise();
+
+			return convertToCamelCase(result.Items?.[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching time interval by name: ${error.message}`);
 		}
 	}
 
