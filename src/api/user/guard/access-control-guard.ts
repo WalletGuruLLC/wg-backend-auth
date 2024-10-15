@@ -18,7 +18,6 @@ export class AccessControlMiddleware implements NestMiddleware {
 	) {}
 
 	async use(req: Request, res: Response, next: NextFunction): Promise<void> {
-
 		const authHeader = req.headers.authorization;
 
 		if (!authHeader) {
@@ -113,4 +112,3 @@ export class AccessControlMiddleware implements NestMiddleware {
 		return moduleIdMap[normalizedPath] || '';
 	}
 }
-

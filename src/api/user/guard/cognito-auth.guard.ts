@@ -13,7 +13,8 @@ import { ConfigService } from '@nestjs/config';
 export class CognitoAuthGuard implements CanActivate {
 	constructor(
 		private readonly authService: UserService,
-							private readonly configService: ConfigService) {}
+		private readonly configService: ConfigService
+	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
