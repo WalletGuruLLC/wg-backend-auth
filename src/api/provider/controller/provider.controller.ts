@@ -800,17 +800,15 @@ export class ProviderController {
 		@Res() res,
 		@Query() getPaymentsParametersPaginated: GetPaymentsParametersPaginated
 	) {
-
 		try {
 			const userRequest = req.user?.UserAttributes;
 			let providerId;
-			if (userRequest){
+			if (userRequest) {
 				providerId = await this.providerService.getProviderId(
 					getPaymentsParametersPaginated?.serviceProviderId,
 					userRequest
 				);
-			}
-			else {
+			} else {
 				providerId = getPaymentsParametersPaginated?.serviceProviderId;
 				if (!providerId) {
 					return res.status(HttpStatus.BAD_REQUEST).send({
@@ -827,7 +825,6 @@ export class ProviderController {
 					customCode: 'WGE0147',
 				});
 			}
-
 
 			const paymentParameters =
 				await this.providerService.getPaymentsParametersPaginated({
