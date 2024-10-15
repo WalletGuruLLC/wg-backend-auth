@@ -795,7 +795,7 @@ export class ProviderService {
 			cost: params.Item.Cost,
 			frequency: params.Item.Frequency,
 			asset: params.Item.Asset,
-			interval: params.Item.Interval,
+			timeIntervalId: createProviderPaymentParameter?.timeIntervalId,
 			active: params.Item.Active,
 		};
 
