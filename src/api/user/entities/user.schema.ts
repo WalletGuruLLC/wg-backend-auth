@@ -140,6 +140,10 @@ export const UserSchema = new dynamoose.Schema(
 			type: Boolean,
 			default: false,
 		},
+		FirstFunding: {
+			type: Boolean,
+			default: false,
+		},
 	},
 	{
 		timestamps: {
