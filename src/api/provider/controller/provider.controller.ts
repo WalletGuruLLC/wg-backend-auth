@@ -802,11 +802,21 @@ export class ProviderController {
 	) {
 		try {
 			const userRequest = req.user?.UserAttributes;
-
-			const providerId = await this.providerService.getProviderId(
-				getPaymentsParametersPaginated?.serviceProviderId,
-				userRequest
-			);
+			let providerId;
+			if (userRequest) {
+				providerId = await this.providerService.getProviderId(
+					getPaymentsParametersPaginated?.serviceProviderId,
+					userRequest
+				);
+			} else {
+				providerId = getPaymentsParametersPaginated?.serviceProviderId;
+				if (!providerId) {
+					return res.status(HttpStatus.BAD_REQUEST).send({
+						statusCode: HttpStatus.BAD_REQUEST,
+						customCode: 'WGE0147',
+					});
+				}
+			}
 			const provider = await this.providerService.searchFindOneId(providerId);
 
 			if (!provider) {
