@@ -35,4 +35,5 @@ export class User extends Document {
 	DateOfBirth?: Date = null;
 	Avatar?: string;
 	ContactUser: boolean;
+	FirstFunding: boolean;
 }
