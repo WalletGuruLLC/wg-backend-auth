@@ -186,12 +186,30 @@ export class NotificationsController {
 		@Req() req
 	) {
 		try {
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+
 			const user = await this.userService.findOneById(userId);
 			if (!user) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
-					message: 'User not found',
+				});
+			}
+
+			if (userFind?.id !== userId) {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0038',
+				});
+			}
+
+			if (userFind?.type !== 'WALLET') {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0038',
 				});
 			}
 
