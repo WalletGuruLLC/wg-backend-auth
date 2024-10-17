@@ -156,7 +156,7 @@ export class CognitoService implements CognitoServiceInterface {
 		username: string,
 		confirmationCode: string,
 		newPassword: string
-	): Promise<ConfirmForgotPasswordResponse> {
+	): Promise<any> {
 		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
 		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
 		const secretHash = hasher.digest('base64');
@@ -176,9 +176,9 @@ export class CognitoService implements CognitoServiceInterface {
 			return {};
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new Error(
-				`Error confirming new password in Cognito: ${error.message}`
-			);
+			return {
+				customCode: 'WGE0005',
+			};
 		}
 	}
 

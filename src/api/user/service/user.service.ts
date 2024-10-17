@@ -621,16 +621,22 @@ export class UserService {
 
 	async confirmUserPassword(
 		authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
-	) {
+	): Promise<any> {
 		const { email, confirmationCode, newPassword } = authConfirmPasswordUserDto;
 
-		await convertToCamelCase(
-			this.cognitoService.confirmForgotPassword(
-				email?.toLowerCase(),
-				confirmationCode,
-				newPassword
-			)
+		const confirmPassword = await this.cognitoService.confirmForgotPassword(
+			email?.toLowerCase(),
+			confirmationCode,
+			newPassword
 		);
+
+		if (confirmPassword?.customCode) {
+			return {
+				customCode: 'WGE0005',
+			};
+		}
+
+		return await convertToCamelCase(confirmPassword);
 	}
 
 	async getUsersByType(
