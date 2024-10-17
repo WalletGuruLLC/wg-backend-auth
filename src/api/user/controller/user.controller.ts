@@ -873,7 +873,17 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
 			}
-			await this.userService.confirmUserPassword(authConfirmPasswordUserDto);
+			const resultConfirm = await this.userService.confirmUserPassword(
+				authConfirmPasswordUserDto
+			);
+
+			if (resultConfirm?.customCode) {
+				return res.status(HttpStatus.UNAUTHORIZED).send({
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: resultConfirm?.customCode,
+				});
+			}
+
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0012',
