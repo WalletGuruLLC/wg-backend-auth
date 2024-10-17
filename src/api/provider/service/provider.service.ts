@@ -1100,6 +1100,7 @@ export class ProviderService {
 						active: paginatedPaymentParameter?.active,
 						frequency: paginatedPaymentParameter?.frequency,
 						timeIntervalId: timeInterval?.id,
+						interval: timeInterval?.name,
 						cost: paginatedPaymentParameter?.cost,
 						asset: paginatedPaymentParameter?.asset,
 					};
