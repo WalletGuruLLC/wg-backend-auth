@@ -3,6 +3,7 @@ import { createHmac } from 'crypto';
 import { CognitoServiceInterface } from './cognito.interface';
 import {
 	AuthenticateUserResponse,
+	AuthenticationResult,
 	ChangePasswordResponse,
 	ConfirmForgotPasswordResponse,
 	CreateUserResponse,
@@ -97,6 +98,29 @@ export class CognitoService implements CognitoServiceInterface {
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error authenticating user in Cognito: ${error.message}`);
+		}
+	}
+
+	async refreshToken(token: string, username: string): Promise<string> {
+		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
+		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
+		const secretHash = hasher.digest('base64');
+		const params = {
+			AuthFlow: 'REFRESH_TOKEN_AUTH',
+			ClientId: process.env.COGNITO_CLIENT_ID,
+			AuthParameters: {
+				REFRESH_TOKEN: token,
+				SECRET_HASH: secretHash,
+			},
+		};
+
+		try {
+			const response = await this.cognitoISP.initiateAuth(params).promise();
+
+			return response?.AuthenticationResult?.AccessToken;
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 

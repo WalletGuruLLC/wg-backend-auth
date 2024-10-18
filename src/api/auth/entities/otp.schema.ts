@@ -21,6 +21,9 @@ export const OtpSchema = new dynamoose.Schema(
 		Token: {
 			type: String,
 		},
+		RefreshToken: {
+			type: String,
+		},
 		CreatedAt: {
 			type: Date,
 			required: true,
