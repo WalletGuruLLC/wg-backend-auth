@@ -1198,4 +1198,30 @@ export class UserController {
 			throw error;
 		}
 	}
+
+	@Post('/refresh-token')
+	@ApiOkResponse({
+		description: 'Token has been refreshed succefully.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async refreshToken(@Res() res, @Req() req) {
+		try {
+			const accessToken = req?.token?.split(' ')?.[1];
+			const refreshedToken = await this.userService.refreshToken(accessToken);
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0013',
+				data: { token: refreshedToken },
+			});
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0005',
+					message: error?.message,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
 }

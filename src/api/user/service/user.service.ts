@@ -306,6 +306,15 @@ export class UserService {
 		}
 	}
 
+	async refreshToken(token: string) {
+		try {
+			await this.cognitoService.refreshToken(token);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
 	async sendOtpOrPasswordMessage(
 		type: string,
 		email: string,
