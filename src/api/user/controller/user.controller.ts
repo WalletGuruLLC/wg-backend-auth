@@ -27,6 +27,7 @@ import {
 	ApiOperation,
 	ApiResponse,
 	ApiParam,
+	ApiBody,
 } from '@nestjs/swagger';
 
 import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
@@ -53,6 +54,7 @@ import { isValidEmail } from 'src/utils/helpers/validateEmail';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as Sentry from '@sentry/nestjs';
 import { validateLicense } from 'src/utils/helpers/validateLicenseDriver';
+import { RefreshTokeenDTO } from '../dto/refresh-token.dto';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -1196,6 +1198,38 @@ export class UserController {
 				);
 			}
 			throw error;
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Post('/refresh-token')
+	@ApiOkResponse({
+		description: 'Token has been refreshed succefully.',
+	})
+	@ApiBody({
+		schema: { example: { token: '' } },
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async refreshToken(@Res() res, @Req() req, @Body() body: RefreshTokeenDTO) {
+		try {
+			const refreshedToken = await this.userService.refreshToken(
+				body?.token,
+				req.user?.Username
+			);
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0204',
+				data: { token: refreshedToken },
+			});
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0205',
+					message: error?.message,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
 		}
 	}
 }
