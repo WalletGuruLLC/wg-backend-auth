@@ -101,8 +101,7 @@ export class CognitoService implements CognitoServiceInterface {
 		}
 	}
 
-	async refreshToken(token: string, username:string): Promise<string> {
-		
+	async refreshToken(token: string, username: string): Promise<string> {
 		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
 		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
 		const secretHash = hasher.digest('base64');

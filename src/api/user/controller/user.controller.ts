@@ -1201,7 +1201,7 @@ export class UserController {
 		}
 	}
 
-    @UseGuards(CognitoAuthGuard)
+	@UseGuards(CognitoAuthGuard)
 	@Post('/refresh-token')
 	@ApiOkResponse({
 		description: 'Token has been refreshed succefully.',
@@ -1212,8 +1212,10 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async refreshToken(@Res() res, @Req() req, @Body() body: RefreshTokeenDTO) {
 		try {
-			
-			const refreshedToken = await this.userService.refreshToken(body?.token,req.user?.Username);
+			const refreshedToken = await this.userService.refreshToken(
+				body?.token,
+				req.user?.Username
+			);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0204',
