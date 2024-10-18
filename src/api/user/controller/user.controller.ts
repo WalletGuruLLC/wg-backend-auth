@@ -1210,14 +1210,14 @@ export class UserController {
 			const refreshedToken = await this.userService.refreshToken(accessToken);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
-				customCode: 'WGE0013',
+				customCode: 'WGE0204',
 				data: { token: refreshedToken },
 			});
 		} catch (error) {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0005',
+					customCode: 'WGE0205',
 					message: error?.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR

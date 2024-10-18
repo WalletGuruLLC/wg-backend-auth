@@ -116,7 +116,7 @@ export class CognitoService implements CognitoServiceInterface {
 			return response?.AuthenticationResult?.AccessToken;
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new Error(`Error doing refresh token in Cognito: ${error.message}`);
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
