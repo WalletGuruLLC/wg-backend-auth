@@ -73,7 +73,7 @@ export class UserService {
 	async generateOtp(
 		createOtpRequestDto: CreateOtpRequestDto
 	): Promise<CreateOtpResponseDto> {
-		const { email, token } = createOtpRequestDto;
+		const { email, token, refreshToken } = createOtpRequestDto;
 
 		const existingOtpEmail = await this.dbOtpInstance
 			.query('Email')
@@ -101,7 +101,13 @@ export class UserService {
 
 		const ttl = Math.floor(Date.now() / 1000) + 60 * 5;
 
-		const otpPayload = { Email: email, Otp: otp, Token: token, Ttl: ttl };
+		const otpPayload = {
+			Email: email,
+			Otp: otp,
+			Token: token,
+			RefreshToken: refreshToken,
+			Ttl: ttl,
+		};
 		await this.dbOtpInstance.create(otpPayload);
 
 		return {
@@ -194,6 +200,7 @@ export class UserService {
 			return {
 				user,
 				token: existingToken?.[0]?.Token,
+				refresToken: existingToken?.[0]?.RefreshToken,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
@@ -277,17 +284,19 @@ export class UserService {
 
 			await this.dbInstance.create(userData);
 
-			let tokenValue = '';
+			let userToken;
 
 			if (type == 'WALLET') {
 				const valueAuth = {
 					email: email.toLowerCase(),
 					password: passwordHash,
 				};
-				tokenValue = await this.authenticateUser(valueAuth);
+				userToken = await this.authenticateUser(valueAuth);
 			}
 
-			const result = await this.generateOtp({ email, token: tokenValue });
+			const accessToken = userToken?.AccessToken as string;
+
+			const result = await this.generateOtp({ email, token: accessToken });
 
 			await this.sendOtpOrPasswordMessage(
 				type,
@@ -303,6 +312,15 @@ export class UserService {
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error('Failed to create user. Please try again later.');
+		}
+	}
+
+	async refreshToken(token: string) {
+		try {
+			await this.cognitoService.refreshToken(token);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -516,7 +534,7 @@ export class UserService {
 			signinDto.email.toLowerCase(),
 			signinDto.password
 		);
-		const token = authResult.AuthenticationResult?.AccessToken;
+		const token = authResult.AuthenticationResult;
 
 		if (!token) {
 			throw new BadRequestException('Invalid credentials');
@@ -560,10 +578,13 @@ export class UserService {
 				signinDto.email.toLowerCase()
 			);
 			const token = await this.authenticateUser(signinDto);
+			const accessToken = token?.AccessToken as string;
+			const refreshToken = token?.RefreshToken as string;
 
 			const otpResult = await this.generateOtp({
 				email: signinDto.email.toLowerCase(),
-				token,
+				token: accessToken,
+				refreshToken: refreshToken,
 			});
 
 			await this.logAttempt(
