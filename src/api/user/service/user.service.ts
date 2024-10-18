@@ -162,7 +162,7 @@ export class UserService {
 			const existingToken = await this.dbOtpInstance
 				.query('Otp')
 				.eq(verifyOtp?.otp)
-				.attributes(['Token'])
+				.attributes(['Token', 'RefreshToken'])
 				.exec();
 
 			await this.dbOtpInstance.delete({
@@ -320,7 +320,7 @@ export class UserService {
 			await this.cognitoService.refreshToken(token);
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+			return new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
