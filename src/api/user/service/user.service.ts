@@ -315,9 +315,10 @@ export class UserService {
 		}
 	}
 
-	async refreshToken(token: string, username: string) {
+	async refreshToken(token: string) {
 		try {
-			return await this.cognitoService.refreshToken(token, username);
+			const user = await this.getUserInfo(token);
+			return await this.cognitoService.refreshToken(token, user?.Username);
 		} catch (error) {
 			Sentry.captureException(error);
 			return new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
