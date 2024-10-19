@@ -1201,7 +1201,6 @@ export class UserController {
 		}
 	}
 
-	@UseGuards(CognitoAuthGuard)
 	@Post('/refresh-token')
 	@ApiOkResponse({
 		description: 'Token has been refreshed succefully.',
