@@ -1201,20 +1201,19 @@ export class UserController {
 		}
 	}
 
-	@UseGuards(CognitoAuthGuard)
 	@Post('/refresh-token')
 	@ApiOkResponse({
 		description: 'Token has been refreshed succefully.',
 	})
 	@ApiBody({
-		schema: { example: { token: '' } },
+		schema: { example: { token: '', email: '' } },
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async refreshToken(@Res() res, @Req() req, @Body() body: RefreshTokeenDTO) {
 		try {
 			const refreshedToken = await this.userService.refreshToken(
 				body?.token,
-				req.user?.Username
+				body.email
 			);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
@@ -1226,7 +1225,6 @@ export class UserController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0205',
-					message: error?.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
