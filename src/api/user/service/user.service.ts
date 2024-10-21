@@ -315,9 +315,9 @@ export class UserService {
 		}
 	}
 
-	async refreshToken(token: string) {
+	async refreshToken(token: string, email: string) {
 		try {
-			const user = await this.getUserInfo(token);
+			const user = await this.getUserInfoByEmail(email);
 			return await this.cognitoService.refreshToken(token, user?.Username);
 		} catch (error) {
 			Sentry.captureException(error);
@@ -874,6 +874,22 @@ export class UserService {
 			};
 
 			const userData = await this.cognito.getUser(params).promise();
+			return userData;
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0021',
+				},
+				HttpStatus.UNAUTHORIZED
+			);
+		}
+	}
+
+	async getUserInfoByEmail(email: string) {
+		try {
+			const userData = await this.cognitoService.getUserInfoByEmail(email);
 			return userData;
 		} catch (error) {
 			Sentry.captureException(error);

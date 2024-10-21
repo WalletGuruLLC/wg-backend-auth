@@ -124,6 +124,23 @@ export class CognitoService implements CognitoServiceInterface {
 		}
 	}
 
+	async getUserInfoByEmail(email: string): Promise<any> {
+		const params = {
+			UserPoolId: process.env.COGNITO_USER_POOL_ID,
+			Filter: `email = "${email}"`,
+			Limit: 1,
+		};
+
+		try {
+			const response = await this.cognitoISP.listUsers(params).promise();
+
+			return response?.Users?.[0];
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
 	async changePassword(
 		accessToken: string,
 		previousPassword: string,
