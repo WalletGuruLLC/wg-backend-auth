@@ -1225,7 +1225,6 @@ export class UserController {
 				{
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
 					customCode: 'WGE0205',
-					message: error?.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
