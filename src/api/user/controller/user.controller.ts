@@ -1206,12 +1206,15 @@ export class UserController {
 		description: 'Token has been refreshed succefully.',
 	})
 	@ApiBody({
-		schema: { example: { token: '' } },
+		schema: { example: { token: '', email: '' } },
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async refreshToken(@Res() res, @Req() req, @Body() body: RefreshTokeenDTO) {
 		try {
-			const refreshedToken = await this.userService.refreshToken(body?.token);
+			const refreshedToken = await this.userService.refreshToken(
+				body?.token,
+				body.email
+			);
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0204',
