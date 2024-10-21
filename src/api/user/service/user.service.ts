@@ -889,6 +889,7 @@ export class UserService {
 
 	async getUserInfoByEmail(email: string) {
 		try {
+			await this.findOneByEmail(email);
 			const userData = await this.cognitoService.getUserInfoByEmail(email);
 			return userData;
 		} catch (error) {
