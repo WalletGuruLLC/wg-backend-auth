@@ -120,7 +120,10 @@ export class CognitoService implements CognitoServiceInterface {
 			return response?.AuthenticationResult?.AccessToken;
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+			return {
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0205',
+			};
 		}
 	}
 
