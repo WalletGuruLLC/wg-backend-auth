@@ -101,7 +101,7 @@ export class CognitoService implements CognitoServiceInterface {
 		}
 	}
 
-	async refreshToken(token: string, username: string): Promise<string> {
+	async refreshToken(token: string, username: string): Promise<any> {
 		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
 		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
 		const secretHash = hasher.digest('base64');
@@ -120,7 +120,10 @@ export class CognitoService implements CognitoServiceInterface {
 			return response?.AuthenticationResult?.AccessToken;
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+			return {
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0205',
+			};
 		}
 	}
 
