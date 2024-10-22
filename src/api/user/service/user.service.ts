@@ -322,6 +322,8 @@ export class UserService {
 				token,
 				user?.Username
 			);
+
+			console.log('Token:',newToken)
 			return newToken;
 		} catch (error) {
 			Sentry.captureException(error);

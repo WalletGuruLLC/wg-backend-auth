@@ -117,6 +117,9 @@ export class CognitoService implements CognitoServiceInterface {
 		try {
 			const response = await this.cognitoISP.initiateAuth(params).promise();
 
+			console.log('Cognito Response:', response.AuthenticationResult?.AccessToken)
+		
+
 			return response?.AuthenticationResult?.AccessToken;
 		} catch (error) {
 			Sentry.captureException(error);
