@@ -1215,6 +1215,14 @@ export class UserController {
 				body?.token,
 				body.email
 			);
+
+			if (refreshedToken?.statusCode) {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0205',
+				});
+			}
+
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0204',

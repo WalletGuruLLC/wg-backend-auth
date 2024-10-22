@@ -101,7 +101,7 @@ export class CognitoService implements CognitoServiceInterface {
 		}
 	}
 
-	async refreshToken(token: string, username: string): Promise<string> {
+	async refreshToken(token: string, username: string): Promise<any> {
 		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
 		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
 		const secretHash = hasher.digest('base64');
@@ -116,9 +116,6 @@ export class CognitoService implements CognitoServiceInterface {
 
 		try {
 			const response = await this.cognitoISP.initiateAuth(params).promise();
-
-			console.log('Cognito Response:', response.AuthenticationResult?.AccessToken)
-		
 
 			return response?.AuthenticationResult?.AccessToken;
 		} catch (error) {

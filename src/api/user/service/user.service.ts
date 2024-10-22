@@ -323,7 +323,13 @@ export class UserService {
 				user?.Username
 			);
 
-			console.log('Token:',newToken)
+			if (newToken?.status) {
+				return {
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0205',
+				};
+			}
+
 			return newToken;
 		} catch (error) {
 			Sentry.captureException(error);
