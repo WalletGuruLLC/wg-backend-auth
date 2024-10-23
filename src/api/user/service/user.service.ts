@@ -236,9 +236,9 @@ export class UserService {
 				const userFind = await this.findOneByEmail(userEmail);
 
 				providerId =
-					userFind && userFind?.type === 'PROVIDER'
-						? userFind?.ServiceProviderId
-						: userFind && userFind?.type === 'WALLET'
+					userFind && userFind?.type == 'PROVIDER'
+						? userFind?.serviceProviderId
+						: userFind && userFind?.type == 'WALLET'
 						? 'EMPTY'
 						: serviceProviderId;
 			}
