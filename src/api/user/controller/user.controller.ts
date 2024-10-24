@@ -589,26 +589,26 @@ export class UserController {
 							customCode: 'WGE0186',
 						});
 					}
-				}
+				} else {
+					const providerId = userFind?.serviceProviderId;
 
-				const providerId = userFind?.serviceProviderId;
+					const userRoleId = userFindPermissions.roleId;
+					const role = await this.roleService.getRoleInfo(userRoleId);
 
-				const userRoleId = userFindPermissions.roleId;
-				const role = await this.roleService.getRoleInfo(userRoleId);
-
-				const permisos = validarPermisos({
-					role,
-					requestedModuleId: 'SP95',
-					requiredMethod: 'PUT',
-					userId: id,
-					serviceProviderId: providerId,
-				});
-
-				if (!permisos.hasAccess) {
-					return res.status(HttpStatus.NOT_FOUND).send({
-						statusCode: HttpStatus.NOT_FOUND,
-						customCode: permisos.customCode,
+					const permisos = validarPermisos({
+						role,
+						requestedModuleId: 'SP95',
+						requiredMethod: 'PUT',
+						userId: id,
+						serviceProviderId: providerId,
 					});
+
+					if (!permisos.hasAccess) {
+						return res.status(HttpStatus.NOT_FOUND).send({
+							statusCode: HttpStatus.NOT_FOUND,
+							customCode: permisos.customCode,
+						});
+					}
 				}
 			}
 
