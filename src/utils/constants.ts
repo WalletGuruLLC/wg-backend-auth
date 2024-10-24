@@ -442,7 +442,7 @@ export const licenseFormats = {
 	Mississippi: /^\d{9}$/,
 	Missouri: /^[A-Z]\d{5,9}$/,
 	Montana: /^\d{13}$/,
-	Nebraska: /^(?:[A-Z]\d{8}|\d{9})$/,
+	Nebraska: /^[A-Z]\d{8,9}$/,
 	Nevada: /^\d{9}$|^\d{12}$/,
 	'New Hampshire': /^[A-Z]{2}\d{3,5}[A-Z]$/,
 	'New Jersey': /^[A-Z]\d{14}$/,

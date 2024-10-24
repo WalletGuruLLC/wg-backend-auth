@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { UserController } from './controller/user.controller';
 import { UserService } from './service/user.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SqsService } from './sqs/sqs.service';
 import { AccessControlMiddleware } from './guard/access-control-guard';
 import { RoleModule } from '../role/role.module';
@@ -15,8 +15,8 @@ import { RoleModule } from '../role/role.module';
 @Module({
 	imports: [ConfigModule, forwardRef(() => RoleModule)],
 	controllers: [UserController],
-	providers: [UserService, SqsService],
-	exports: [UserService],
+	providers: [UserService, SqsService, ConfigService],
+	exports: [UserService, ConfigService],
 })
 export class UserModule implements NestModule {
 	usersPath = 'api/v1/users';

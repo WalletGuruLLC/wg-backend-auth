@@ -1,36 +1,37 @@
 import * as dynamoose from 'dynamoose';
+import { v4 as uuidv4 } from 'uuid';
 
-export const OtpSchema = new dynamoose.Schema(
+export const SocketKeySchema = new dynamoose.Schema(
 	{
-		Email: {
+		Id: {
+			type: String,
+			hashKey: true,
+			default: () => uuidv4(),
+			required: true,
+			index: {
+				global: true,
+				name: 'IdIndex',
+			},
+		},
+		PublicKey: {
 			type: String,
 			required: true,
 			index: {
 				global: true,
-				name: 'emailIndex',
+				name: 'PublicKeyIndex',
 			},
 		},
-		Otp: {
+		SecretKey: {
+			type: String,
+			required: true,
+		},
+		ServiceProviderId: {
 			type: String,
 			required: true,
 			index: {
 				global: true,
-				name: 'OtpIndex',
+				name: 'ServiceProviderIdIndex',
 			},
-		},
-		Token: {
-			type: String,
-		},
-		RefreshToken: {
-			type: String,
-		},
-		CreatedAt: {
-			type: Date,
-			required: true,
-			default: () => new Date(),
-		},
-		Ttl: {
-			type: Number,
 		},
 	},
 	{
@@ -40,5 +41,3 @@ export const OtpSchema = new dynamoose.Schema(
 		},
 	}
 );
-
-export const OtpModel = dynamoose.model('Otps', OtpSchema);

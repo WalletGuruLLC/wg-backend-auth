@@ -27,6 +27,7 @@ import {
 	ApiOperation,
 	ApiResponse,
 	ApiParam,
+	ApiBody,
 } from '@nestjs/swagger';
 
 import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
@@ -55,6 +56,7 @@ import * as Sentry from '@sentry/nestjs';
 import { validateLicense } from 'src/utils/helpers/validateLicenseDriver';
 import { validarPermisos } from 'src/utils/helpers/getAccessServiceProviders';
 import { RoleService } from 'src/api/role/service/role.service';
+import { RefreshTokeenDTO } from '../dto/refresh-token.dto';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -105,8 +107,8 @@ export class UserController {
 			}
 
 			if (createUserDto?.type === 'WALLET' && !createUserDto?.passwordHash) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE00018',
 					customMessage: errorCodes?.WGE00018?.description,
 					customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -124,8 +126,8 @@ export class UserController {
 						!createUserDto?.serviceProviderId) ||
 					!createUserDto?.phone
 				) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE00018',
 						customMessage: errorCodes?.WGE00018?.description,
 						customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -141,8 +143,8 @@ export class UserController {
 					createUserDto?.termsConditions !== true ||
 					createUserDto?.privacyPolicy !== true
 				) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE00018',
 						customMessage: errorCodes?.WGE00018?.description,
 						customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -151,8 +153,8 @@ export class UserController {
 			}
 
 			if (validatePhoneNumber(createUserDto?.phone) === false) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0113',
 				});
 			}
@@ -161,8 +163,8 @@ export class UserController {
 				const { phone } = createUserDto;
 
 				if (!phone || !phone.trim() || !validatePhoneNumber(phone)) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE0127',
 					});
 				}
@@ -175,9 +177,7 @@ export class UserController {
 			if (userPhone) {
 				return res.status(HttpStatus.FORBIDDEN).send({
 					statusCode: HttpStatus.FORBIDDEN,
-					customCode: 'WGE0003',
-					customMessage: errorCodes?.WGE0003?.description,
-					customMessageEs: errorCodes.WGE0003?.descriptionEs,
+					customCode: 'WGE0113',
 				});
 			}
 
@@ -244,8 +244,8 @@ export class UserController {
 			}
 
 			if (createUserDto?.type === 'WALLET' && !createUserDto?.passwordHash) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE00018',
 					customMessage: errorCodes?.WGE00018?.description,
 					customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -260,8 +260,8 @@ export class UserController {
 					!createUserDto?.type ||
 					!createUserDto?.roleId
 				) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE00018',
 						customMessage: errorCodes?.WGE00018?.description,
 						customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -277,8 +277,8 @@ export class UserController {
 					createUserDto?.termsConditions !== true ||
 					createUserDto?.privacyPolicy !== true
 				) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE00018',
 						customMessage: errorCodes?.WGE00018?.description,
 						customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -301,6 +301,68 @@ export class UserController {
 					customCode: 'WGE0016',
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Put('/update-profile/:id')
+	@ApiOkResponse({
+		description: 'The record has been successfully updated.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async updateAdmin(
+		@Param('id') id: string,
+		@Body() updateUserDto: UpdateUserDto,
+		@Res() res
+	) {
+		try {
+			const userFind = await this.userService.findOne(id);
+			if (!userFind) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0002',
+				});
+			}
+
+			if (
+				updateUserDto?.phone &&
+				updateUserDto?.phone?.trim() !== '' &&
+				validatePhoneNumber(updateUserDto?.phone) === false
+			) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0127',
+				});
+			}
+
+			const userPhone = await this.userService.findOneByPhone(
+				updateUserDto?.phone
+			);
+
+			if (userPhone) {
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0113',
+				});
+			}
+
+			const user = await this.userService.update(id, updateUserDto);
+			delete user.passwordHash;
+
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGS0018',
+				data: user,
+			});
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0016',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
@@ -464,11 +526,9 @@ export class UserController {
 				updateUserDto?.phone?.trim() !== '' &&
 				validatePhoneNumber(updateUserDto?.phone) === false
 			) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0113',
-					customMessage: errorCodes?.WGE00044?.description,
-					customMessageEs: errorCodes?.WGE00044?.descriptionEs,
 				});
 			}
 
@@ -476,8 +536,8 @@ export class UserController {
 				updateUserDto?.identificationType &&
 				!updateUserDto?.identificationNumber
 			) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0122',
 				});
 			}
@@ -500,15 +560,15 @@ export class UserController {
 						);
 
 						if (!isValidLicense) {
-							return res.status(HttpStatus.PARTIAL_CONTENT).send({
-								statusCode: HttpStatus.PARTIAL_CONTENT,
+							return res.status(HttpStatus.FORBIDDEN).send({
+								statusCode: HttpStatus.FORBIDDEN,
 								customCode: 'WGE0159',
 							});
 						}
 					}
 				} else {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE0158',
 					});
 				}
@@ -858,7 +918,17 @@ export class UserController {
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
 			}
-			await this.userService.confirmUserPassword(authConfirmPasswordUserDto);
+			const resultConfirm = await this.userService.confirmUserPassword(
+				authConfirmPasswordUserDto
+			);
+
+			if (resultConfirm?.customCode) {
+				return res.status(HttpStatus.UNAUTHORIZED).send({
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: resultConfirm?.customCode,
+				});
+			}
+
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0012',
@@ -1171,6 +1241,44 @@ export class UserController {
 				);
 			}
 			throw error;
+		}
+	}
+
+	@Post('/refresh-token')
+	@ApiOkResponse({
+		description: 'Token has been refreshed succefully.',
+	})
+	@ApiBody({
+		schema: { example: { token: '', email: '' } },
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async refreshToken(@Res() res, @Req() req, @Body() body: RefreshTokeenDTO) {
+		try {
+			const refreshedToken = await this.userService.refreshToken(
+				body?.token,
+				body.email
+			);
+
+			if (typeof refreshedToken !== 'string') {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0205',
+				});
+			}
+
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0204',
+				data: { token: refreshedToken },
+			});
+		} catch (error) {
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0205',
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
 		}
 	}
 }

@@ -29,6 +29,10 @@ export const ProviderSchema = new dynamoose.Schema(
 			default:
 				'https://walletguru-dev.s3.us-east-2.amazonaws.com/Card+Generica+Service+Providers.png',
 		},
+		Asset: {
+			type: String,
+			default: 'USD',
+		},
 	},
 	{
 		timestamps: {

@@ -2,22 +2,23 @@ import { GetProvidersDto } from './../dto/getProviderDto';
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import * as dynamoose from 'dynamoose';
 import { Model } from 'dynamoose/dist/Model';
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { errorCodes } from '../../../utils/constants';
 import { Provider } from '../entities/provider.entity';
 import { ProviderSchema } from '../entities/provider.schema';
 import {
-	CreateProviderDto,
 	ChangeStatusProviderDto,
+	CreateProviderDto,
+	CreateSocketDto,
 	UpdateProviderDto,
 } from '../dto/provider';
 import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import { v4 as uuidv4 } from 'uuid';
 import {
-	S3Client,
 	DeleteObjectCommand,
 	PutObjectCommand,
+	S3Client,
 } from '@aws-sdk/client-s3';
 import { User } from '../../user/entities/user.entity';
 import { UserSchema } from '../../user/entities/user.schema';
@@ -30,11 +31,15 @@ import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParame
 import { removeSpaces } from '../../../utils/helpers/removeSpaces';
 import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuration.dto';
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
+import axios from 'axios';
+import { SocketKey } from '../entities/socket.entity';
+import { SocketKeySchema } from '../entities/socket.schema';
 
 @Injectable()
 export class ProviderService {
 	private readonly dbInstance: Model<Provider>;
 	private dbUserInstance: Model<User>;
+	private dbInstanceSocket: Model<SocketKey>;
 
 	constructor() {
 		const tableName = 'Providers';
@@ -43,6 +48,92 @@ export class ProviderService {
 			waitForActive: false,
 		});
 		this.dbUserInstance = dynamoose.model<User>('Users', UserSchema);
+		this.dbInstanceSocket = dynamoose.model<SocketKey>(
+			'SocketKeys',
+			SocketKeySchema
+		);
+	}
+
+	async filterRafikiAssetByName(assets: Array<any>, assetName: string) {
+		const filteredAsset = assets.find(asset => asset?.code == assetName);
+
+		if (!filteredAsset) {
+			return {};
+		}
+
+		return filteredAsset;
+	}
+
+	async getAndFilterAssetsByName(assetName: string, token: string) {
+		try {
+			const url = process.env.WALLET_URL + '/api/v1/wallets-rafiki/assets';
+
+			const response = await axios.get(url, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			const assets = response?.data?.data?.rafikiAssets;
+
+			const assetValue = await this.filterRafikiAssetByName(assets, assetName);
+
+			return assetValue?.id ?? '';
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error getting assets',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	async createWalletAddressServiceProvider(
+		assetName: string,
+		addressName: string,
+		token: string,
+		providerName: string,
+		providerId
+	) {
+		try {
+			const url =
+				process.env.WALLET_URL +
+				'/api/v1/wallets-rafiki/service-provider-address';
+
+			const assetIdValue = await this.getAndFilterAssetsByName(
+				assetName,
+				token
+			);
+
+			const body = {
+				addressName,
+				assetId: assetIdValue,
+				providerName,
+				providerId,
+			};
+
+			const response = await axios.post(url, body, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			return response.data;
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error creating wallet address',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	async createSocketKey(
+		createSocketKeyDto: CreateSocketDto
+	): Promise<SocketKey> {
+		const socketKey = {
+			PublicKey: createSocketKeyDto.publicKey,
+			SecretKey: createSocketKeyDto.secretKey,
+			ServiceProviderId: createSocketKeyDto.serviceProviderId,
+		};
+		return this.dbInstanceSocket.create(socketKey);
 	}
 
 	async create(createProviderDto: CreateProviderDto): Promise<Provider> {
@@ -59,6 +150,7 @@ export class ProviderService {
 			WalletAddress: removeSpaces(createProviderDto.walletAddress),
 			Logo: createProviderDto.logo,
 			ContactInformation: createProviderDto.contactInformation,
+			Asset: createProviderDto.asset,
 		};
 		return this.dbInstance.create(provider);
 	}
@@ -161,6 +253,19 @@ export class ProviderService {
 		try {
 			const result = await docClient.get(params).promise();
 
+			const getKeysParam: DocumentClient.ScanInput = {
+				TableName: 'SocketKeys',
+				FilterExpression: '#ServiceProviderId = :ServiceProviderId',
+				ExpressionAttributeNames: {
+					'#ServiceProviderId': 'ServiceProviderId',
+				},
+				ExpressionAttributeValues: {
+					':ServiceProviderId': id,
+				},
+			};
+			const resultKeys = await docClient.scan(getKeysParam).promise();
+			const SocketKeys = resultKeys.Items[0];
+
 			if (!result.Item) {
 				throw new HttpException(
 					{
@@ -171,7 +276,13 @@ export class ProviderService {
 				);
 			}
 
-			return convertToCamelCase(result.Item);
+			const provider = convertToCamelCase(result.Item);
+
+			if (SocketKeys) {
+				provider.socketKeys = convertToCamelCase(SocketKeys);
+			}
+
+			return provider;
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error fetching provider by ID: ${error.message}`);
@@ -229,6 +340,18 @@ export class ProviderService {
 			Key: { Id: id },
 		};
 
+		const getKeysParam: DocumentClient.ScanInput = {
+			TableName: 'SocketKeys',
+			FilterExpression: '#ServiceProviderId = :ServiceProviderId',
+			ExpressionAttributeNames: {
+				'#ServiceProviderId': 'ServiceProviderId',
+			},
+			ExpressionAttributeValues: {
+				':ServiceProviderId': id,
+			},
+		};
+		const result = await docClient.scan(getKeysParam).promise();
+		const SocketKeys = result.Items[0];
 		try {
 			const result = await docClient.get(params).promise();
 
@@ -241,8 +364,11 @@ export class ProviderService {
 					HttpStatus.NOT_FOUND
 				);
 			}
-
-			return convertToCamelCase(result.Item);
+			const provider = convertToCamelCase(result.Item);
+			if (SocketKeys) {
+				provider.socketKeys = convertToCamelCase(SocketKeys);
+			}
+			return provider;
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error fetching provider by ID: ${error.message}`);
@@ -274,7 +400,6 @@ export class ProviderService {
 			'country',
 			'city',
 			'zipCode',
-			'walletAddress',
 			'contactInformation',
 		];
 
@@ -426,7 +551,6 @@ export class ProviderService {
 			}
 		} catch (error) {
 			Sentry.captureException(error);
-			console.log('error', error);
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.FORBIDDEN,
@@ -594,86 +718,23 @@ export class ProviderService {
 
 	async createOrUpdatePaymentParameter(
 		createProviderPaymentParameter: CreateProviderPaymentParameterDTO,
-		user: string
-	): Promise<CreateProviderPaymentParameterDTO> {
+		serviceProvider: any,
+		paymentParameter: any,
+		timeInterval: any,
+		token: string
+	): Promise<any> {
 		const docClient = new DocumentClient();
-
-		const userConverted = user as unknown as {
-			Name: string;
-			Value: string;
-		}[];
-		const userEmail = userConverted[0]?.Value;
-
-		const users = await this.dbUserInstance.query('Email').eq(userEmail).exec();
-
-		const userFind = users?.[0];
-
-		if (!userFind) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0040',
-					...errorCodes.WGE0040,
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
-
-		const providerId =
-			userFind && userFind?.Type === 'PROVIDER'
-				? userFind?.ServiceProviderId
-				: createProviderPaymentParameter.serviceProviderId;
-
-		const getProviderParams: DocumentClient.GetItemInput = {
-			TableName: 'Providers',
-			Key: { Id: providerId },
-		};
-
-		const provider = await docClient.get(getProviderParams).promise();
-
-		if (!provider.Item) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0040',
-					...errorCodes.WGE0040,
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
-
-		const existingPaymentParameter = await this.getPaymentParameters(
-			createProviderPaymentParameter.serviceProviderId,
-			{
-				asset: createProviderPaymentParameter.asset,
-				frequency: createProviderPaymentParameter.frequency,
-			},
-			createProviderPaymentParameter.paymentParameterId
-		);
 
 		const feeConfigParams = {
 			TableName: 'FeeConfigurations',
 			IndexName: 'ServiceProviderIdIndex',
 			KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
 			ExpressionAttributeValues: {
-				':serviceProviderId': providerId,
+				':serviceProviderId': serviceProvider?.id,
 			},
 		};
 
 		const feeConfigurations = await docClient.query(feeConfigParams).promise();
-
-		if (
-			(!createProviderPaymentParameter.paymentParameterId &&
-				existingPaymentParameter.length > 0) ||
-			(createProviderPaymentParameter.paymentParameterId &&
-				!existingPaymentParameter.length)
-		) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0117',
-					statusCode: HttpStatus.BAD_REQUEST,
-				},
-				HttpStatus.BAD_REQUEST
-			);
-		}
 
 		if (!feeConfigurations.Items) {
 			throw new HttpException(
@@ -697,17 +758,9 @@ export class ProviderService {
 			);
 		}
 
-		const paymentParameter = existingPaymentParameter?.[0];
+		const wallet = await this.getServiceProviderWallet(serviceProvider?.id);
 
-		if (!paymentParameter) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0119',
-					statusCode: HttpStatus.NOT_FOUND,
-				},
-				HttpStatus.NOT_FOUND
-			);
-		}
+		const asset = await this.getAssetByWalletAddress(wallet?.rafikiId, token);
 
 		const params = {
 			TableName: 'PaymentParameters',
@@ -720,10 +773,10 @@ export class ProviderService {
 					Description: createProviderPaymentParameter.description,
 				}),
 				Cost: createProviderPaymentParameter.cost,
-				Frequency: createProviderPaymentParameter.frequency,
-				Interval: createProviderPaymentParameter.interval,
-				Asset: createProviderPaymentParameter.asset,
-				ServiceProviderId: providerId,
+				Frequency: createProviderPaymentParameter?.frequency,
+				Interval: timeInterval?.name,
+				Asset: asset?.code,
+				ServiceProviderId: serviceProvider?.id,
 				Percent: feeConfig.Percent,
 				Comision: feeConfig.Comission,
 				Base: feeConfig.Base,
@@ -736,50 +789,32 @@ export class ProviderService {
 			},
 		};
 
-		await docClient.put(params).promise();
-
-		return createProviderPaymentParameter;
-	}
-
-	async getPaymentParameters(
-		serviceProviderId: string,
-		paymentParametersFilter: GetProviderPaymentParametersDTO,
-		paymentParameterId?: string
-	): Promise<any> {
-		const docClient = new DocumentClient();
-
-		const expressionFilters = buildFilterExpressionDynamo(
-			paymentParametersFilter
-		);
-		const params = {
-			TableName: 'PaymentParameters',
-			...(!paymentParameterId && {
-				IndexName: 'ServiceProviderIdIndex',
-			}),
-			...(paymentParameterId && {
-				KeyConditionExpression: `Id = :paymentParameterId`,
-			}),
-
-			...(!paymentParameterId && {
-				KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
-			}),
-			ExpressionAttributeValues: {
-				...(paymentParameterId && {
-					':paymentParameterId': paymentParameterId,
-				}),
-				...(!paymentParameterId && { ':serviceProviderId': serviceProviderId }),
-				...(expressionFilters.expressionValues && {
-					...expressionFilters.expressionValues,
-				}),
-			},
-			...(expressionFilters.expression && {
-				FilterExpression: expressionFilters.expression,
-			}),
+		const paymentParameterDTO = {
+			id: params.Item.Id,
+			name: params.Item.Name,
+			cost: params.Item.Cost,
+			frequency: params.Item.Frequency,
+			asset: params.Item.Asset,
+			timeIntervalId: createProviderPaymentParameter?.timeIntervalId,
+			active: params.Item.Active,
 		};
 
-		const paymentParameterQuery = await docClient.query(params).promise();
+		await docClient.put(params).promise();
 
-		return convertToCamelCase(paymentParameterQuery.Items);
+		return paymentParameterDTO;
+	}
+
+	async getPaymentParameters(paymentParameterId?: string): Promise<any> {
+		const docClient = new DocumentClient();
+
+		const params = {
+			Key: { Id: paymentParameterId },
+			TableName: 'PaymentParameters',
+		};
+
+		const paymentParameterQuery = await docClient.get(params).promise();
+
+		return convertToCamelCase(paymentParameterQuery.Item);
 	}
 	async getTimeIntervals(): Promise<any> {
 		const docClient = new DocumentClient();
@@ -789,6 +824,17 @@ export class ProviderService {
 		const timeIntervals = await docClient.scan(params).promise();
 
 		return convertToCamelCase(timeIntervals.Items);
+	}
+
+	async getTimeIntervalById(id: string): Promise<any> {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'TimeIntervals',
+			Key: { Id: id },
+		};
+		const timeIntervals = await docClient.get(params).promise();
+
+		return convertToCamelCase(timeIntervals?.Item);
 	}
 
 	async getFeeConfigurationsByProvider(
@@ -853,10 +899,6 @@ export class ProviderService {
 				Key: { Id: createUpdateFeeConfigurationDTO.serviceProviderId },
 			};
 
-			const getProviderFeeConfig: DocumentClient.GetItemInput = {
-				TableName: 'FeeConfigurations',
-				Key: { Id: createUpdateFeeConfigurationDTO.serviceProviderId },
-			};
 			let providerFeeConfig;
 
 			const provider = await docClient.get(getProviderParams).promise();
@@ -974,7 +1016,6 @@ export class ProviderService {
 
 		try {
 			const result = await docClient.query(getFeeConfigParams).promise();
-			console;
 
 			return convertToCamelCase(result.Items);
 		} catch (error) {
@@ -1048,15 +1089,21 @@ export class ProviderService {
 				offset + Number(items)
 			);
 
-			paginatedPaymentParameters = paginatedPaymentParameters.map(
-				paymentParameter => ({
-					id: paymentParameter?.id,
-					name: paymentParameter?.name,
-					active: paymentParameter?.active,
-					frequency: paymentParameter?.frequency,
-					interval: paymentParameter?.interval,
-					cost: paymentParameter?.cost,
-					asset: paymentParameter?.asset,
+			paginatedPaymentParameters = await Promise.all(
+				paginatedPaymentParameters.map(async paginatedPaymentParameter => {
+					const timeInterval = await this.getTimeInterval(
+						paginatedPaymentParameter?.interval
+					);
+					return {
+						id: paginatedPaymentParameter?.id,
+						name: paginatedPaymentParameter?.name,
+						active: paginatedPaymentParameter?.active,
+						frequency: paginatedPaymentParameter?.frequency,
+						timeIntervalId: timeInterval?.id,
+						interval: timeInterval?.name,
+						cost: paginatedPaymentParameter?.cost,
+						asset: paginatedPaymentParameter?.asset,
+					};
 				})
 			);
 
@@ -1132,9 +1179,7 @@ export class ProviderService {
 				);
 			}
 
-			const active =
-				!paymentParameter?.Items?.[0].Active ??
-				!!paymentParameter?.Items?.[0].Active;
+			const active = !paymentParameter?.Items?.[0].Active;
 
 			const toggleParams = {
 				TableName: 'PaymentParameters',
@@ -1156,6 +1201,94 @@ export class ProviderService {
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error Toggle payments parameters: ${error.message}`);
+		}
+	}
+
+	async getProviderId(providerId: string, user: string) {
+		const userConverted = user as unknown as {
+			Name: string;
+			Value: string;
+		}[];
+		const userEmail = userConverted[0]?.Value;
+
+		const users = await this.dbUserInstance.query('Email').eq(userEmail).exec();
+
+		const userFind = users?.[0];
+
+		const serviceProviderId =
+			userFind && userFind?.Type === 'PROVIDER'
+				? userFind?.ServiceProviderId
+				: providerId;
+
+		return serviceProviderId;
+	}
+
+	async getServiceProviderWallet(serviceProviderId: string) {
+		const docClient = new DocumentClient();
+
+		const getWalletAddressParams: DocumentClient.QueryInput = {
+			TableName: 'Wallets',
+			IndexName: 'ProviderIdIndex',
+			KeyConditionExpression: `ProviderId = :serviceProviderId`,
+			ExpressionAttributeValues: {
+				':serviceProviderId': serviceProviderId,
+			},
+		};
+
+		try {
+			const result = await docClient.query(getWalletAddressParams).promise();
+
+			return convertToCamelCase(result.Items?.[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(
+				`Error fetching wallet address by serviceProvider: ${error.message}`
+			);
+		}
+	}
+
+	async getTimeInterval(timeIntervalName: string) {
+		const docClient = new DocumentClient();
+
+		const getTimeIntervalByName: DocumentClient.ScanInput = {
+			TableName: 'TimeIntervals',
+			FilterExpression: '#name = :timerIntervalName',
+			ExpressionAttributeNames: {
+				'#name': 'Name',
+			},
+			ExpressionAttributeValues: {
+				':timerIntervalName': timeIntervalName,
+			},
+		};
+
+		try {
+			const result = await docClient.scan(getTimeIntervalByName).promise();
+
+			return convertToCamelCase(result.Items?.[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching time interval by name: ${error.message}`);
+		}
+	}
+
+	async getAssetByWalletAddress(rafikiId: string, token: string) {
+		try {
+			const url =
+				process.env.WALLET_URL + `/api/v1/wallets-rafiki/${rafikiId}/asset`;
+
+			const response = await axios.get(url, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			const asset = response?.data?.data?.asset;
+			return asset;
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error getting asset by wallet address',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
 		}
 	}
 }
