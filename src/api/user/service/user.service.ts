@@ -1002,6 +1002,7 @@ export class UserService {
 			'/api/v1/providers': 'SP95',
 			'/api/v1/wallets': 'W325',
 			'/api/v1/settings': 'SE37',
+			'/api/v1/payments': 'PY38',
 		};
 
 		const normalizedPath = path.split('/').slice(0, 4).join('/');
