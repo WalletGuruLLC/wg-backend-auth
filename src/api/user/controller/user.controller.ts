@@ -1238,4 +1238,29 @@ export class UserController {
 			);
 		}
 	}
+
+	@Post('/kyc')
+	@ApiOkResponse({
+		description: 'verify kyc.',
+	})
+	@ApiForbiddenResponse({ description: 'Forbidden.' })
+	async kyc(@Body() body, @Res() res) {
+		try {
+			console.log('body', body);
+			return res.status(HttpStatus.OK).json({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0018',
+				data: body,
+			});
+		} catch (error) {
+			throw new HttpException(
+				{
+					customCode: 'WGE0001',
+					...errorCodes.WGE0001,
+					message: error.message,
+				},
+				HttpStatus.UNAUTHORIZED
+			);
+		}
+	}
 }
