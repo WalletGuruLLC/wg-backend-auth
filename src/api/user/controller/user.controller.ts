@@ -54,13 +54,18 @@ import { isValidEmail } from 'src/utils/helpers/validateEmail';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as Sentry from '@sentry/nestjs';
 import { validateLicense } from 'src/utils/helpers/validateLicenseDriver';
+import { validarPermisos } from 'src/utils/helpers/getAccessServiceProviders';
+import { RoleService } from 'src/api/role/service/role.service';
 import { RefreshTokeenDTO } from '../dto/refresh-token.dto';
 
 @ApiTags('user')
 @Controller('api/v1/users')
 @ApiBearerAuth('JWT')
 export class UserController {
-	constructor(private readonly userService: UserService) {}
+	constructor(
+		private readonly userService: UserService,
+		private readonly roleService: RoleService
+	) {}
 
 	@UseGuards(CognitoAuthGuard)
 	@Post('/register')
@@ -102,8 +107,8 @@ export class UserController {
 			}
 
 			if (createUserDto?.type === 'WALLET' && !createUserDto?.passwordHash) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE00018',
 					customMessage: errorCodes?.WGE00018?.description,
 					customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -121,8 +126,8 @@ export class UserController {
 						!createUserDto?.serviceProviderId) ||
 					!createUserDto?.phone
 				) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE00018',
 						customMessage: errorCodes?.WGE00018?.description,
 						customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -138,8 +143,8 @@ export class UserController {
 					createUserDto?.termsConditions !== true ||
 					createUserDto?.privacyPolicy !== true
 				) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE00018',
 						customMessage: errorCodes?.WGE00018?.description,
 						customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -148,8 +153,8 @@ export class UserController {
 			}
 
 			if (validatePhoneNumber(createUserDto?.phone) === false) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0113',
 				});
 			}
@@ -158,8 +163,8 @@ export class UserController {
 				const { phone } = createUserDto;
 
 				if (!phone || !phone.trim() || !validatePhoneNumber(phone)) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE0127',
 					});
 				}
@@ -239,8 +244,8 @@ export class UserController {
 			}
 
 			if (createUserDto?.type === 'WALLET' && !createUserDto?.passwordHash) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE00018',
 					customMessage: errorCodes?.WGE00018?.description,
 					customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -255,8 +260,8 @@ export class UserController {
 					!createUserDto?.type ||
 					!createUserDto?.roleId
 				) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE00018',
 						customMessage: errorCodes?.WGE00018?.description,
 						customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -272,8 +277,8 @@ export class UserController {
 					createUserDto?.termsConditions !== true ||
 					createUserDto?.privacyPolicy !== true
 				) {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE00018',
 						customMessage: errorCodes?.WGE00018?.description,
 						customMessageEs: errorCodes.WGE00018?.descriptionEs,
@@ -521,8 +526,8 @@ export class UserController {
 				updateUserDto?.phone?.trim() !== '' &&
 				validatePhoneNumber(updateUserDto?.phone) === false
 			) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0113',
 				});
 			}
@@ -531,8 +536,8 @@ export class UserController {
 				updateUserDto?.identificationType &&
 				!updateUserDto?.identificationNumber
 			) {
-				return res.status(HttpStatus.PARTIAL_CONTENT).send({
-					statusCode: HttpStatus.PARTIAL_CONTENT,
+				return res.status(HttpStatus.FORBIDDEN).send({
+					statusCode: HttpStatus.FORBIDDEN,
 					customCode: 'WGE0122',
 				});
 			}
@@ -555,17 +560,55 @@ export class UserController {
 						);
 
 						if (!isValidLicense) {
-							return res.status(HttpStatus.PARTIAL_CONTENT).send({
-								statusCode: HttpStatus.PARTIAL_CONTENT,
+							return res.status(HttpStatus.FORBIDDEN).send({
+								statusCode: HttpStatus.FORBIDDEN,
 								customCode: 'WGE0159',
 							});
 						}
 					}
 				} else {
-					return res.status(HttpStatus.PARTIAL_CONTENT).send({
-						statusCode: HttpStatus.PARTIAL_CONTENT,
+					return res.status(HttpStatus.FORBIDDEN).send({
+						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE0158',
 					});
+				}
+			}
+
+			const userFindPermissions = await this.userService.findOneByEmail(
+				req?.user?.UserAttributes?.[0]?.Value
+			);
+
+			if (['PLATFORM', 'PROVIDER'].includes(userFindPermissions?.type)) {
+				if (userFindPermissions?.type == 'PROVIDER') {
+					if (
+						userFindPermissions?.serviceProviderId !==
+						userFind?.serviceProviderId
+					) {
+						return res.status(HttpStatus.NOT_FOUND).send({
+							statusCode: HttpStatus.NOT_FOUND,
+							customCode: 'WGE0186',
+						});
+					}
+				} else {
+					const providerId = userFind?.serviceProviderId;
+
+					const userRoleId = userFindPermissions.roleId;
+					const role = await this.roleService.getRoleInfo(userRoleId);
+
+					const permisos = validarPermisos({
+						role,
+						requestedModuleId: 'SP95',
+						requiredMethod: 'PUT',
+						userId: id,
+						serviceProviderId: providerId,
+					});
+
+					if (!permisos.hasAccess) {
+						return res.status(HttpStatus.NOT_FOUND).send({
+							statusCode: HttpStatus.NOT_FOUND,
+							customCode: permisos.customCode,
+						});
+					}
 				}
 			}
 
