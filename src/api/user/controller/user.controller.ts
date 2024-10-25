@@ -1247,10 +1247,11 @@ export class UserController {
 	async kyc(@Body() body, @Res() res) {
 		try {
 			console.log('body', body);
+			const resultValue = await this.userService.kycFlow(body);
 			return res.status(HttpStatus.OK).json({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0018',
-				data: body,
+				data: resultValue,
 			});
 		} catch (error) {
 			throw new HttpException(
