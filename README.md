@@ -46,4 +46,4 @@ Create a .env file in the root of the project following the content of .env.exam
 - `AWS_S3_BUCKET_NAME`: Name of the S3 bucket for images
 - `WALLET_URL`: Wallet url deploy
 - `APP_SECRET`: app secret for communication between services
-
+- `SUMSUB_APP_TOKEN`: sum sub app token kyc
