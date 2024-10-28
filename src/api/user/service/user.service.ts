@@ -1270,7 +1270,9 @@ export class UserService {
 		const isValid = await this.validateDataToSumsub(
 			userInput?.reviewResult?.reviewAnswer
 		);
+		console.log('isValid', isValid, userInput?.reviewResult?.reviewAnswer);
 		const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
+		console.log('sumsubData', sumsubData);
 
 		if (!sumsubData?.externalUserId) {
 			return;
