@@ -47,4 +47,4 @@ Create a .env file in the root of the project following the content of .env.exam
 - `WALLET_URL`: Wallet url deploy
 - `APP_SECRET`: app secret for communication between services
 - `SUMSUB_APP_TOKEN`: sum sub app token kyc
-- `SUMSUB_SECRET_KEY`: sum sub secret key kyc
+- `SUMSUB_SECRET_TOKEN`: sum sub secret key kyc
