@@ -44,6 +44,7 @@ import {
 	PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import axios from 'axios';
+import { createSignature } from '../../../utils/helpers/signatureHelper';
 
 @Injectable()
 export class UserService {
@@ -56,6 +57,7 @@ export class UserService {
 	private providerService: ProviderService;
 	private apiUrl;
 	private appToken;
+	private appSecretKey;
 
 	constructor(private readonly sqsService: SqsService) {
 		this.dbInstance = dynamoose.model<User>('Users', UserSchema);
@@ -70,6 +72,7 @@ export class UserService {
 			region: process.env.AWS_REGION,
 		});
 		this.appToken = process.env.SUMSUB_APP_TOKEN;
+		this.appSecretKey = process.env.SUMSUB_SECRET_TOKEN;
 		this.apiUrl = 'https://api.sumsub.com';
 	}
 
@@ -1261,7 +1264,9 @@ export class UserService {
 		}
 	}
 
-	async kycFlow(userInput) {
+	async kycFlow(userInput, req) {
+		await createSignature(req, this.appSecretKey);
+
 		const isValid = await this.validateDataToSumsub(
 			userInput?.reviewResult?.reviewAnswer
 		);
@@ -1281,7 +1286,7 @@ export class UserService {
 				IdentificationType: sumsubData?.info?.idDocs?.[0]?.idDocType,
 				IdentificationNumber: sumsubData?.info?.idDocs?.[0]?.number,
 				FirstName: sumsubData?.info?.firstName,
-				LastName: sumsubData?.info?.firstName,
+				LastName: sumsubData?.info?.lastName,
 				DateOfBirth: new Date(sumsubData?.info?.dob),
 			});
 

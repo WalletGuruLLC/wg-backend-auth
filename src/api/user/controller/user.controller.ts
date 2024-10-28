@@ -1287,10 +1287,10 @@ export class UserController {
 		description: 'verify kyc.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async kyc(@Body() body, @Res() res) {
+	async kyc(@Body() body, @Res() res, @Req() req) {
 		try {
 			console.log('body', body);
-			const resultValue = await this.userService.kycFlow(body);
+			const resultValue = await this.userService.kycFlow(body, req);
 
 			if (!resultValue) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
