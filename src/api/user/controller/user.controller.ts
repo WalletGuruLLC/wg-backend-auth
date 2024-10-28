@@ -1291,6 +1291,13 @@ export class UserController {
 		try {
 			console.log('body', body);
 			const resultValue = await this.userService.kycFlow(body);
+
+			if (!resultValue) {
+				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0016',
+				});
+			}
 			return res.status(HttpStatus.OK).json({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0018',
@@ -1299,8 +1306,8 @@ export class UserController {
 		} catch (error) {
 			throw new HttpException(
 				{
-					customCode: 'WGE0001',
-					...errorCodes.WGE0001,
+					customCode: 'WGE0016',
+					...errorCodes.WGE0016,
 					message: error.message,
 				},
 				HttpStatus.UNAUTHORIZED
