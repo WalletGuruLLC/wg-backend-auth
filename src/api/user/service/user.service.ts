@@ -1265,6 +1265,8 @@ export class UserService {
 	}
 
 	async kycFlow(userInput, req) {
+		console.log('this.appSecretKey', this.appSecretKey);
+
 		await createSignature(req, this.appSecretKey);
 
 		const isValid = await this.validateDataToSumsub(

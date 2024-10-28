@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 
 export async function createSignature(req, secretKey) {
+	console.log('secretKey', secretKey);
 	const ts = Math.floor(Date.now() / 1000);
 	const signature = crypto.createHmac('sha256', secretKey);
 	signature.update(ts + req.method.toUpperCase() + req.url);
