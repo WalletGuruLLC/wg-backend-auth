@@ -120,6 +120,25 @@ export class UserService {
 		};
 	}
 
+	async getUserById(userId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'Users',
+			Key: { Id: userId },
+		};
+
+		try {
+			const result = await docClient.get(params).promise();
+			return convertToCamelCase(result?.Item);
+		} catch (error) {
+			Sentry.captureException(error);
+			return {
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0137',
+			};
+		}
+	}
+
 	async listAccessLevels(roleId: string) {
 		const docClient = new DocumentClient();
 		const params = {
@@ -444,9 +463,12 @@ export class UserService {
 			const updatedUser = {
 				...userFind,
 				...updateUserDto,
+				dateOfBirth: updateUserDto.dateOfBirth
+					? new Date(updateUserDto.dateOfBirth)
+					: userFind.dateOfBirth,
 			};
 
-			const result = await this.dbInstance.update({
+			await this.dbInstance.update({
 				Id: id,
 				FirstName: updatedUser.firstName,
 				LastName: updatedUser.lastName,
@@ -470,7 +492,9 @@ export class UserService {
 				Avatar: updatedUser.avatar,
 			});
 
-			return convertToCamelCase(result);
+			const userInfo = await this.getUserById(id);
+
+			return convertToCamelCase(userInfo);
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error updating user: ${error.message}`);

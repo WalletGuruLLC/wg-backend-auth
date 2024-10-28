@@ -54,13 +54,18 @@ import { isValidEmail } from 'src/utils/helpers/validateEmail';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as Sentry from '@sentry/nestjs';
 import { validateLicense } from 'src/utils/helpers/validateLicenseDriver';
+import { validarPermisos } from 'src/utils/helpers/getAccessServiceProviders';
+import { RoleService } from 'src/api/role/service/role.service';
 import { RefreshTokeenDTO } from '../dto/refresh-token.dto';
 
 @ApiTags('user')
 @Controller('api/v1/users')
 @ApiBearerAuth('JWT')
 export class UserController {
-	constructor(private readonly userService: UserService) {}
+	constructor(
+		private readonly userService: UserService,
+		private readonly roleService: RoleService
+	) {}
 
 	@UseGuards(CognitoAuthGuard)
 	@Post('/register')
@@ -566,6 +571,44 @@ export class UserController {
 						statusCode: HttpStatus.FORBIDDEN,
 						customCode: 'WGE0158',
 					});
+				}
+			}
+
+			const userFindPermissions = await this.userService.findOneByEmail(
+				req?.user?.UserAttributes?.[0]?.Value
+			);
+
+			if (['PLATFORM', 'PROVIDER'].includes(userFindPermissions?.type)) {
+				if (userFindPermissions?.type == 'PROVIDER') {
+					if (
+						userFindPermissions?.serviceProviderId !==
+						userFind?.serviceProviderId
+					) {
+						return res.status(HttpStatus.NOT_FOUND).send({
+							statusCode: HttpStatus.NOT_FOUND,
+							customCode: 'WGE0186',
+						});
+					}
+				} else {
+					const providerId = userFind?.serviceProviderId;
+
+					const userRoleId = userFindPermissions.roleId;
+					const role = await this.roleService.getRoleInfo(userRoleId);
+
+					const permisos = validarPermisos({
+						role,
+						requestedModuleId: 'SP95',
+						requiredMethod: 'PUT',
+						userId: id,
+						serviceProviderId: providerId,
+					});
+
+					if (!permisos.hasAccess) {
+						return res.status(HttpStatus.NOT_FOUND).send({
+							statusCode: HttpStatus.NOT_FOUND,
+							customCode: permisos.customCode,
+						});
+					}
 				}
 			}
 
