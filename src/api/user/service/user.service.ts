@@ -4,7 +4,6 @@ import {
 	HttpException,
 	HttpStatus,
 	Injectable,
-	UnauthorizedException,
 } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
@@ -44,6 +43,7 @@ import {
 	DeleteObjectCommand,
 	PutObjectCommand,
 } from '@aws-sdk/client-s3';
+import axios from 'axios';
 
 @Injectable()
 export class UserService {
@@ -54,9 +54,8 @@ export class UserService {
 	private cognito: AWS.CognitoIdentityServiceProvider;
 	private roleService: RoleService;
 	private providerService: ProviderService;
-	private readonly SUMSUB_APP_TOKEN;
-	private readonly SUMSUB_SECRET_KEY;
-	private readonly SUMSUB_BASE_URL;
+	private apiUrl;
+	private appToken;
 
 	constructor(private readonly sqsService: SqsService) {
 		this.dbInstance = dynamoose.model<User>('Users', UserSchema);
@@ -70,9 +69,8 @@ export class UserService {
 		this.cognito = new AWS.CognitoIdentityServiceProvider({
 			region: process.env.AWS_REGION,
 		});
-		this.SUMSUB_APP_TOKEN = process.env.SUMSUB_APP_TOKEN;
-		this.SUMSUB_SECRET_KEY = process.env.SUMSUB_SECRET_KEY;
-		this.SUMSUB_BASE_URL = 'https://api.sumsub.com';
+		this.appToken = process.env.SUMSUB_APP_TOKEN;
+		this.apiUrl = 'https://api.sumsub.com';
 	}
 
 	async generateOtp(
@@ -1174,17 +1172,45 @@ export class UserService {
 		return convertToCamelCase(updatedUser);
 	}
 
+	async getAccessToken(userId: string, levelName: string): Promise<any> {
+		const headers = {
+			'content-type': 'application/json',
+			'X-App-Token': this.appToken,
+		};
+		const body = {
+			ttlInSecs: 600,
+			userId,
+			levelName,
+		};
+
+		try {
+			const response = await axios.post(
+				this.apiUrl + '/resources/accessTokens/sdk',
+				body,
+				{ headers }
+			);
+			return response.data;
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error fetching access token',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
 	async validateDataToSumsub(data) {
 		return data === 'GREEN';
 	}
 
 	async getApplicantData(applicantId) {
-		const url = `https://api.sumsub.com/resources/applicants/${applicantId}/one`;
+		const headers = {
+			'content-type': 'application/json',
+			'X-App-Token': this.appToken,
+		};
+		const url = `${this.apiUrl}/resources/applicants/${applicantId}/one`;
 		const options = {
 			method: 'GET',
-			headers: {
-				accept: 'application/json',
-			},
+			headers: headers,
 		};
 
 		try {
@@ -1202,8 +1228,13 @@ export class UserService {
 	}
 
 	async getDataFromSumsub(applicantId: string) {
-		const result = await this.getApplicantData(applicantId);
-		return result;
+		try {
+			const result = await this.getApplicantData(applicantId);
+			return result;
+		} catch (error) {
+			console.log('error', error?.message);
+			return null;
+		}
 	}
 
 	async kycFlow(userInput) {
@@ -1211,6 +1242,10 @@ export class UserService {
 			userInput?.reviewResult?.reviewAnswer
 		);
 		const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
+
+		if (!sumsubData?.externalUserId) {
+			return;
+		}
 
 		if (isValid) {
 			console.log('Datos validados correctamente.');
