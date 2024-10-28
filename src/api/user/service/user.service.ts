@@ -1199,11 +1199,11 @@ export class UserService {
 		return convertToCamelCase(updatedUser);
 	}
 
-	async getAccessToken(userId: string, levelName: string): Promise<any> {
-		const headers = {
-			'content-type': 'application/json',
-			'X-App-Token': this.appToken,
-		};
+	async getAccessToken(
+		userId: string,
+		levelName: string,
+		headerSignature
+	): Promise<any> {
 		const body = {
 			ttlInSecs: 600,
 			userId,
@@ -1214,7 +1214,7 @@ export class UserService {
 			const response = await axios.post(
 				this.apiUrl + '/resources/accessTokens/sdk',
 				body,
-				{ headers }
+				{ headers: headerSignature }
 			);
 			return response.data;
 		} catch (error) {
@@ -1229,15 +1229,11 @@ export class UserService {
 		return data === 'GREEN';
 	}
 
-	async getApplicantData(applicantId) {
-		const headers = {
-			'content-type': 'application/json',
-			'X-App-Token': this.appToken,
-		};
+	async getApplicantData(applicantId, headerSignature) {
 		const url = `${this.apiUrl}/resources/applicants/${applicantId}/one`;
 		const options = {
 			method: 'GET',
-			headers: headers,
+			headers: headerSignature,
 		};
 
 		try {
@@ -1254,9 +1250,9 @@ export class UserService {
 		}
 	}
 
-	async getDataFromSumsub(applicantId: string) {
+	async getDataFromSumsub(applicantId: string, headerSignature: any) {
 		try {
-			const result = await this.getApplicantData(applicantId);
+			const result = await this.getApplicantData(applicantId, headerSignature);
 			return result;
 		} catch (error) {
 			console.log('error', error?.message);
@@ -1267,13 +1263,22 @@ export class UserService {
 	async kycFlow(userInput, req) {
 		console.log('this.appSecretKey', this.appSecretKey);
 
-		await createSignature(req, this.appSecretKey);
+		const headerSignature = await createSignature(
+			req,
+			this.appSecretKey,
+			this.appToken
+		);
+
+		console.log('headerSignature', headerSignature);
 
 		const isValid = await this.validateDataToSumsub(
 			userInput?.reviewResult?.reviewAnswer
 		);
 		console.log('isValid', isValid, userInput?.reviewResult?.reviewAnswer);
-		const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
+		const sumsubData = await this.getDataFromSumsub(
+			userInput?.applicantId,
+			headerSignature
+		);
 		console.log('sumsubData', sumsubData);
 
 		if (!sumsubData?.externalUserId) {
