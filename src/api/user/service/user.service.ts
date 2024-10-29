@@ -1255,14 +1255,10 @@ export class UserService {
 		const url = `${this.apiUrl}${path}`;
 		const headers = await this.setSumSubHeaders(path, 'GET');
 
-		console.log('headers', headers);
-
 		try {
 			const response = await axios.get(url, { headers });
-			console.log('Datos del solicitante:', response.data);
 			return response.data;
 		} catch (error) {
-			console.error('Error en la solicitud:', error);
 			throw new Error(
 				`Error al obtener los datos: ${
 					error.response?.statusText || error.message
@@ -1275,18 +1271,13 @@ export class UserService {
 		const isValid = await this.validateDataToSumsub(
 			userInput?.reviewResult?.reviewAnswer
 		);
-		console.log('isValid', isValid, userInput?.reviewResult?.reviewAnswer);
 		const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
-		console.log('sumsubData', sumsubData);
 
 		if (!sumsubData?.externalUserId) {
 			return;
 		}
 
 		if (isValid) {
-			console.log('Datos validados correctamente.');
-			console.log('Datos obtenidos de Sumsub:', sumsubData);
-
 			const result = await this.dbInstance.update({
 				Id: sumsubData?.externalUserId,
 				State: 2,

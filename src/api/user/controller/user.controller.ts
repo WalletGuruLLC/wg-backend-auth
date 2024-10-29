@@ -1308,7 +1308,6 @@ export class UserController {
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async kyc(@Body() body, @Res() res) {
 		try {
-			console.log('body', body);
 			const resultValue = await this.userService.kycFlow(body);
 
 			if (!resultValue) {
@@ -1320,7 +1319,6 @@ export class UserController {
 			return res.status(HttpStatus.OK).json({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0018',
-				data: resultValue,
 			});
 		} catch (error) {
 			throw new HttpException(
