@@ -8,4 +8,8 @@ export class CreateOtpRequestDto {
 	@IsString()
 	@IsOptional()
 	token: string;
+
+	@IsString()
+	@IsOptional()
+	refreshToken?: string;
 }

@@ -4,10 +4,10 @@ import {
 	HttpException,
 	HttpStatus,
 	Injectable,
-	UnauthorizedException,
 } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
+import { createHmac } from 'crypto';
 import * as otpGenerator from 'otp-generator';
 import * as bcrypt from 'bcrypt';
 import * as dynamoose from 'dynamoose';
@@ -44,7 +44,8 @@ import {
 	DeleteObjectCommand,
 	PutObjectCommand,
 } from '@aws-sdk/client-s3';
-import { buscarValorPorClave } from '../../../utils/helpers/findKeyValue';
+import axios from 'axios';
+import { createSignature } from '../../../utils/helpers/signatureHelper';
 
 @Injectable()
 export class UserService {
@@ -55,6 +56,9 @@ export class UserService {
 	private cognito: AWS.CognitoIdentityServiceProvider;
 	private roleService: RoleService;
 	private providerService: ProviderService;
+	private apiUrl;
+	private appToken;
+	private appSecretKey;
 
 	constructor(private readonly sqsService: SqsService) {
 		this.dbInstance = dynamoose.model<User>('Users', UserSchema);
@@ -68,12 +72,15 @@ export class UserService {
 		this.cognito = new AWS.CognitoIdentityServiceProvider({
 			region: process.env.AWS_REGION,
 		});
+		this.appToken = process.env.SUMSUB_APP_TOKEN;
+		this.appSecretKey = process.env.SUMSUB_SECRET_TOKEN;
+		this.apiUrl = 'https://api.sumsub.com';
 	}
 
 	async generateOtp(
 		createOtpRequestDto: CreateOtpRequestDto
 	): Promise<CreateOtpResponseDto> {
-		const { email, token } = createOtpRequestDto;
+		const { email, token, refreshToken } = createOtpRequestDto;
 
 		const existingOtpEmail = await this.dbOtpInstance
 			.query('Email')
@@ -101,7 +108,13 @@ export class UserService {
 
 		const ttl = Math.floor(Date.now() / 1000) + 60 * 5;
 
-		const otpPayload = { Email: email, Otp: otp, Token: token, Ttl: ttl };
+		const otpPayload = {
+			Email: email,
+			Otp: otp,
+			Token: token,
+			RefreshToken: refreshToken,
+			Ttl: ttl,
+		};
 		await this.dbOtpInstance.create(otpPayload);
 
 		return {
@@ -109,6 +122,25 @@ export class UserService {
 			message: 'OTP sent successfully',
 			otp,
 		};
+	}
+
+	async getUserById(userId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'Users',
+			Key: { Id: userId },
+		};
+
+		try {
+			const result = await docClient.get(params).promise();
+			return convertToCamelCase(result?.Item);
+		} catch (error) {
+			Sentry.captureException(error);
+			return {
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0137',
+			};
+		}
 	}
 
 	async listAccessLevels(roleId: string) {
@@ -156,7 +188,7 @@ export class UserService {
 			const existingToken = await this.dbOtpInstance
 				.query('Otp')
 				.eq(verifyOtp?.otp)
-				.attributes(['Token'])
+				.attributes(['Token', 'RefreshToken'])
 				.exec();
 
 			await this.dbOtpInstance.delete({
@@ -194,6 +226,7 @@ export class UserService {
 			return {
 				user,
 				token: existingToken?.[0]?.Token,
+				refresToken: existingToken?.[0]?.RefreshToken,
 			};
 		} catch (error) {
 			Sentry.captureException(error);
@@ -229,9 +262,9 @@ export class UserService {
 				const userFind = await this.findOneByEmail(userEmail);
 
 				providerId =
-					userFind && userFind?.type === 'PROVIDER'
-						? userFind?.ServiceProviderId
-						: userFind && userFind?.type === 'WALLET'
+					userFind && userFind?.type == 'PROVIDER'
+						? userFind?.serviceProviderId
+						: userFind && userFind?.type == 'WALLET'
 						? 'EMPTY'
 						: serviceProviderId;
 			}
@@ -277,17 +310,19 @@ export class UserService {
 
 			await this.dbInstance.create(userData);
 
-			let tokenValue = '';
+			let userToken;
 
 			if (type == 'WALLET') {
 				const valueAuth = {
 					email: email.toLowerCase(),
 					password: passwordHash,
 				};
-				tokenValue = await this.authenticateUser(valueAuth);
+				userToken = await this.authenticateUser(valueAuth);
 			}
 
-			const result = await this.generateOtp({ email, token: tokenValue });
+			const accessToken = userToken?.AccessToken as string;
+
+			const result = await this.generateOtp({ email, token: accessToken });
 
 			await this.sendOtpOrPasswordMessage(
 				type,
@@ -303,6 +338,21 @@ export class UserService {
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error('Failed to create user. Please try again later.');
+		}
+	}
+
+	async refreshToken(token: string, email: string) {
+		try {
+			const user = await this.getUserInfoByEmail(email);
+			const newToken = await this.cognitoService.refreshToken(
+				token,
+				user?.Username
+			);
+
+			return newToken;
+		} catch (error) {
+			Sentry.captureException(error);
+			return new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -417,9 +467,12 @@ export class UserService {
 			const updatedUser = {
 				...userFind,
 				...updateUserDto,
+				dateOfBirth: updateUserDto.dateOfBirth
+					? new Date(updateUserDto.dateOfBirth)
+					: userFind.dateOfBirth,
 			};
 
-			const result = await this.dbInstance.update({
+			await this.dbInstance.update({
 				Id: id,
 				FirstName: updatedUser.firstName,
 				LastName: updatedUser.lastName,
@@ -443,7 +496,9 @@ export class UserService {
 				Avatar: updatedUser.avatar,
 			});
 
-			return convertToCamelCase(result);
+			const userInfo = await this.getUserById(id);
+
+			return convertToCamelCase(userInfo);
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new Error(`Error updating user: ${error.message}`);
@@ -516,7 +571,7 @@ export class UserService {
 			signinDto.email.toLowerCase(),
 			signinDto.password
 		);
-		const token = authResult.AuthenticationResult?.AccessToken;
+		const token = authResult.AuthenticationResult;
 
 		if (!token) {
 			throw new BadRequestException('Invalid credentials');
@@ -536,7 +591,7 @@ export class UserService {
 			Section,
 			Status,
 		};
-		await this.dbAttemptInstance.create(logPayload);
+		// await this.dbAttemptInstance.create(logPayload);
 	}
 
 	private async sendOtpNotification(foundUser: any, otp: string) {
@@ -560,10 +615,13 @@ export class UserService {
 				signinDto.email.toLowerCase()
 			);
 			const token = await this.authenticateUser(signinDto);
+			const accessToken = token?.AccessToken as string;
+			const refreshToken = token?.RefreshToken as string;
 
 			const otpResult = await this.generateOtp({
 				email: signinDto.email.toLowerCase(),
-				token,
+				token: accessToken,
+				refreshToken: refreshToken,
 			});
 
 			await this.logAttempt(
@@ -621,16 +679,22 @@ export class UserService {
 
 	async confirmUserPassword(
 		authConfirmPasswordUserDto: AuthConfirmPasswordUserDto
-	) {
+	): Promise<any> {
 		const { email, confirmationCode, newPassword } = authConfirmPasswordUserDto;
 
-		await convertToCamelCase(
-			this.cognitoService.confirmForgotPassword(
-				email?.toLowerCase(),
-				confirmationCode,
-				newPassword
-			)
+		const confirmPassword = await this.cognitoService.confirmForgotPassword(
+			email?.toLowerCase(),
+			confirmationCode,
+			newPassword
 		);
+
+		if (confirmPassword?.customCode) {
+			return {
+				customCode: 'WGE0005',
+			};
+		}
+
+		return await convertToCamelCase(confirmPassword);
 	}
 
 	async getUsersByType(
@@ -643,7 +707,7 @@ export class UserService {
 		totalPages: number;
 	}> {
 		const {
-			type = 'WALLET',
+			type = 'PROVIDER',
 			email,
 			serviceProviderId,
 			id,
@@ -678,7 +742,11 @@ export class UserService {
 			providerId = serviceProviderId;
 		}
 
-		if (!serviceProviderId && userDb[0].ServiceProviderId) {
+		if (
+			!serviceProviderId &&
+			userDb[0].ServiceProviderId &&
+			userDb[0].Type === 'PROVIDER'
+		) {
 			query = query
 				.and()
 				.filter('ServiceProviderId')
@@ -855,6 +923,23 @@ export class UserService {
 		}
 	}
 
+	async getUserInfoByEmail(email: string) {
+		try {
+			await this.findOneByEmail(email);
+			const userData = await this.cognitoService.getUserInfoByEmail(email);
+			return userData;
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0021',
+				},
+				HttpStatus.UNAUTHORIZED
+			);
+		}
+	}
+
 	async changeStatusUser(
 		updateUserDto: UpdateStatusUserDto
 	): Promise<User | null> {
@@ -947,6 +1032,8 @@ export class UserService {
 			'/api/v1/roles': 'R949',
 			'/api/v1/providers': 'SP95',
 			'/api/v1/wallets': 'W325',
+			'/api/v1/settings': 'SE37',
+			'/api/v1/payments': 'PY38',
 		};
 
 		const normalizedPath = path.split('/').slice(0, 4).join('/');
@@ -1111,5 +1198,113 @@ export class UserService {
 			ContactUser: user.contactUser,
 		});
 		return convertToCamelCase(updatedUser);
+	}
+
+	async getAccessToken(
+		userId: string,
+		levelName: string,
+		headerSignature
+	): Promise<any> {
+		const body = {
+			ttlInSecs: 600,
+			userId,
+			levelName,
+		};
+
+		try {
+			const response = await axios.post(
+				this.apiUrl + '/resources/accessTokens/sdk',
+				body,
+				{ headers: headerSignature }
+			);
+			return response.data;
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error fetching access token',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	async validateDataToSumsub(data) {
+		return data === 'GREEN';
+	}
+
+	private async setSumSubHeaders(
+		path: string,
+		method: string,
+		body = ''
+	): Promise<Record<string, string>> {
+		const timestamp = Math.floor(Date.now() / 1000).toString();
+		const signatureData = `${timestamp}${method}${path}${body}`;
+
+		const hmac = createHmac('sha256', this.appSecretKey);
+		const signature = hmac.update(signatureData).digest('hex');
+
+		return {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			'X-App-Access-Ts': timestamp,
+			'X-App-Access-Sig': signature,
+			'X-App-Token': this.appToken,
+		};
+	}
+
+	async getDataFromSumsub(applicantId: string) {
+		const path = `/resources/applicants/${applicantId}/one`;
+		const url = `${this.apiUrl}${path}`;
+		const headers = await this.setSumSubHeaders(path, 'GET');
+
+		console.log('headers', headers);
+
+		try {
+			const response = await axios.get(url, { headers });
+			console.log('Datos del solicitante:', response.data);
+			return response.data;
+		} catch (error) {
+			console.error('Error en la solicitud:', error);
+			throw new Error(
+				`Error al obtener los datos: ${
+					error.response?.statusText || error.message
+				}`
+			);
+		}
+	}
+
+	async kycFlow(userInput) {
+		const isValid = await this.validateDataToSumsub(
+			userInput?.reviewResult?.reviewAnswer
+		);
+		console.log('isValid', isValid, userInput?.reviewResult?.reviewAnswer);
+		const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
+		console.log('sumsubData', sumsubData);
+
+		if (!sumsubData?.externalUserId) {
+			return;
+		}
+
+		if (isValid) {
+			console.log('Datos validados correctamente.');
+			console.log('Datos obtenidos de Sumsub:', sumsubData);
+
+			const result = await this.dbInstance.update({
+				Id: sumsubData?.externalUserId,
+				State: 2,
+				IdentificationType: sumsubData?.info?.idDocs?.[0]?.idDocType,
+				IdentificationNumber: sumsubData?.info?.idDocs?.[0]?.number,
+				FirstName: sumsubData?.info?.firstName,
+				LastName: sumsubData?.info?.lastName,
+				DateOfBirth: new Date(sumsubData?.info?.dob),
+			});
+
+			return convertToCamelCase(result);
+		} else {
+			const result = await this.dbInstance.update({
+				Id: sumsubData?.externalUserId,
+				State: 1,
+			});
+
+			return convertToCamelCase(result);
+		}
 	}
 }

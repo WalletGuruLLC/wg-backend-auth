@@ -43,8 +43,12 @@ import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { UserService } from 'src/api/user/service/user.service';
 import { RoleService } from 'src/api/role/service/role.service';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
-import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuraiton.dto';
+import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuration.dto';
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
+import { validarEIN } from 'src/utils/helpers/validateEin';
+import { validarZipCode } from 'src/utils/helpers/validateZipcode';
+import { TogglePaymentParameterDTO } from '../dto/toggle-payment-parameter.dto';
+import { generateCleanUUID } from 'src/utils/helpers/generateCleanUUID';
 
 @ApiTags('provider')
 @ApiBearerAuth('JWT')
@@ -111,6 +115,7 @@ export class ProviderController {
 		@Res() res,
 		@Req() req
 	) {
+		const { einNumber, zipCode } = createProviderDto;
 		try {
 			if (
 				!createProviderDto?.name ||
@@ -149,17 +154,48 @@ export class ProviderController {
 				}
 			}
 
+			if (!validarEIN(einNumber)) {
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0170',
+				});
+			}
+
+			if (!validarZipCode(zipCode)) {
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0171',
+				});
+			}
+
 			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
 				userInfo?.UserAttributes?.[0]?.Value
 			);
 			const provider = await this.providerService.create(createProviderDto);
-			await this.roleService.createOrUpdateAccessLevel(
-				userFind?.roleId,
-				provider?.Id,
-				15,
-				'SP95'
+			const accessLevels = ['SP95', 'U783', 'R949', 'SE37'];
+			for (const level of accessLevels) {
+				await this.roleService.createOrUpdateAccessLevel(
+					userFind?.roleId,
+					provider?.Id,
+					15,
+					level
+				);
+			}
+			const token = req.token;
+			await this.providerService.createWalletAddressServiceProvider(
+				createProviderDto?.asset,
+				createProviderDto?.walletAddress,
+				token?.split(' ')?.[1],
+				createProviderDto?.name,
+				provider?.Id
 			);
+			await this.providerService.createSocketKey({
+				publicKey: generateCleanUUID(),
+				secretKey: generateCleanUUID(),
+				serviceProviderId: provider?.Id,
+			});
+
 			return res.status(HttpStatus.CREATED).send({
 				statusCode: HttpStatus.CREATED,
 				customCode: 'WGS0077',
@@ -306,11 +342,10 @@ export class ProviderController {
 			);
 			const userRoleId = userFind.roleId;
 			const role = await this.roleService.getRoleInfo(userRoleId);
-			var provider;
+			let provider;
 			if (id == userFind?.serviceProviderId) {
 				provider = await this.providerService.searchFindOne(id); // if the user is a provider, we allow them to access their own data only
-			}
-			else{
+			} else {
 				provider = await this.providerService.findOne(id, role, id);
 			}
 			if (provider?.customCode) {
@@ -374,8 +409,10 @@ export class ProviderController {
 	async update(
 		@Param('id') id: string,
 		@Body() updateProviderDto: UpdateProviderDto,
-		@Req() req
+		@Req() req,
+		@Res() res
 	) {
+		const { einNumber, zipCode } = updateProviderDto;
 		try {
 			const providerFind = await this.providerService.searchFindOne(id);
 			if (!providerFind) {
@@ -384,6 +421,21 @@ export class ProviderController {
 					customCode: 'WGE0040',
 				};
 			}
+
+			if (einNumber && !validarEIN(einNumber)) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0170',
+				});
+			}
+
+			if (zipCode && !validarZipCode(zipCode)) {
+				return res.status(HttpStatus.PARTIAL_CONTENT).send({
+					statusCode: HttpStatus.PARTIAL_CONTENT,
+					customCode: 'WGE0171',
+				});
+			}
+
 			const userInfo = req.user;
 			const userFind = await this.userService.findOneByEmail(
 				userInfo?.UserAttributes?.[0]?.Value
@@ -397,17 +449,18 @@ export class ProviderController {
 				id
 			);
 			if (provider?.customCode) {
-				return {
+				return res.status(HttpStatus.UNAUTHORIZED).send({
+					statusCode: HttpStatus.UNAUTHORIZED,
 					customCode: provider?.customCode,
-				};
+				});
 			}
-			return {
+
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGS0034',
 				data: provider,
-			};
+			});
 		} catch (error) {
-			console.log('error', error?.message);
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
@@ -630,158 +683,7 @@ export class ProviderController {
 	@UseGuards(CognitoAuthGuard)
 	@UsePipes(ValidationPipe)
 	@ApiOperation({
-		summary: 'Create or update a new payment parameters for service providers',
-	})
-	@ApiParam({
-		name: 'paymentParameterId',
-		description: 'ID del paymentParamter',
-		type: String,
-	})
-	@ApiBody({
-		schema: {
-			example: {
-				name: 'Provider1_Paramter',
-				description: 'Parameter for service provider 1',
-				cost: 10,
-				frequency: 'MINUTES',
-				interval: 30,
-				asset: 'USD',
-				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
-			},
-		},
-	})
-	@ApiResponse({
-		status: 201,
-		description: 'Payment Parameter created succefully',
-	})
-	@ApiResponse({
-		status: 404,
-		description: 'PaymentParameterId for service provider not found ',
-	})
-	@Post('payment-parameters/:paymentParameterId?')
-	async createOrUpdatePaymentParameters(
-		@Param('paymentParameterId') paymentParameterId: string | undefined,
-		@Body()
-		createProviderPaymentParameterDTO: CreateProviderPaymentParameterDTO,
-		@Res() res,
-		@Req() req
-	) {
-		const userRequest = req.user?.UserAttributes;
-		try {
-			const provider = await this.providerService.searchFindOne(
-				createProviderPaymentParameterDTO.serviceProviderId
-			);
-
-			if (!provider) {
-				return {
-					statusCode: HttpStatus.NOT_FOUND,
-					customCode: 'WGE0040',
-				};
-			}
-			const paymentParameter =
-				await this.providerService.createOrUpdatePaymentParameter(
-					paymentParameterId,
-					createProviderPaymentParameterDTO,
-					userRequest
-				);
-
-			return res.status(HttpStatus.OK).send({
-				statusCode: HttpStatus.OK,
-				customCode: 'WGE0116',
-				data: convertToCamelCase(paymentParameter),
-			});
-		} catch (error) {
-			Sentry.captureException(error);
-
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0115',
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
-		}
-	}
-
-	@UseGuards(CognitoAuthGuard)
-	@ApiOperation({
-		summary: 'List payment parameters for a service providers',
-	})
-	@ApiParam({
-		name: 'id',
-		description: 'ID del service provider ',
-		type: String,
-	})
-	@ApiResponse({
-		status: 200,
-		description: 'Lista de parametros de pago obtenida con éxito.',
-	})
-	@Get(':id/payment-parameters')
-	async listPaymentParameters(
-		@Param('id') id: string,
-		@Query() getPaymentsParametersPaginated: GetPaymentsParametersPaginated
-	) {
-		try {
-			const paymentParameters =
-				await this.providerService.getPaymentsParametersPaginated({
-					serviceProviderId: id,
-					...getPaymentsParametersPaginated,
-				});
-			return {
-				statusCode: HttpStatus.OK,
-				customCode: 'WGE0118',
-				data: paymentParameters,
-			};
-		} catch (error) {
-			Sentry.captureException(error);
-			throw new HttpException(
-				{
-					customCode: 'WGE0119',
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
-		}
-	}
-
-	@UseGuards(CognitoAuthGuard)
-	@ApiOperation({
-		summary: 'List time intervals',
-	})
-	@ApiResponse({
-		status: 200,
-		description: 'Lista de intervalos de tiempo obtenida con éxito.',
-	})
-	@Get('list/time-intervals')
-	async listTimeIntervals() {
-		try {
-			const timeIntervals = await this.providerService.getTimeIntervals();
-			return {
-				statusCode: HttpStatus.OK,
-				customCode: 'WGE0128',
-				data: timeIntervals,
-			};
-		} catch (error) {
-			Sentry.captureException(error);
-			throw new HttpException(
-				{
-					customCode: 'WGE0129',
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
-		}
-	}
-
-	@UseGuards(CognitoAuthGuard)
-	@UsePipes(ValidationPipe)
-	@ApiOperation({
 		summary: 'Create or update a fee configuration for service providers',
-	})
-	@ApiParam({
-		name: 'feeConfigurationId',
-		description: 'ID del fee',
-		type: String,
 	})
 	@ApiBody({
 		schema: {
@@ -790,6 +692,7 @@ export class ProviderController {
 				percent: 1,
 				base: 2,
 				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
+				feeConfigurationId: '8bf931ea-3710-420b-ae68-921f94bcd937',
 			},
 		},
 	})
@@ -801,9 +704,8 @@ export class ProviderController {
 		status: 404,
 		description: 'feeConfigurationId for service provider not found ',
 	})
-	@Patch('create/fee-configurations/:feeConfigurationId?')
+	@Patch('create/fee-configurations')
 	async createOrUpdateFeeConfiguration(
-		@Param('feeConfigurationId') feeConfigurationId: string | undefined,
 		@Body()
 		createUpdateFeeConfigurationDTO: CreateUpdateFeeConfigurationDTO,
 		@Res() res,
@@ -811,11 +713,26 @@ export class ProviderController {
 	) {
 		try {
 			const userRequest = req.user?.UserAttributes;
+
+			const existingFeeConfig =
+				await this.providerService.getProviderFeeConfigurationByProvider(
+					createUpdateFeeConfigurationDTO.serviceProviderId
+				);
+
+			if (
+				!createUpdateFeeConfigurationDTO.feeConfigurationId &&
+				existingFeeConfig.length
+			) {
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0140',
+				});
+			}
+
 			const feeConfiguration =
 				await this.providerService.createOrUpdateProviderFeeConfiguration(
 					createUpdateFeeConfigurationDTO,
-					userRequest,
-					feeConfigurationId
+					userRequest
 				);
 
 			return res.status(HttpStatus.OK).send({
@@ -868,53 +785,6 @@ export class ProviderController {
 				{
 					customCode: 'WGE0145',
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
-		}
-	}
-
-	@UseGuards(CognitoAuthGuard)
-	@Patch(':id?/payment-parameters/:paymentParameterId/toggle')
-	@ApiOperation({ summary: 'Toggle the active status of a payment parameter' })
-	@ApiParam({ name: 'id', description: 'ID of the provider', type: String })
-	@ApiParam({
-		name: 'paymentParameterId',
-		description: 'ID of the payment parameter',
-		type: String,
-	})
-	@ApiResponse({
-		status: 200,
-		description: 'Payment parameter status toggled successfully.',
-	})
-	@ApiResponse({
-		status: 404,
-		description: 'Payment parameter not found.',
-	})
-	async paymentParameterToggle(
-		@Param('paymentParameterId') paymentParameterId: string,
-		@Req() req,
-		@Param('id') id?: string
-	) {
-		try {
-			const userRequest = req.user?.UserAttributes;
-			const paymentParameter =
-				await this.providerService.togglePaymentParameter(
-					id,
-					paymentParameterId,
-					userRequest
-				);
-			return {
-				statusCode: HttpStatus.OK,
-				customCode: 'WGE0160',
-				data: paymentParameter,
-			};
-		} catch (error) {
-			Sentry.captureException(error);
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0161',
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

@@ -1,6 +1,11 @@
-import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
-import { Interval } from './interval.enum';
-import { Asset } from './asset.enum';
+import {
+	IsEnum,
+	IsNotEmpty,
+	IsNumber,
+	IsOptional,
+	IsPositive,
+	IsString,
+} from 'class-validator';
 
 export class CreateProviderPaymentParameterDTO {
 	@IsString()
@@ -8,6 +13,7 @@ export class CreateProviderPaymentParameterDTO {
 	id?: string;
 
 	@IsString()
+	@IsNotEmpty()
 	name: string;
 
 	@IsString()
@@ -15,17 +21,24 @@ export class CreateProviderPaymentParameterDTO {
 	description?: string;
 
 	@IsNumber()
+	@IsNotEmpty()
+	@IsPositive()
 	cost: number;
 
 	@IsNumber()
+	@IsNotEmpty()
+	@IsPositive()
 	frequency: number;
 
-	@IsEnum(Interval)
-	interval: Interval;
-
-	@IsEnum(Asset)
-	asset: Asset;
+	@IsString()
+	@IsNotEmpty()
+	timeIntervalId: string;
 
 	@IsString()
-	serviceProviderId: string;
+	@IsOptional()
+	serviceProviderId?: string;
+
+	@IsString()
+	@IsOptional()
+	paymentParameterId?: string;
 }

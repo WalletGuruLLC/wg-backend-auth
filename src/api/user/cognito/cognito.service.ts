@@ -3,6 +3,7 @@ import { createHmac } from 'crypto';
 import { CognitoServiceInterface } from './cognito.interface';
 import {
 	AuthenticateUserResponse,
+	AuthenticationResult,
 	ChangePasswordResponse,
 	ConfirmForgotPasswordResponse,
 	CreateUserResponse,
@@ -100,6 +101,49 @@ export class CognitoService implements CognitoServiceInterface {
 		}
 	}
 
+	async refreshToken(token: string, username: string): Promise<any> {
+		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
+		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
+		const secretHash = hasher.digest('base64');
+		const params = {
+			AuthFlow: 'REFRESH_TOKEN_AUTH',
+			ClientId: process.env.COGNITO_CLIENT_ID,
+			AuthParameters: {
+				REFRESH_TOKEN: token,
+				SECRET_HASH: secretHash,
+			},
+		};
+
+		try {
+			const response = await this.cognitoISP.initiateAuth(params).promise();
+
+			return response?.AuthenticationResult?.AccessToken;
+		} catch (error) {
+			Sentry.captureException(error);
+			return {
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0205',
+			};
+		}
+	}
+
+	async getUserInfoByEmail(email: string): Promise<any> {
+		const params = {
+			UserPoolId: process.env.COGNITO_USER_POOL_ID,
+			Filter: `email = "${email}"`,
+			Limit: 1,
+		};
+
+		try {
+			const response = await this.cognitoISP.listUsers(params).promise();
+
+			return response?.Users?.[0];
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
 	async changePassword(
 		accessToken: string,
 		previousPassword: string,
@@ -156,7 +200,7 @@ export class CognitoService implements CognitoServiceInterface {
 		username: string,
 		confirmationCode: string,
 		newPassword: string
-	): Promise<ConfirmForgotPasswordResponse> {
+	): Promise<any> {
 		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
 		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
 		const secretHash = hasher.digest('base64');
@@ -176,9 +220,9 @@ export class CognitoService implements CognitoServiceInterface {
 			return {};
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new Error(
-				`Error confirming new password in Cognito: ${error.message}`
-			);
+			return {
+				customCode: 'WGE0005',
+			};
 		}
 	}
 

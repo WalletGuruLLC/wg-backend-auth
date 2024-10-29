@@ -7,13 +7,14 @@ import {
 import { Request, Response, NextFunction } from 'express';
 import { RoleService } from 'src/api/role/service/role.service';
 import { UserService } from '../service/user.service';
-import { buscarValorPorClave } from 'src/utils/helpers/findKeyValue';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AccessControlMiddleware implements NestMiddleware {
 	constructor(
 		private readonly roleService: RoleService,
-		private readonly authService: UserService
+		private readonly authService: UserService,
+		private readonly configService: ConfigService
 	) {}
 
 	async use(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -23,10 +24,17 @@ export class AccessControlMiddleware implements NestMiddleware {
 			throw new HttpException(
 				{
 					statusCode: HttpStatus.UNAUTHORIZED,
-					customCode: 'WGE0021',
+					customCode: 'WGE0126',
 				},
 				HttpStatus.UNAUTHORIZED
 			);
+		}
+
+		const secret = this.configService.get<string>('APP_SECRET');
+
+		if (`Bearer ${secret}` == authHeader) {
+			next();
+			return;
 		}
 
 		const userCognito = await this.authService.getUserInfo(authHeader);
@@ -40,19 +48,19 @@ export class AccessControlMiddleware implements NestMiddleware {
 
 		const role = await this.roleService.getRoleInfo(userRoleId);
 
-		// if the user is a provider, we allow them to access their own data only for GET
-		if (req.path === `/api/v1/providers/${user.serviceProviderId}` && requiredMethod === 'GET') {
+		if (
+			req.path === `/api/v1/providers/${user.serviceProviderId}` &&
+			requiredMethod === 'GET'
+		) {
 			next();
-			return ;
+			return;
 		}
 
 		if (user?.type === 'PLATFORM' && requestedModuleId == 'SP95') {
 			next();
 			return;
 		}
-
 		const userAccessLevel = role?.Modules[requestedModuleId];
-
 
 		if (userAccessLevel === undefined && user.type !== 'WALLET') {
 			throw new HttpException(
@@ -97,6 +105,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 			'/api/v1/roles': 'R949',
 			'/api/v1/providers': 'SP95',
 			'/api/v1/wallets': 'W325',
+			'/api/v1/payments': 'PY38',
 		};
 
 		const normalizedPath = path.split('/').slice(0, 4).join('/');
