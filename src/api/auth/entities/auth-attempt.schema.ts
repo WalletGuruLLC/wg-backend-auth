@@ -29,4 +29,4 @@ export const AuthAttemptSchema = new dynamoose.Schema(
 	}
 );
 
-export const AuthAttemptModel = dynamoose.model('Attempts', AuthAttemptSchema);
+// export const AuthAttemptModel = dynamoose.model('Attempts', AuthAttemptSchema);

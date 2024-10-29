@@ -101,7 +101,7 @@ export class CognitoService implements CognitoServiceInterface {
 		}
 	}
 
-	async refreshToken(token: string, username: string): Promise<string> {
+	async refreshToken(token: string, username: string): Promise<any> {
 		const hasher = createHmac('sha256', process.env.COGNITO_CLIENT_SECRET_ID);
 		hasher.update(`${username}${process.env.COGNITO_CLIENT_ID}`);
 		const secretHash = hasher.digest('base64');
@@ -118,6 +118,26 @@ export class CognitoService implements CognitoServiceInterface {
 			const response = await this.cognitoISP.initiateAuth(params).promise();
 
 			return response?.AuthenticationResult?.AccessToken;
+		} catch (error) {
+			Sentry.captureException(error);
+			return {
+				statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				customCode: 'WGE0205',
+			};
+		}
+	}
+
+	async getUserInfoByEmail(email: string): Promise<any> {
+		const params = {
+			UserPoolId: process.env.COGNITO_USER_POOL_ID,
+			Filter: `email = "${email}"`,
+			Limit: 1,
+		};
+
+		try {
+			const response = await this.cognitoISP.listUsers(params).promise();
+
+			return response?.Users?.[0];
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
