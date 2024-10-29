@@ -41,4 +41,4 @@ export const OtpSchema = new dynamoose.Schema(
 	}
 );
 
-export const OtpModel = dynamoose.model('Otps', OtpSchema);
+// export const OtpModel = dynamoose.model('Otps', OtpSchema);
