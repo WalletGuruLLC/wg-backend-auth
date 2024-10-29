@@ -5,8 +5,18 @@ import { AllExceptionsFilter } from './api/all-exceptions.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as Sentry from '@sentry/nestjs';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import { SecretsService } from './utils/secrets.service';
 
 async function bootstrap() {
+	const secretsService = new SecretsService();
+	const secrets = await secretsService.getSecretValue(process.env.SECRET_NAME);
+	if (secrets) {
+		Object.entries(secrets).forEach(([key, value]) => {
+			process.env[key] = value;
+		});
+	} else {
+		throw new Error('Secrets in AWS Key Management service are undefined!');
+	}
 	if (process.env.SENTRY_DSN) {
 		Sentry.init({
 			dsn: process.env.SENTRY_DSN,

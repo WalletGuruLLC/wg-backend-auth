@@ -591,7 +591,7 @@ export class UserService {
 			Section,
 			Status,
 		};
-		await this.dbAttemptInstance.create(logPayload);
+		// await this.dbAttemptInstance.create(logPayload);
 	}
 
 	private async sendOtpNotification(foundUser: any, otp: string) {

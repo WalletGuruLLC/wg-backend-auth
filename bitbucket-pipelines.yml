@@ -14,7 +14,7 @@ definitions:
       script:
         - TAG=${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}
         - TAG_LATEST=${BITBUCKET_BRANCH}-latest
-        - docker build --build-arg NODE_ENV=$NODE_ENV --build-arg AWS_KEY_ID=$AWS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg AWS_REGION=$AWS_REGION --build-arg COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID --build-arg COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID --build-arg SQS_QUEUE_URL=$SQS_QUEUE_URL --build-arg COGNITO_CLIENT_SECRET_ID=$COGNITO_CLIENT_SECRET_ID --build-arg WALLET_URL=$WALLET_URL --build-arg SUMSUB_APP_TOKEN=$SUMSUB_APP_TOKEN --build-arg SUMSUB_SECRET_TOKEN=$SUMSUB_SECRET_TOKEN --build-arg SENTRY_DSN=$SENTRY_DSN --build-arg AWS_S3_BUCKET_NAME=$AWS_S3_BUCKET_NAME --build-arg APP_SECRET=$APP_SECRET -t ${IMAGE}:$TAG -t ${IMAGE}:$TAG_LATEST .
+        - docker build --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg SECRET_NAME=$SECRET_NAME -t ${IMAGE}:$TAG -t ${IMAGE}:$TAG_LATEST .
         - pipe: atlassian/aws-ecr-push-image:2.4.2
           variables:
             AWS_ACCESS_KEY_ID: $AWS_KEY
