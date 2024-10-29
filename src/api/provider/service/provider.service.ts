@@ -736,31 +736,25 @@ export class ProviderService {
 
 		const feeConfigurations = await docClient.query(feeConfigParams).promise();
 
-		if (!feeConfigurations.Items) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0140',
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
-		}
-
 		const feeConfig = feeConfigurations.Items?.[0];
 
 		if (!feeConfig) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0145',
-					statusCode: HttpStatus.NOT_FOUND,
-				},
-				HttpStatus.NOT_FOUND
-			);
+			return {
+				statusCode: HttpStatus.NOT_FOUND,
+				customCode: 'WGE0225',
+			};
 		}
 
 		const wallet = await this.getServiceProviderWallet(serviceProvider?.id);
 
 		const asset = await this.getAssetByWalletAddress(wallet?.rafikiId, token);
+
+		if (!asset?.code) {
+			return {
+				statusCode: HttpStatus.BAD_REQUEST,
+				customCode: 'WGE0226',
+			};
+		}
 
 		const params = {
 			TableName: 'PaymentParameters',
