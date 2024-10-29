@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
+import { createHmac } from 'crypto';
 import * as otpGenerator from 'otp-generator';
 import * as bcrypt from 'bcrypt';
 import * as dynamoose from 'dynamoose';
@@ -1229,56 +1230,53 @@ export class UserService {
 		return data === 'GREEN';
 	}
 
-	async getApplicantData(applicantId, headerSignature) {
-		const url = `${this.apiUrl}/resources/applicants/${applicantId}/one`;
-		const options = {
-			method: 'GET',
-			headers: headerSignature,
+	private async setSumSubHeaders(
+		path: string,
+		method: string,
+		body = ''
+	): Promise<Record<string, string>> {
+		const timestamp = Math.floor(Date.now() / 1000).toString();
+		const signatureData = `${timestamp}${method}${path}${body}`;
+
+		const hmac = createHmac('sha256', this.appSecretKey);
+		const signature = hmac.update(signatureData).digest('hex');
+
+		return {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			'X-App-Access-Ts': timestamp,
+			'X-App-Access-Sig': signature,
+			'X-App-Token': this.appToken,
 		};
+	}
+
+	async getDataFromSumsub(applicantId: string) {
+		const path = `/resources/applicants/${applicantId}/one`;
+		const url = `${this.apiUrl}${path}`;
+		const headers = await this.setSumSubHeaders(path, 'GET');
+
+		console.log('headers', headers);
 
 		try {
-			const response = await fetch(url, options);
-			if (!response.ok) {
-				throw new Error(`Error al obtener los datos: ${response.statusText}`);
-			}
-			const data = await response.json();
-			console.log('Datos del solicitante:', data);
-			return data;
+			const response = await axios.get(url, { headers });
+			console.log('Datos del solicitante:', response.data);
+			return response.data;
 		} catch (error) {
 			console.error('Error en la solicitud:', error);
-			return null;
+			throw new Error(
+				`Error al obtener los datos: ${
+					error.response?.statusText || error.message
+				}`
+			);
 		}
 	}
 
-	async getDataFromSumsub(applicantId: string, headerSignature: any) {
-		try {
-			const result = await this.getApplicantData(applicantId, headerSignature);
-			return result;
-		} catch (error) {
-			console.log('error', error?.message);
-			return null;
-		}
-	}
-
-	async kycFlow(userInput, req) {
-		console.log('this.appSecretKey', this.appSecretKey);
-
-		const headerSignature = await createSignature(
-			req,
-			this.appSecretKey,
-			this.appToken
-		);
-
-		console.log('headerSignature', headerSignature);
-
+	async kycFlow(userInput) {
 		const isValid = await this.validateDataToSumsub(
 			userInput?.reviewResult?.reviewAnswer
 		);
 		console.log('isValid', isValid, userInput?.reviewResult?.reviewAnswer);
-		const sumsubData = await this.getDataFromSumsub(
-			userInput?.applicantId,
-			headerSignature
-		);
+		const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
 		console.log('sumsubData', sumsubData);
 
 		if (!sumsubData?.externalUserId) {
