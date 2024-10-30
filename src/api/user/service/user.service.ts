@@ -45,7 +45,7 @@ import {
 	PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import axios from 'axios';
-import { enmaskAttribute } from 'src/utils/helpers/enmask';
+import { enmaskAttribute } from '../../../utils/helpers/enmask';
 
 @Injectable()
 export class UserService {
