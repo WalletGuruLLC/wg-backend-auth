@@ -1012,7 +1012,6 @@ export class UserController {
 					customCode: 'WGE0016',
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
-					message: error?.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
