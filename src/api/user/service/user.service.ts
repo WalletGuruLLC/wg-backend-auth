@@ -823,7 +823,7 @@ export class UserService {
 				const wallet = wallets?.find(w => w?.userId === user?.id);
 
 				if (wallet) {
-					user.wallet = wallet
+					user.wallet = wallet;
 				}
 
 				if (user?.socialSecurityNumber) {
@@ -914,7 +914,6 @@ export class UserService {
 
 		return wallets;
 	}
-
 
 	async verifySignUp(verifyOtp: VerifyOtpDto) {
 		try {
