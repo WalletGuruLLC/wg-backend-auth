@@ -124,12 +124,12 @@ export class PaymentController {
 					token
 				);
 
-				if (paymentParameter?.statusCode) {
-					return res.status(paymentParameter?.statusCode).send({
-						statusCode: paymentParameter?.statusCode,
-						customCode: paymentParameter?.customCode,
-					});
-				}
+			if (paymentParameter?.statusCode) {
+				return res.status(paymentParameter?.statusCode).send({
+					statusCode: paymentParameter?.statusCode,
+					customCode: paymentParameter?.customCode,
+				});
+			}
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
