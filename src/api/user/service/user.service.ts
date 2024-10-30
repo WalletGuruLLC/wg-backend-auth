@@ -200,7 +200,7 @@ export class UserService {
 
 			await this.dbInstance.update({
 				Id: userFind?.id,
-				State: 3,
+				State: userFind?.Type == 'WALLET' ? 1 : 3,
 				Active: true,
 			});
 
@@ -472,7 +472,7 @@ export class UserService {
 					: userFind.dateOfBirth,
 			};
 
-			await this.dbInstance.update({
+			const updatePayload: any = {
 				Id: id,
 				FirstName: updatedUser.firstName,
 				LastName: updatedUser.lastName,
@@ -492,9 +492,17 @@ export class UserService {
 				City: updatedUser.city,
 				ZipCode: updatedUser.zipCode,
 				Address: updatedUser.address,
-				DateOfBirth: updatedUser.dateOfBirth,
 				Avatar: updatedUser.avatar,
-			});
+			};
+
+			if (
+				updatedUser.dateOfBirth instanceof Date &&
+				!isNaN(updatedUser.dateOfBirth.getTime())
+			) {
+				updatePayload.DateOfBirth = updatedUser.dateOfBirth;
+			}
+
+			await this.dbInstance.update(updatePayload);
 
 			const userInfo = await this.getUserById(id);
 
