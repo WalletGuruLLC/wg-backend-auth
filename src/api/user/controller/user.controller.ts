@@ -970,10 +970,12 @@ export class UserController {
 	async getUsers(@Query() getUsersDto: GetUsersDto, @Req() req, @Res() res) {
 		try {
 			const userRequest = req.user?.UserAttributes;
+			const token = req?.token.toString().split(' ')?.[1];
 
 			const users = await this.userService.getUsersByType(
 				getUsersDto,
-				userRequest
+				userRequest,
+				token
 			);
 			if (
 				getUsersDto.type &&
@@ -1010,6 +1012,7 @@ export class UserController {
 					customCode: 'WGE0016',
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
+					message: error?.message,
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);

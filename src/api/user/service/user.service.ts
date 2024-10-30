@@ -699,7 +699,8 @@ export class UserService {
 
 	async getUsersByType(
 		getUsersDto: GetUsersDto,
-		userRequest: unknown
+		userRequest: unknown,
+		token: string
 	): Promise<{
 		users: User[];
 		currentPage: number;
@@ -819,27 +820,36 @@ export class UserService {
 			const userIds = [...new Set(users.map(user => user.id))];
 			wallets = await this.getUserWalletByIds(userIds);
 
-			users = users?.map(user => {
-				const wallet = wallets?.find(w => w?.userId === user?.id);
+			users = await Promise.all(
+				users?.map(async user => {
+					const wallet = wallets?.find(w => w?.userId === user?.id);
 
-				if (wallet) {
-					user.wallet = wallet;
-				}
+					if (wallet) {
+						const asset = wallet?.rafikiId
+							? await this.getWalletAsset(wallet?.rafikiId, token)
+							: null;
+						user.wallet = wallet;
+						user.asset =
+							wallet?.rafikiId && asset
+								? { code: asset?.code, scale: asset?.scale }
+								: null;
+					}
 
-				if (user?.socialSecurityNumber) {
-					user.socialSecurityNumber = enmaskAttribute(
-						user?.socialSecurityNumber
-					);
-				}
+					if (user?.socialSecurityNumber) {
+						user.socialSecurityNumber = enmaskAttribute(
+							user?.socialSecurityNumber
+						);
+					}
 
-				if (user?.identificationNumber) {
-					user.identificationNumber = enmaskAttribute(
-						user?.identificationNumber
-					);
-				}
+					if (user?.identificationNumber) {
+						user.identificationNumber = enmaskAttribute(
+							user?.identificationNumber
+						);
+					}
 
-				return user;
-			});
+					return user;
+				})
+			);
 		} else {
 			users = users.map(user => {
 				const {
@@ -913,6 +923,27 @@ export class UserService {
 		);
 
 		return wallets;
+	}
+
+	async getWalletAsset(rafikiId: string, token: string) {
+		try {
+			const url =
+				process.env.WALLET_URL + `/api/v1/wallets-rafiki/${rafikiId}/asset`;
+
+			const response = await axios.get(url, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			const asset = response?.data?.data?.asset;
+			return asset;
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error getting asset by wallet',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 
 	async verifySignUp(verifyOtp: VerifyOtpDto) {
