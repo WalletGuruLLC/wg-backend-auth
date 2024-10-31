@@ -1333,4 +1333,43 @@ export class UserController {
 			);
 		}
 	}
+
+	@UseGuards(CognitoAuthGuard)
+	@Patch('reset-password/:id')
+	@UsePipes(ValidationPipe)
+	@ApiOperation({ summary: 'Reset password of user' })
+	@ApiParam({ name: 'id', description: 'ID of the the User', type: String })
+	@ApiResponse({
+		status: 200,
+		description: 'User password updated successfully.',
+	})
+	@ApiResponse({ status: 500, description: 'Error updating user password.' })
+	async resetPassword(@Param('id') id: string, @Res() res) {
+		try {
+			const user = await this.userService.resetPassword(id);
+			if (user) {
+				return res.status(HttpStatus.OK).json({
+					statusCode: HttpStatus.OK,
+					customCode: 'WGS0009',
+					data: user,
+				});
+			} else {
+				return res.status(HttpStatus.NOT_FOUND).json({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0002',
+				});
+			}
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0050',
+					customMessage: errorCodes?.WGE0050?.description,
+					customMessageEs: errorCodes.WGE0050?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
 }
