@@ -45,7 +45,7 @@ import {
 	PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import axios from 'axios';
-import { createSignature } from '../../../utils/helpers/signatureHelper';
+import { enmaskAttribute } from '../../../utils/helpers/enmask';
 
 @Injectable()
 export class UserService {
@@ -200,7 +200,7 @@ export class UserService {
 
 			await this.dbInstance.update({
 				Id: userFind?.id,
-				State: 3,
+				State: userFind?.Type == 'WALLET' ? 1 : 3,
 				Active: true,
 			});
 
@@ -472,7 +472,7 @@ export class UserService {
 					: userFind.dateOfBirth,
 			};
 
-			await this.dbInstance.update({
+			const updatePayload: any = {
 				Id: id,
 				FirstName: updatedUser.firstName,
 				LastName: updatedUser.lastName,
@@ -492,9 +492,17 @@ export class UserService {
 				City: updatedUser.city,
 				ZipCode: updatedUser.zipCode,
 				Address: updatedUser.address,
-				DateOfBirth: updatedUser.dateOfBirth,
 				Avatar: updatedUser.avatar,
-			});
+			};
+
+			if (
+				updatedUser.dateOfBirth instanceof Date &&
+				!isNaN(updatedUser.dateOfBirth.getTime())
+			) {
+				updatePayload.DateOfBirth = updatedUser.dateOfBirth;
+			}
+
+			await this.dbInstance.update(updatePayload);
 
 			const userInfo = await this.getUserById(id);
 
@@ -699,7 +707,8 @@ export class UserService {
 
 	async getUsersByType(
 		getUsersDto: GetUsersDto,
-		userRequest: unknown
+		userRequest: unknown,
+		token: string
 	): Promise<{
 		users: User[];
 		currentPage: number;
@@ -718,6 +727,7 @@ export class UserService {
 		} = getUsersDto;
 
 		let providerId = null;
+		let wallets;
 
 		const userConverted = userRequest as unknown as {
 			Name: string;
@@ -762,6 +772,8 @@ export class UserService {
 			'FirstName',
 			'LastName',
 			'Phone',
+			'SocialSecurityNumber',
+			'IdentificationType',
 			'ServiceProviderId',
 			'RoleId',
 			'Active',
@@ -769,6 +781,8 @@ export class UserService {
 			'MfaEnabled',
 			'MfaType',
 			'ContactUser',
+			'IdentificationNumber',
+			'StateLocation',
 		]);
 
 		// Execute the query
@@ -810,6 +824,53 @@ export class UserService {
 			return user;
 		});
 
+		if (userDb[0].Type === 'PLATFORM') {
+			const userIds = [...new Set(users.map(user => user.id))];
+			wallets = await this.getUserWalletByIds(userIds);
+
+			users = await Promise.all(
+				users?.map(async user => {
+					const wallet = wallets?.find(w => w?.userId === user?.id);
+
+					if (wallet) {
+						const asset = wallet?.rafikiId
+							? await this.getWalletAsset(wallet?.rafikiId, token)
+							: null;
+						user.wallet = wallet;
+						user.asset =
+							wallet?.rafikiId && asset
+								? { code: asset?.code, scale: asset?.scale }
+								: null;
+					}
+
+					if (user?.socialSecurityNumber) {
+						user.socialSecurityNumber = enmaskAttribute(
+							user?.socialSecurityNumber
+						);
+					}
+
+					if (user?.identificationNumber) {
+						user.identificationNumber = enmaskAttribute(
+							user?.identificationNumber
+						);
+					}
+
+					return user;
+				})
+			);
+		} else {
+			users = users.map(user => {
+				const {
+					socialSecurityNumber,
+					identificationNumber,
+					identificationType,
+					stateLocation,
+					...userRest
+				} = user;
+				return userRest;
+			});
+		}
+
 		users.sort((a, b) => {
 			if (a.active !== b.active) {
 				return a.active ? -1 : 1;
@@ -837,6 +898,60 @@ export class UserService {
 			total,
 			totalPages,
 		};
+	}
+
+	async getUserWallet(userId: string) {
+		const docClient = new DocumentClient();
+
+		const getWallet: DocumentClient.QueryInput = {
+			TableName: 'Wallets',
+			IndexName: 'UserIdIndex',
+			KeyConditionExpression: `UserId = :userId`,
+			ExpressionAttributeValues: {
+				':userId': userId,
+			},
+		};
+
+		try {
+			const result = await docClient.query(getWallet).promise();
+
+			return convertToCamelCase(result.Items?.[0]);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching wallet by user: ${error.message}`);
+		}
+	}
+
+	async getUserWalletByIds(ids) {
+		const wallets = await Promise.all(
+			ids.map(async id => {
+				const wallet = await this.getUserWallet(id);
+				return wallet;
+			})
+		);
+
+		return wallets;
+	}
+
+	async getWalletAsset(rafikiId: string, token: string) {
+		try {
+			const url =
+				process.env.WALLET_URL + `/api/v1/wallets-rafiki/${rafikiId}/asset`;
+
+			const response = await axios.get(url, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			const asset = response?.data?.data?.asset;
+			return asset;
+		} catch (error) {
+			throw new HttpException(
+				error.response?.data || 'Error getting asset by wallet',
+				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
 	}
 
 	async verifySignUp(verifyOtp: VerifyOtpDto) {

@@ -95,6 +95,13 @@ export class PaymentController {
 				userRequest
 			);
 
+			if (!providerId) {
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0147',
+				});
+			}
+
 			const provider = await this.providerService.searchFindOneId(providerId);
 
 			if (!provider) {
@@ -123,6 +130,13 @@ export class PaymentController {
 					timeInterval,
 					token
 				);
+
+			if (paymentParameter?.statusCode) {
+				return res.status(paymentParameter?.statusCode).send({
+					statusCode: paymentParameter?.statusCode,
+					customCode: paymentParameter?.customCode,
+				});
+			}
 
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
@@ -158,21 +172,17 @@ export class PaymentController {
 	) {
 		try {
 			const userRequest = req.user?.UserAttributes;
-			let providerId;
-			if (userRequest) {
-				providerId = await this.providerService.getProviderId(
-					getPaymentsParametersPaginated?.serviceProviderId,
-					userRequest
-				);
-			} else {
-				providerId = getPaymentsParametersPaginated?.serviceProviderId;
-				if (!providerId) {
-					return res.status(HttpStatus.BAD_REQUEST).send({
-						statusCode: HttpStatus.BAD_REQUEST,
-						customCode: 'WGE0147',
-					});
-				}
+			const providerId = await this.providerService.getProviderId(
+				getPaymentsParametersPaginated?.serviceProviderId,
+				userRequest
+			);
+			if (!providerId) {
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0147',
+				});
 			}
+
 			const provider = await this.providerService.searchFindOneId(providerId);
 
 			if (!provider) {
@@ -262,21 +272,44 @@ export class PaymentController {
 		@Param('paymentParameterId') paymentParameterId: string,
 		@Req() req,
 		@Body()
-		togglePaymentParameterDTO: TogglePaymentParameterDTO
+		togglePaymentParameterDTO: TogglePaymentParameterDTO,
+		@Res() res
 	) {
 		try {
 			const userRequest = req.user?.UserAttributes;
+
+			const providerId = await this.providerService.getProviderId(
+				togglePaymentParameterDTO?.serviceProviderId,
+				userRequest
+			);
+
+			if (!providerId) {
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0147',
+				});
+			}
+
+			const provider = await this.providerService.searchFindOneId(providerId);
+
+			if (!provider) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0040',
+				});
+			}
+
 			const paymentParameter =
 				await this.providerService.togglePaymentParameter(
 					togglePaymentParameterDTO.serviceProviderId,
-					paymentParameterId,
-					userRequest
+					paymentParameterId
 				);
-			return {
+
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0160',
 				data: paymentParameter,
-			};
+			});
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(

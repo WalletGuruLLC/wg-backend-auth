@@ -736,31 +736,25 @@ export class ProviderService {
 
 		const feeConfigurations = await docClient.query(feeConfigParams).promise();
 
-		if (!feeConfigurations.Items) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0140',
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
-		}
-
 		const feeConfig = feeConfigurations.Items?.[0];
 
 		if (!feeConfig) {
-			throw new HttpException(
-				{
-					customCode: 'WGE0145',
-					statusCode: HttpStatus.NOT_FOUND,
-				},
-				HttpStatus.NOT_FOUND
-			);
+			return {
+				statusCode: HttpStatus.NOT_FOUND,
+				customCode: 'WGE0225',
+			};
 		}
 
 		const wallet = await this.getServiceProviderWallet(serviceProvider?.id);
 
 		const asset = await this.getAssetByWalletAddress(wallet?.rafikiId, token);
+
+		if (!asset?.code) {
+			return {
+				statusCode: HttpStatus.BAD_REQUEST,
+				customCode: 'WGE0226',
+			};
+		}
 
 		const params = {
 			TableName: 'PaymentParameters',
@@ -1123,49 +1117,21 @@ export class ProviderService {
 
 	async togglePaymentParameter(
 		serviceProviderId: string,
-		paymentParameterId: string,
-		user: string
+		paymentParameterId: string
 	) {
 		const docClient = new DocumentClient();
 
-		const userConverted = user as unknown as {
-			Name: string;
-			Value: string;
-		}[];
-		const email = userConverted[0]?.Value;
 		try {
-			const userFind = await this.dbUserInstance
-				.query('Email')
-				.eq(email)
-				.exec();
-
-			const userDb = userFind?.[0];
-
-			const providerId =
-				userDb && userDb?.Type === 'PROVIDER'
-					? userDb?.ServiceProviderId
-					: serviceProviderId;
-
 			const params = {
 				TableName: 'PaymentParameters',
 				IndexName: 'ServiceProviderIdIndex',
 				KeyConditionExpression: `ServiceProviderId = :serviceProviderId`,
 				FilterExpression: 'Id = :paymentParameterId',
 				ExpressionAttributeValues: {
-					':serviceProviderId': providerId,
+					':serviceProviderId': serviceProviderId,
 					':paymentParameterId': paymentParameterId,
 				},
 			};
-
-			if (!userDb) {
-				throw new HttpException(
-					{
-						customCode: 'WGE0040',
-						...errorCodes.WGE0040,
-					},
-					HttpStatus.NOT_FOUND
-				);
-			}
 
 			const paymentParameter = await docClient.query(params).promise();
 
@@ -1285,10 +1251,7 @@ export class ProviderService {
 			const asset = response?.data?.data?.asset;
 			return asset;
 		} catch (error) {
-			throw new HttpException(
-				error.response?.data || 'Error getting asset by wallet address',
-				error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
-			);
+			return {};
 		}
 	}
 }
