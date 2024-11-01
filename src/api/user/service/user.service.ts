@@ -59,6 +59,7 @@ export class UserService {
 	private apiUrl;
 	private appToken;
 	private appSecretKey;
+	private envKey;
 
 	constructor(private readonly sqsService: SqsService) {
 		this.dbInstance = dynamoose.model<User>('Users', UserSchema);
@@ -75,6 +76,7 @@ export class UserService {
 		this.appToken = process.env.SUMSUB_APP_TOKEN;
 		this.appSecretKey = process.env.SUMSUB_SECRET_TOKEN;
 		this.apiUrl = 'https://api.sumsub.com';
+		this.envKey = process.env.NODE_ENV;
 	}
 
 	async generateOtp(
@@ -1382,35 +1384,37 @@ export class UserService {
 		}
 	}
 
-	async kycFlow(userInput) {
-		const isValid = await this.validateDataToSumsub(
-			userInput?.reviewResult?.reviewAnswer
-		);
-		const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
+	async kycFlow(userInput, env) {
+		if (env == this.envKey) {
+			const isValid = await this.validateDataToSumsub(
+				userInput?.reviewResult?.reviewAnswer
+			);
+			const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
 
-		if (!sumsubData?.externalUserId) {
-			return;
-		}
+			if (!sumsubData?.externalUserId) {
+				return;
+			}
 
-		if (isValid) {
-			const result = await this.dbInstance.update({
-				Id: sumsubData?.externalUserId,
-				State: 2,
-				IdentificationType: sumsubData?.info?.idDocs?.[0]?.idDocType,
-				IdentificationNumber: sumsubData?.info?.idDocs?.[0]?.number,
-				FirstName: sumsubData?.info?.firstName,
-				LastName: sumsubData?.info?.lastName,
-				DateOfBirth: new Date(sumsubData?.info?.dob),
-			});
+			if (isValid) {
+				const result = await this.dbInstance.update({
+					Id: sumsubData?.externalUserId,
+					State: 2,
+					IdentificationType: sumsubData?.info?.idDocs?.[0]?.idDocType,
+					IdentificationNumber: sumsubData?.info?.idDocs?.[0]?.number,
+					FirstName: sumsubData?.info?.firstName,
+					LastName: sumsubData?.info?.lastName,
+					DateOfBirth: new Date(sumsubData?.info?.dob),
+				});
 
-			return convertToCamelCase(result);
-		} else {
-			const result = await this.dbInstance.update({
-				Id: sumsubData?.externalUserId,
-				State: 1,
-			});
+				return convertToCamelCase(result);
+			} else {
+				const result = await this.dbInstance.update({
+					Id: sumsubData?.externalUserId,
+					State: 1,
+				});
 
-			return convertToCamelCase(result);
+				return convertToCamelCase(result);
+			}
 		}
 	}
 
