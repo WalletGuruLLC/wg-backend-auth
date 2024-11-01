@@ -13,6 +13,7 @@ import {
 	UsePipes,
 	ValidationPipe,
 	Req,
+	Put,
 } from '@nestjs/common';
 import { ProviderService } from '../service/provider.service';
 import * as Sentry from '@sentry/nestjs';
@@ -30,6 +31,7 @@ import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-paymen
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 import { TogglePaymentParameterDTO } from '../dto/toggle-payment-parameter.dto';
 import { UserService } from 'src/api/user/service/user.service';
+import { UpdatePaymentParameterDTO } from '../dto/update-provider-payment-parameter.dto';
 
 @ApiTags('payment')
 @ApiBearerAuth('JWT')
@@ -43,7 +45,7 @@ export class PaymentController {
 	@UseGuards(CognitoAuthGuard)
 	@UsePipes(ValidationPipe)
 	@ApiOperation({
-		summary: 'Create or update a new payment parameters for service providers',
+		summary: 'Create a new payment parameters for service providers',
 	})
 	@ApiBody({
 		schema: {
@@ -53,7 +55,6 @@ export class PaymentController {
 				frequency: 30,
 				timeIntervalId: '5894d088-0cc6-4aea-9df5-ba348c9d364d',
 				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
-				paymentParameterId: '8bf931ea-3710-420b-ae68-921f94bcd937',
 			},
 		},
 	})
@@ -61,12 +62,8 @@ export class PaymentController {
 		status: 201,
 		description: 'Payment Parameter created succefully',
 	})
-	@ApiResponse({
-		status: 404,
-		description: 'PaymentParameterId for service provider not found ',
-	})
 	@Post('create/payment-parameters')
-	async createOrUpdatePaymentParameters(
+	async createPaymentParameters(
 		@Body()
 		createProviderPaymentParameterDTO: CreateProviderPaymentParameterDTO,
 		@Res() res,
@@ -75,25 +72,6 @@ export class PaymentController {
 		const userRequest = req.user?.UserAttributes;
 		const token = req?.token.toString().split(' ')?.[1];
 		try {
-			let existingPaymentParameter;
-
-			if (createProviderPaymentParameterDTO.paymentParameterId) {
-				existingPaymentParameter =
-					await this.providerService.getPaymentParameters(
-						createProviderPaymentParameterDTO.paymentParameterId
-					);
-
-				if (
-					createProviderPaymentParameterDTO.paymentParameterId &&
-					!existingPaymentParameter
-				) {
-					return res.status(HttpStatus.NOT_FOUND).send({
-						statusCode: HttpStatus.NOT_FOUND,
-						customCode: 'WGE0119',
-					});
-				}
-			}
-
 			const providerId = await this.providerService.getProviderId(
 				createProviderPaymentParameterDTO?.serviceProviderId,
 				userRequest
@@ -127,10 +105,9 @@ export class PaymentController {
 			}
 
 			const paymentParameter =
-				await this.providerService.createOrUpdatePaymentParameter(
+				await this.providerService.createPaymentParameter(
 					createProviderPaymentParameterDTO,
 					provider,
-					existingPaymentParameter,
 					timeInterval,
 					token
 				);
@@ -146,6 +123,110 @@ export class PaymentController {
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0116',
 				data: convertToCamelCase(paymentParameter),
+			});
+		} catch (error) {
+			Sentry.captureException(error);
+
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0115',
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
+
+	@UseGuards(CognitoAuthGuard)
+	@UsePipes(ValidationPipe)
+	@ApiOperation({
+		summary: 'Update a payment parameter for service providers',
+	})
+	@ApiBody({
+		schema: {
+			example: {
+				name: 'Provider1_Paramter',
+				cost: 10,
+				frequency: 30,
+				timeIntervalId: '5894d088-0cc6-4aea-9df5-ba348c9d364d',
+				serviceProviderId: '8bf931ea-3710-420b-ae68-921f94bcd937',
+			},
+		},
+	})
+	@ApiResponse({
+		status: 201,
+		description: 'Payment Parameter updated succefully',
+	})
+	@ApiResponse({
+		status: 404,
+		description: 'PaymentParameterId for service provider not found ',
+	})
+	@Put('payment-parameters/:paymentParameterId')
+	async updatePaymentParameter(
+		@Body()
+		updatePaymentParameter: UpdatePaymentParameterDTO,
+		@Res() res,
+		@Req() req,
+		@Param('paymentParameterId') paymentParameterId: string
+	) {
+		const userRequest = req.user?.UserAttributes;
+
+		try {
+			const providerId = await this.providerService.getProviderId(
+				updatePaymentParameter.serviceProviderId,
+				userRequest
+			);
+
+			if (!providerId) {
+				return res.status(HttpStatus.BAD_REQUEST).send({
+					statusCode: HttpStatus.BAD_REQUEST,
+					customCode: 'WGE0147',
+				});
+			}
+
+			const provider = await this.providerService.searchFindOneId(providerId);
+
+			if (!provider) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0040',
+				});
+			}
+
+			const existingPaymentParameter =
+				await this.providerService.getPaymentParameters(
+					paymentParameterId,
+					providerId
+				);
+
+			if (!existingPaymentParameter) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0119',
+				});
+			}
+
+			const timeInterval = await this.providerService.getTimeIntervalById(
+				updatePaymentParameter.timeIntervalId
+			);
+
+			if (!timeInterval) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0115',
+				});
+			}
+
+			const updatedPaymentParameter =
+				await this.providerService.updatePaymentParameter(
+					paymentParameterId,
+					updatePaymentParameter
+				);
+
+			return res.status(HttpStatus.OK).send({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0116',
+				data: convertToCamelCase(updatedPaymentParameter),
 			});
 		} catch (error) {
 			Sentry.captureException(error);

@@ -7,18 +7,10 @@ import {
 	IsString,
 } from 'class-validator';
 
-export class CreateProviderPaymentParameterDTO {
-	@IsString()
-	@IsOptional()
-	id?: string;
-
+export class UpdatePaymentParameterDTO {
 	@IsString()
 	@IsNotEmpty()
 	name: string;
-
-	@IsString()
-	@IsOptional()
-	description?: string;
 
 	@IsNumber()
 	@IsNotEmpty()
