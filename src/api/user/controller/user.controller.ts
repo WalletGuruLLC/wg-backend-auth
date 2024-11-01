@@ -1305,7 +1305,7 @@ export class UserController {
 	@Post('/kyc')
 	@ApiOkResponse({
 		description: 'verify kyc.',
-	}) //env
+	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
 	async kyc(@Body() body, @Res() res, @Headers() headers: MapOfStringToList) {
 		try {
