@@ -17,6 +17,7 @@ import {
 	ValidationPipe,
 	UploadedFile,
 	UseInterceptors,
+	Headers,
 } from '@nestjs/common';
 import {
 	ApiBearerAuth,
@@ -29,7 +30,7 @@ import {
 	ApiParam,
 	ApiBody,
 } from '@nestjs/swagger';
-
+import { MapOfStringToList } from 'aws-sdk/clients/apigateway';
 import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
@@ -1308,9 +1309,11 @@ export class UserController {
 		description: 'verify kyc.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async kyc(@Body() body, @Res() res) {
+	async kyc(@Body() body, @Res() res, @Headers() headers: MapOfStringToList) {
 		try {
-			const resultValue = await this.userService.kycFlow(body);
+			const envVar = headers.env ?? '';
+
+			const resultValue = await this.userService.kycFlow(body, envVar);
 
 			if (!resultValue) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
