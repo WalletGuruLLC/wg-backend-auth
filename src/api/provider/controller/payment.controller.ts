@@ -205,7 +205,6 @@ export class PaymentController {
 				data: paymentParameters,
 			});
 		} catch (error) {
-			console.log('error ', error?.message);
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
