@@ -1,27 +1,28 @@
 import { convertKeysToPascalCase } from './convertPascalCase';
 
-export function buildFilterExpressionDynamo(expressionFilter) {
-	const filterExpressionsKeys: string[] = [];
+export function buildUpdateExpression(expressionFilter) {
+	const attributeExpressionsKeys = {};
 	const expressionAttributeValues: any = {};
 	const expressionConvertedPascal = convertKeysToPascalCase(expressionFilter);
+	let updateExpression = '';
 
 	Object.keys(expressionConvertedPascal).map(expressionKey => {
-		filterExpressionsKeys.push(
-			`${expressionKey} = :${expressionKey.toLowerCase()}`
-		);
+		attributeExpressionsKeys[`#${expressionKey.toLowerCase()}`] = expressionKey;
+
 		expressionAttributeValues[`:${expressionKey.toLowerCase()}`] =
 			expressionConvertedPascal[expressionKey];
+
+		updateExpression = !updateExpression
+			? `SET #${expressionKey.toLowerCase()} = :${expressionKey.toLowerCase()}`
+			: updateExpression.concat(
+					', ',
+					`#${expressionKey.toLowerCase()} = :${expressionKey.toLowerCase()}`
+			  );
 	});
 
-	const filterExpression =
-		filterExpressionsKeys.length > 0
-			? filterExpressionsKeys.join(' AND ')
-			: null;
-
 	return {
-		...(filterExpression !== null && {
-			expression: filterExpression,
-			expressionValues: expressionAttributeValues,
-		}),
+		attributeNames: attributeExpressionsKeys,
+		expressionValues: expressionAttributeValues,
+		updateExpression: updateExpression,
 	};
 }
