@@ -26,14 +26,14 @@ import { UpdateUserDto } from '../../user/dto/update-user.dto';
 import { buscarValorPorClave } from '../../../utils/helpers/findKeyValue';
 import { validarPermisos } from '../../../utils/helpers/getAccessServiceProviders';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
-import { buildFilterExpressionDynamo } from '../../../utils/helpers/buildFilterExpressionDynamo';
-import { GetProviderPaymentParametersDTO } from '../dto/getProviderPaymentParametersDto';
+import { buildUpdateExpression } from '../../../utils/helpers/buildFilterExpressionDynamo';
 import { removeSpaces } from '../../../utils/helpers/removeSpaces';
 import { CreateUpdateFeeConfigurationDTO } from '../dto/create-update-fee-configuration.dto';
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 import axios from 'axios';
 import { SocketKey } from '../entities/socket.entity';
 import { SocketKeySchema } from '../entities/socket.schema';
+import { UpdatePaymentParameterDTO } from '../dto/update-provider-payment-parameter.dto';
 
 @Injectable()
 export class ProviderService {
@@ -716,10 +716,9 @@ export class ProviderService {
 		}
 	}
 
-	async createOrUpdatePaymentParameter(
+	async createPaymentParameter(
 		createProviderPaymentParameter: CreateProviderPaymentParameterDTO,
 		serviceProvider: any,
-		paymentParameter: any,
 		timeInterval: any,
 		token: string
 	): Promise<any> {
@@ -759,9 +758,7 @@ export class ProviderService {
 		const params = {
 			TableName: 'PaymentParameters',
 			Item: {
-				Id: createProviderPaymentParameter.paymentParameterId
-					? createProviderPaymentParameter.paymentParameterId
-					: uuidv4(),
+				Id: uuidv4(),
 				Name: createProviderPaymentParameter.name,
 				...(createProviderPaymentParameter.description && {
 					Description: createProviderPaymentParameter.description,
@@ -774,12 +771,7 @@ export class ProviderService {
 				Percent: feeConfig.Percent,
 				Comision: feeConfig.Comission,
 				Base: feeConfig.Base,
-				...(!createProviderPaymentParameter.paymentParameterId && {
-					Active: true,
-				}),
-				...(createProviderPaymentParameter.paymentParameterId && {
-					Active: paymentParameter.active,
-				}),
+				Active: true,
 			},
 		};
 
@@ -798,17 +790,50 @@ export class ProviderService {
 		return paymentParameterDTO;
 	}
 
-	async getPaymentParameters(paymentParameterId?: string): Promise<any> {
+	async updatePaymentParameter(
+		paymentParameterId: string,
+		updatePaymentParameter: UpdatePaymentParameterDTO
+	): Promise<any> {
+		const docClient = new DocumentClient();
+
+		const expression = buildUpdateExpression(updatePaymentParameter);
+
+		const params = {
+			TableName: 'PaymentParameters',
+			Key: {
+				Id: paymentParameterId,
+			},
+
+			ExpressionAttributeNames: expression.attributeNames,
+			UpdateExpression: expression.updateExpression,
+			ExpressionAttributeValues: expression.expressionValues,
+			ReturnValues: 'ALL_NEW',
+		};
+
+		const result = await docClient.update(params).promise();
+
+		return result;
+	}
+
+	async getPaymentParameters(
+		paymentParameterId: string,
+		serviceProviderId: string
+	): Promise<any> {
 		const docClient = new DocumentClient();
 
 		const params = {
-			Key: { Id: paymentParameterId },
+			KeyConditionExpression: `Id = :id`,
 			TableName: 'PaymentParameters',
+			FilterExpression: `ServiceProviderId = :providerId`,
+			ExpressionAttributeValues: {
+				':id': paymentParameterId,
+				':providerId': serviceProviderId,
+			},
 		};
 
-		const paymentParameterQuery = await docClient.get(params).promise();
+		const paymentParameterQuery = await docClient.query(params).promise();
 
-		return convertToCamelCase(paymentParameterQuery.Item);
+		return convertToCamelCase(paymentParameterQuery.Items?.[0]);
 	}
 	async getTimeIntervals(): Promise<any> {
 		const docClient = new DocumentClient();
