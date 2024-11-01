@@ -29,12 +29,16 @@ import { convertToCamelCase } from '../../../utils/helpers/convertCamelCase';
 import { CreateProviderPaymentParameterDTO } from '../dto/create-provider-payment-parameter.dto';
 import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-paginated';
 import { TogglePaymentParameterDTO } from '../dto/toggle-payment-parameter.dto';
+import { UserService } from 'src/api/user/service/user.service';
 
 @ApiTags('payment')
 @ApiBearerAuth('JWT')
 @Controller('api/v1/payments')
 export class PaymentController {
-	constructor(private readonly providerService: ProviderService) {}
+	constructor(
+		private readonly providerService: ProviderService,
+		private readonly userService: UserService
+	) {}
 
 	@UseGuards(CognitoAuthGuard)
 	@UsePipes(ValidationPipe)
@@ -201,6 +205,7 @@ export class PaymentController {
 				data: paymentParameters,
 			});
 		} catch (error) {
+			console.log('error ', error?.message);
 			Sentry.captureException(error);
 			throw new HttpException(
 				{
@@ -221,8 +226,26 @@ export class PaymentController {
 		description: 'Lista de intervalos de tiempo obtenida con éxito.',
 	})
 	@Get('list/time-intervals')
-	async listTimeIntervals() {
+	async listTimeIntervals(@Req() req, @Res() res) {
 		try {
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			if (!userFind) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0002',
+				});
+			}
+
+			if (['WALLET'].includes(userFind?.type)) {
+				return res.status(HttpStatus.NOT_FOUND).send({
+					statusCode: HttpStatus.NOT_FOUND,
+					customCode: 'WGE0038',
+				});
+			}
+
 			const timeIntervals = await this.providerService.getTimeIntervals();
 			return {
 				statusCode: HttpStatus.OK,
