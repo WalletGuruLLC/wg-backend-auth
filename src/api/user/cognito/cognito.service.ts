@@ -243,4 +243,26 @@ export class CognitoService implements CognitoServiceInterface {
 			);
 		}
 	}
+
+	async resetPassword(
+		email: string,
+		password: string
+	): Promise<CreateUserResponse> {
+		try {
+			const paramsAdminSetUserPassword = {
+				UserPoolId: process.env.COGNITO_USER_POOL_ID,
+				Username: email,
+				Password: password,
+				Permanent: true,
+			};
+			const user = await this.cognitoISP
+				.adminSetUserPassword(paramsAdminSetUserPassword)
+				.promise();
+
+			return user as CreateUserResponse;
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error deleting user in Cognito: ${error.message}`);
+		}
+	}
 }
