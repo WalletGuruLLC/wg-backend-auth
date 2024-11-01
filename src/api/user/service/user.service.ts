@@ -1307,4 +1307,49 @@ export class UserService {
 			return convertToCamelCase(result);
 		}
 	}
+
+	async resetPassword(id: string) {
+		try {
+			if (id) {
+				const userDynamo = await this.dbInstance.query('Id').eq(id).exec();
+
+				if (userDynamo[0]?.Type === 'PLATFORM') {
+					const newPassword = generateStrongPassword(11);
+
+					await this.cognitoService.resetPassword(
+						userDynamo[0]?.Email.toLowerCase(),
+						newPassword
+					);
+
+					const sqsMessage = {
+						event: 'RESET_PASSWORD',
+						email: userDynamo[0]?.Email.toLowerCase(),
+						username: userDynamo[0]?.FirstName,
+						value: newPassword,
+					};
+
+					await this.sqsService.sendMessage(
+						process.env.SQS_QUEUE_URL,
+						sqsMessage
+					);
+
+					return convertToCamelCase(userDynamo[0]);
+				} else {
+					return;
+				}
+			}
+		} catch (error) {
+			Sentry.captureException(error);
+			console.log('error', error);
+			throw new HttpException(
+				{
+					statusCode: HttpStatus.FORBIDDEN,
+					customCode: 'WGE0050',
+					customMessage: errorCodes?.WGE0050?.description,
+					customMessageEs: errorCodes.WGE0050?.descriptionEs,
+				},
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
+	}
 }
