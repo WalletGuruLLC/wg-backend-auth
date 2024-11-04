@@ -330,7 +330,6 @@ export class PaymentController {
 			}
 
 			const timeIntervals = await this.providerService.getTimeIntervals();
-
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0128',
