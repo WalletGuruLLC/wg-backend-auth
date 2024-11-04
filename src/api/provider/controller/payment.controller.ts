@@ -330,11 +330,12 @@ export class PaymentController {
 			}
 
 			const timeIntervals = await this.providerService.getTimeIntervals();
-			return {
+			
+			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0128',
 				data: timeIntervals,
-			};
+			});
 		} catch (error) {
 			Sentry.captureException(error);
 			throw new HttpException(
