@@ -44,4 +44,12 @@ export class GetUsersDto {
 	@IsOptional()
 	@IsBoolean()
 	ascending?: boolean;
+
+	@IsOptional()
+	@IsString()
+	state?: number;
+
+	@IsOptional()
+	@IsString()
+	wallet?: string;
 }

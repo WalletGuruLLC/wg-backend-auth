@@ -736,10 +736,13 @@ export class UserService {
 			items = 10,
 			orderBy = 'firstName',
 			ascending = true,
+			state,
+			wallet,
 		} = getUsersDto;
 
-		let providerId = null;
+		let providerId = 'EMPTY';
 		let wallets;
+		const walletFilter = wallet;
 
 		const userConverted = userRequest as unknown as {
 			Name: string;
@@ -751,6 +754,9 @@ export class UserService {
 
 		let query = this.dbInstance.query('Type').eq(type);
 
+		if (state) {
+			query = query.and().filter('State').eq(Number(state));
+		}
 		if (email) {
 			query = query.and().filter('Email').eq(email);
 		}
@@ -839,6 +845,22 @@ export class UserService {
 		if (userDb[0].Type === 'PLATFORM') {
 			const userIds = [...new Set(users.map(user => user.id))];
 			wallets = await this.getUserWalletByIds(userIds);
+
+			switch (walletFilter) {
+				case 'noWallet':
+					wallets = wallets.filter(
+						wallet => wallet === undefined || wallet.userId == null
+					);
+					break;
+				case 'lock':
+					wallets = wallets.filter(wallet => wallet && wallet.active === false);
+					break;
+				case 'unlock':
+					wallets = wallets.filter(wallet => wallet && wallet.active === true);
+					break;
+				default:
+					break;
+			}
 
 			users = await Promise.all(
 				users?.map(async user => {
