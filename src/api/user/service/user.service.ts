@@ -506,6 +506,13 @@ export class UserService {
 
 			await this.dbInstance.update(updatePayload);
 
+			if(userFind?.type == "WALLET" && (userFind?.state == 2 || userFind?.state == 1) ){
+				await this.dbInstance.update({
+					Id: id,
+					State: 3
+				});
+			}
+
 			const userInfo = await this.getUserById(id);
 
 			return convertToCamelCase(userInfo);
@@ -1410,7 +1417,7 @@ export class UserService {
 			} else {
 				const result = await this.dbInstance.update({
 					Id: sumsubData?.externalUserId,
-					State: 1,
+					State: 5,
 				});
 
 				return convertToCamelCase(result);
