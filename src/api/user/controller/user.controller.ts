@@ -17,6 +17,7 @@ import {
 	ValidationPipe,
 	UploadedFile,
 	UseInterceptors,
+	Headers,
 } from '@nestjs/common';
 import {
 	ApiBearerAuth,
@@ -29,7 +30,7 @@ import {
 	ApiParam,
 	ApiBody,
 } from '@nestjs/swagger';
-
+import { MapOfStringToList } from 'aws-sdk/clients/apigateway';
 import { AuthChangePasswordUserDto } from '../dto/auth-change-password-user.dto';
 import { AuthConfirmPasswordUserDto } from '../dto/auth-confirm-password-user.dto';
 import { AuthForgotPasswordUserDto } from '../dto/auth-forgot-password-user.dto';
@@ -970,10 +971,12 @@ export class UserController {
 	async getUsers(@Query() getUsersDto: GetUsersDto, @Req() req, @Res() res) {
 		try {
 			const userRequest = req.user?.UserAttributes;
+			const token = req?.token.toString().split(' ')?.[1];
 
 			const users = await this.userService.getUsersByType(
 				getUsersDto,
-				userRequest
+				userRequest,
+				token
 			);
 			if (
 				getUsersDto.type &&
@@ -1306,10 +1309,11 @@ export class UserController {
 		description: 'verify kyc.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async kyc(@Body() body, @Res() res) {
+	async kyc(@Body() body, @Res() res, @Headers() headers: MapOfStringToList) {
 		try {
-			console.log('body', body);
-			const resultValue = await this.userService.kycFlow(body);
+			const envVar = headers.env ?? '';
+
+			const resultValue = await this.userService.kycFlow(body, envVar);
 
 			if (!resultValue) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
@@ -1320,7 +1324,6 @@ export class UserController {
 			return res.status(HttpStatus.OK).json({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0018',
-				data: resultValue,
 			});
 		} catch (error) {
 			throw new HttpException(
