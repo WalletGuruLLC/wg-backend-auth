@@ -506,10 +506,13 @@ export class UserService {
 
 			await this.dbInstance.update(updatePayload);
 
-			if(userFind?.type == "WALLET" && (userFind?.state == 2 || userFind?.state == 1) ){
+			if (
+				userFind?.type == 'WALLET' &&
+				(userFind?.state == 2 || userFind?.state == 1)
+			) {
 				await this.dbInstance.update({
 					Id: id,
-					State: 3
+					State: 3,
 				});
 			}
 
