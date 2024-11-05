@@ -730,7 +730,7 @@ export class UserService {
 			wallet,
 		} = getUsersDto;
 
-		let providerId = null;
+		let providerId = 'EMPTY';
 		let wallets;
 		const walletFilter = wallet;
 
