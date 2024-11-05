@@ -8,6 +8,13 @@ export enum StateUser {
 	VERIFY = 1,
 	KYC = 2,
 	VALID = 3,
+	WALLET_CREATED = 4,
+	KYC_FAILED = 5,
+}
+
+export enum GrantUserPaymnents {
+	NONE = 0,
+	ALL = 1,
 }
 
 export enum RoleUser {
