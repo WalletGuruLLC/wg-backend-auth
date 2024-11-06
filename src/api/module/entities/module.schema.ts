@@ -19,6 +19,14 @@ export const ModuleSchema = new dynamoose.Schema(
 			required: true,
 			validate: v => (v as string).length <= 30,
 		},
+		Index: {
+			type: Number,
+			default: 0,
+		},
+		SubIndex: {
+			type: Number,
+			default: 0,
+		},
 	},
 	{
 		timestamps: {

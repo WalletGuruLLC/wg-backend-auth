@@ -28,7 +28,6 @@ export class ModuleService {
 		if (types && types.length > 0) {
 			modules = modules.filter(module => types.includes(module.Belongs));
 		}
-
 		return modules.map(this.mapModuleToResponse);
 	}
 
@@ -36,6 +35,8 @@ export class ModuleService {
 		return {
 			id: module.Id,
 			belongs: module.Belongs,
+			index: module.Index,
+			subIndex: module.SubIndex,
 			description: module.Description,
 			createDate: module.CreateDate,
 			updateDate: module.UpdateDate,
