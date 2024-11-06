@@ -25,7 +25,7 @@ export const ModuleSchema = new dynamoose.Schema(
 		},
 		SubIndex: {
 			type: Number,
-			default: true,
+			default: 0,
 		},
 	},
 	{
