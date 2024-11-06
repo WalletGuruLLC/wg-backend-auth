@@ -36,6 +36,8 @@ export class ModuleService {
 		return {
 			id: module.Id,
 			belongs: module.Belongs,
+			index: module.Index,
+			subIndex: module.SubIndex,
 			description: module.Description,
 			createDate: module.CreateDate,
 			updateDate: module.UpdateDate,
