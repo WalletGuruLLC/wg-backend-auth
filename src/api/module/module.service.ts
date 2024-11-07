@@ -25,10 +25,21 @@ export class ModuleService {
 			modules = await this.dbInstance.scan().exec();
 		}
 
+		modules.sort(
+			(
+				a: { Index: number; SubIndex: number },
+				b: { Index: number; SubIndex: number }
+			) => {
+				if (a.Index === b.Index) {
+					return a.SubIndex - b.SubIndex;
+				}
+				return a.Index - b.Index;
+			}
+		);
+
 		if (types && types.length > 0) {
 			modules = modules.filter(module => types.includes(module.Belongs));
 		}
-
 		return modules.map(this.mapModuleToResponse);
 	}
 
@@ -36,6 +47,8 @@ export class ModuleService {
 		return {
 			id: module.Id,
 			belongs: module.Belongs,
+			index: module.Index,
+			subIndex: module.SubIndex,
 			description: module.Description,
 			createDate: module.CreateDate,
 			updateDate: module.UpdateDate,

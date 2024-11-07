@@ -1,7 +1,12 @@
 import * as dynamoose from 'dynamoose';
 import { User } from './user.entity';
 import { v4 as uuidv4 } from 'uuid';
-import { MfaTypeUser, StateUser, TypeUser } from '../dto/user.enums';
+import {
+	GrantUserPaymnents,
+	MfaTypeUser,
+	StateUser,
+	TypeUser,
+} from '../dto/user.enums';
 
 export const UserSchema = new dynamoose.Schema(
 	{
@@ -61,7 +66,7 @@ export const UserSchema = new dynamoose.Schema(
 		State: {
 			type: Number,
 			enum: Object.values(StateUser),
-			default: StateUser.VERIFY,
+			default: StateUser.CREATE,
 		},
 		Picture: {
 			type: String,
@@ -143,6 +148,11 @@ export const UserSchema = new dynamoose.Schema(
 		FirstFunding: {
 			type: Boolean,
 			default: false,
+		},
+		Grant: {
+			type: Number,
+			enum: Object.values(GrantUserPaymnents),
+			default: GrantUserPaymnents.ALL,
 		},
 	},
 	{
