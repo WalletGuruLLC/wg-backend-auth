@@ -741,7 +741,7 @@ export class UserService {
 		} = getUsersDto;
 
 		let providerId = 'EMPTY';
-		let wallets;
+		let walletsDb;
 		const walletFilter = wallet;
 
 		const userConverted = userRequest as unknown as {
@@ -844,27 +844,52 @@ export class UserService {
 
 		if (userDb[0].Type === 'PLATFORM') {
 			const userIds = [...new Set(users.map(user => user.id))];
-			wallets = await this.getUserWalletByIds(userIds);
-
+			let walletUserIds: Set<unknown>;
+			let inactiveWalletUserIds: Set<unknown>;
+			let filteredUsers: any;
 			switch (walletFilter) {
 				case 'noWallet':
-					wallets = wallets.filter(
-						wallet => wallet === undefined || wallet.userId == null
-					);
+					walletsDb = await this.getWalletsWithoutUser();
+					walletUserIds = new Set(walletsDb.map(wallet => wallet.userId));
+					filteredUsers = users.filter(user => !walletUserIds.has(user.id));
+					users = filteredUsers;
 					break;
 				case 'lock':
-					wallets = wallets.filter(wallet => wallet && wallet.active === false);
+					walletsDb = await this.getWalletsWithoutUser();
+					inactiveWalletUserIds = new Set(
+						walletsDb
+							.filter(wallet => wallet.active === false)
+							.map(wallet => wallet.userId)
+					);
+
+					filteredUsers = users.filter(user =>
+						inactiveWalletUserIds.has(user.id)
+					);
+
+					users = filteredUsers;
 					break;
 				case 'unlock':
-					wallets = wallets.filter(wallet => wallet && wallet.active === true);
+					walletsDb = await this.getWalletsWithoutUser();
+					inactiveWalletUserIds = new Set(
+						walletsDb
+							.filter(wallet => wallet.active === true)
+							.map(wallet => wallet.userId)
+					);
+
+					filteredUsers = users.filter(user =>
+						inactiveWalletUserIds.has(user.id)
+					);
+
+					users = filteredUsers;
 					break;
 				default:
+					walletsDb = await this.getUserWalletByIds(userIds);
 					break;
 			}
 
 			users = await Promise.all(
 				users?.map(async user => {
-					const wallet = wallets?.find(w => w?.userId === user?.id);
+					const wallet = walletsDb?.find(w => w?.userId === user?.id);
 
 					if (wallet) {
 						const asset = wallet?.rafikiId
@@ -1492,6 +1517,22 @@ export class UserService {
 				},
 				HttpStatus.INTERNAL_SERVER_ERROR
 			);
+		}
+	}
+
+	async getWalletsWithoutUser() {
+		const docClient = new DocumentClient();
+		const getAllWallets: DocumentClient.ScanInput = {
+			TableName: 'Wallets',
+		};
+
+		try {
+			const result = await docClient.scan(getAllWallets).promise();
+
+			return convertToCamelCase(result.Items);
+		} catch (error) {
+			Sentry.captureException(error);
+			throw new Error(`Error fetching wallet by user: ${error.message}`);
 		}
 	}
 }
