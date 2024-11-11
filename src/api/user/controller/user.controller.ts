@@ -1309,12 +1309,9 @@ export class UserController {
 		description: 'verify kyc.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async kyc(@Body() body, @Res() res, @Headers() headers: MapOfStringToList) {
+	async kyc(@Body() body, @Res() res) {
 		try {
-			const envVar = headers.env ?? '';
-
-			const resultValue = await this.userService.kycFlow(body, envVar);
-
+			const resultValue = await this.userService.kycFlow(body);
 			if (!resultValue) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

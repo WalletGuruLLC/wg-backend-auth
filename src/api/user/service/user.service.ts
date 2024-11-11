@@ -1441,8 +1441,8 @@ export class UserService {
 		}
 	}
 
-	async kycFlow(userInput, env) {
-		if (env == this.envKey) {
+	async kycFlow(userInput) {
+		if (userInput?.levelName == `basic-kyc-level-${this.envKey}`) {
 			const isValid = await this.validateDataToSumsub(
 				userInput?.reviewResult?.reviewAnswer
 			);
