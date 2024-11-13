@@ -58,6 +58,7 @@ import { validateLicense } from 'src/utils/helpers/validateLicenseDriver';
 import { validarPermisos } from 'src/utils/helpers/getAccessServiceProviders';
 import { RoleService } from 'src/api/role/service/role.service';
 import { RefreshTokeenDTO } from '../dto/refresh-token.dto';
+import { enmaskAttribute } from '../../../utils/helpers/enmask';
 
 @ApiTags('user')
 @Controller('api/v1/users')
@@ -398,6 +399,19 @@ export class UserController {
 			userFind.accessLevel = accessLevel;
 			userFind.platformAccessLevel = platformAccessLevel;
 
+			const { socialSecurityNumber, identificationNumber, ...userRest } =
+				userFind;
+
+			const userResponse = {
+				...(socialSecurityNumber && {
+					socialSecurityNumber: enmaskAttribute(socialSecurityNumber),
+				}),
+				...(identificationNumber && {
+					identificationNumber: enmaskAttribute(identificationNumber),
+				}),
+				...userRest,
+			};
+
 			delete userFind?.passwordHash;
 			delete userFind?.otpTimestamp;
 
@@ -406,7 +420,7 @@ export class UserController {
 				customCode: 'WGE0022',
 				customMessage: successCodes.WGE0022?.description,
 				customMessageEs: successCodes.WGE0022?.descriptionEs,
-				data: userFind,
+				data: userResponse,
 			});
 		} catch (error) {
 			Sentry.captureException(error);
@@ -456,6 +470,18 @@ export class UserController {
 	async findOne(@Param('id') id: string, @Res() res) {
 		try {
 			const user = await this.userService.findOne(id);
+
+			const { socialSecurityNumber, identificationNumber, ...userRest } = user;
+
+			const userResponse = {
+				...(socialSecurityNumber && {
+					socialSecurityNumber: enmaskAttribute(socialSecurityNumber),
+				}),
+				...(identificationNumber && {
+					identificationNumber: enmaskAttribute(identificationNumber),
+				}),
+				...userRest,
+			};
 			if (!user) {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
@@ -469,7 +495,7 @@ export class UserController {
 				customCode: 'WGE0019',
 				customMessage: successCodes.WGE0019?.description,
 				customMessageEs: successCodes.WGE0019?.descriptionEs,
-				data: user,
+				data: userResponse,
 			});
 		} catch (error) {
 			Sentry.captureException(error);
@@ -786,13 +812,32 @@ export class UserController {
 	async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto, @Res() res) {
 		try {
 			verifyOtpDto.email = verifyOtpDto?.email.toLowerCase();
+
 			const result = await this.userService.verifyOtp(verifyOtpDto);
+
+			const { socialSecurityNumber, identificationNumber, ...userRest } =
+				result.user;
+
+			const response = {
+				user: {
+					...(socialSecurityNumber && {
+						socialSecurityNumber: enmaskAttribute(socialSecurityNumber),
+					}),
+					...(identificationNumber && {
+						identificationNumber: enmaskAttribute(identificationNumber),
+					}),
+					...userRest,
+				},
+				token: result?.token,
+				refresToken: result?.refresToken,
+			};
+
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0014',
 				customMessage: successCodes.WGE0014?.description,
 				customMessageEs: successCodes.WGE0014?.descriptionEs,
-				data: result,
+				data: response,
 			});
 		} catch (error) {
 			Sentry.captureException(error);
