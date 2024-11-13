@@ -812,13 +812,32 @@ export class UserController {
 	async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto, @Res() res) {
 		try {
 			verifyOtpDto.email = verifyOtpDto?.email.toLowerCase();
+
 			const result = await this.userService.verifyOtp(verifyOtpDto);
+
+			const { socialSecurityNumber, identificationNumber, ...userRest } =
+				result.user;
+
+			const response = {
+				user: {
+					...(socialSecurityNumber && {
+						socialSecurityNumber: enmaskAttribute(socialSecurityNumber),
+					}),
+					...(identificationNumber && {
+						identificationNumber: enmaskAttribute(identificationNumber),
+					}),
+					...userRest,
+				},
+				token: result?.token,
+				refresToken: result?.refresToken,
+			};
+
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0014',
 				customMessage: successCodes.WGE0014?.description,
 				customMessageEs: successCodes.WGE0014?.descriptionEs,
-				data: result,
+				data: response,
 			});
 		} catch (error) {
 			Sentry.captureException(error);
