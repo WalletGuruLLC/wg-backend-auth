@@ -895,7 +895,8 @@ export class UserService {
 						const asset = wallet?.rafikiId
 							? await this.getWalletAsset(wallet?.rafikiId, token)
 							: null;
-						user.wallet = wallet;
+						const { keyId, privateKey, publicKey, ...walletRest } = wallet;
+						user.wallet = walletRest;
 						user.asset =
 							wallet?.rafikiId && asset
 								? { code: asset?.code, scale: asset?.scale }
