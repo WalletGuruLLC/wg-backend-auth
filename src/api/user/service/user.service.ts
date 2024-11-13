@@ -895,7 +895,8 @@ export class UserService {
 						const asset = wallet?.rafikiId
 							? await this.getWalletAsset(wallet?.rafikiId, token)
 							: null;
-						user.wallet = wallet;
+						const { keyId, privateKey, publicKey, ...walletRest } = wallet;
+						user.wallet = walletRest;
 						user.asset =
 							wallet?.rafikiId && asset
 								? { code: asset?.code, scale: asset?.scale }
@@ -1441,6 +1442,12 @@ export class UserService {
 		}
 	}
 
+	async capitalizeFirstLetter(str) {
+		return str
+			? str?.charAt?.(0)?.toUpperCase() + str?.slice?.(1)?.toLowerCase()
+			: '';
+	}
+
 	async kycFlow(userInput) {
 		if (userInput?.levelName == `basic-kyc-level-${this.envKey}`) {
 			const isValid = await this.validateDataToSumsub(
@@ -1453,13 +1460,19 @@ export class UserService {
 			}
 
 			if (isValid) {
+				const firstNameValue = await this.capitalizeFirstLetter(
+					sumsubData?.info?.firstName
+				);
+				const lastNameValue = await this.capitalizeFirstLetter(
+					sumsubData?.info?.lastName
+				);
 				const result = await this.dbInstance.update({
 					Id: sumsubData?.externalUserId,
 					State: 2,
 					IdentificationType: sumsubData?.info?.idDocs?.[0]?.idDocType,
 					IdentificationNumber: sumsubData?.info?.idDocs?.[0]?.number,
-					FirstName: sumsubData?.info?.firstName,
-					LastName: sumsubData?.info?.lastName,
+					FirstName: firstNameValue,
+					LastName: lastNameValue,
 					DateOfBirth: new Date(sumsubData?.info?.dob),
 				});
 
