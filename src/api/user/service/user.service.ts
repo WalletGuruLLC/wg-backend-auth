@@ -1478,8 +1478,9 @@ export class UserService {
 	async kycFlow(userInput, req) {
 		if (userInput?.levelName == `basic-kyc-level-${this.envKey}`) {
 			console.log('req.headers kyc', req.headers);
-			const validDigest = await this.checkDigest(req);
-			console.log('validDigest', validDigest);
+			console.log('req.rawBody', req.rawBody);
+			//const validDigest = await this.checkDigest(req);
+			//console.log('validDigest', validDigest);
 
 			//if (validDigest) {
 			const isValid = await this.validateDataToSumsub(
