@@ -1405,6 +1405,33 @@ export class UserService {
 		return data === 'GREEN';
 	}
 
+	private async checkDigest(req: any) {
+		const algoHeader = req.headers['x-payload-digest-alg'];
+		const digestHeader = req.headers['x-payload-digest'];
+
+		if (!algoHeader || !digestHeader) {
+			console.log('Missing required headers', algoHeader, digestHeader);
+		}
+
+		const algorithm = {
+			HMAC_SHA1_HEX: 'sha1',
+			HMAC_SHA256_HEX: 'sha256',
+			HMAC_SHA512_HEX: 'sha512',
+		}[algoHeader];
+
+		if (!algorithm) {
+			console.log('Unsupported algorithm', algorithm);
+		}
+
+		const calculatedDigest = createHmac(algorithm, this.appSecretKey)
+			.update(req.rawBody)
+			.digest('hex');
+
+		console.log('calculatedDigest', calculatedDigest);
+
+		return calculatedDigest === digestHeader;
+	}
+
 	private async setSumSubHeaders(
 		path: string,
 		method: string,
@@ -1448,8 +1475,14 @@ export class UserService {
 			: '';
 	}
 
-	async kycFlow(userInput) {
+	async kycFlow(userInput, req) {
 		if (userInput?.levelName == `basic-kyc-level-${this.envKey}`) {
+			console.log('req.headers kyc', req.headers);
+			console.log('req.rawBody', req.rawBody);
+			//const validDigest = await this.checkDigest(req);
+			//console.log('validDigest', validDigest);
+
+			//if (validDigest) {
 			const isValid = await this.validateDataToSumsub(
 				userInput?.reviewResult?.reviewAnswer
 			);
@@ -1485,6 +1518,12 @@ export class UserService {
 
 				return convertToCamelCase(result);
 			}
+			// } else {
+			// 	return {
+			// 		statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+			// 		customCode: 'WGE0016',
+			// 	};
+			// }
 		}
 	}
 
