@@ -1410,7 +1410,7 @@ export class UserService {
 		const digestHeader = req.headers['x-payload-digest'];
 
 		if (!algoHeader || !digestHeader) {
-			throw new BadRequestException('Missing required headers');
+			console.log('Missing required headers', algoHeader, digestHeader);
 		}
 
 		const algorithm = {
@@ -1420,7 +1420,7 @@ export class UserService {
 		}[algoHeader];
 
 		if (!algorithm) {
-			throw new Error('Unsupported algorithm');
+			console.log('Unsupported algorithm', algorithm);
 		}
 
 		const calculatedDigest = createHmac(algorithm, this.appSecretKey)
@@ -1477,8 +1477,8 @@ export class UserService {
 
 	async kycFlow(userInput, req) {
 		if (userInput?.levelName == `basic-kyc-level-${this.envKey}`) {
-			const validDigest = await this.checkDigest(req);
 			console.log('req.headers kyc', req.headers);
+			const validDigest = await this.checkDigest(req);
 			console.log('validDigest', validDigest);
 
 			//if (validDigest) {
