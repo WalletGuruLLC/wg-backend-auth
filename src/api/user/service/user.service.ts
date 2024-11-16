@@ -1532,7 +1532,7 @@ export class UserService {
 			if (id) {
 				const userDynamo = await this.dbInstance.query('Id').eq(id).exec();
 
-				if (userDynamo[0]?.Type === 'PLATFORM') {
+				if (userDynamo?.[0]?.Id) {
 					const newPassword = generateStrongPassword(11);
 
 					await this.cognitoService.resetPassword(
