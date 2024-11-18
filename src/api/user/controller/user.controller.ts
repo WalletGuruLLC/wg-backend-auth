@@ -470,7 +470,7 @@ export class UserController {
 	async findOne(@Param('id') id: string, @Res() res) {
 		try {
 			const user = await this.userService.findOne(id);
-
+			const wallet = await this.userService.getWalletAddressByUserId(id);
 			const { socialSecurityNumber, identificationNumber, ...userRest } = user;
 
 			const userResponse = {
@@ -489,6 +489,9 @@ export class UserController {
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
+			}
+			if (wallet) {
+				userResponse.wallet = wallet;
 			}
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
