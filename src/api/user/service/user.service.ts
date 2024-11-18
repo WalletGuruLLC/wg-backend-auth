@@ -389,6 +389,32 @@ export class UserService {
 		}
 	}
 
+	async getWalletAddressByUserId(userId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'Wallets',
+			IndexName: 'UserIdIndex',
+			KeyConditionExpression: `UserId  = :userId`,
+			ExpressionAttributeValues: {
+				':userId': userId,
+			},
+		};
+
+		try {
+			const result = await docClient.query(params).promise();
+			const item = result.Items?.[0];
+			const wallet = {
+				id: item?.Id,
+				walletAddress: item?.WalletAddress,
+				active: item?.Active,
+			};
+			return wallet;
+		} catch (error) {
+			Sentry.captureException(error);
+			return {};
+		}
+	}
+
 	async findOneByEmailValidationAttributes(
 		email: string
 	): Promise<User | null> {
