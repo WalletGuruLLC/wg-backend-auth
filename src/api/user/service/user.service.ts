@@ -1209,6 +1209,7 @@ export class UserService {
 			'/api/v1/wallets': 'W325',
 			'/api/v1/settings': 'SE37',
 			'/api/v1/payments': 'PY38',
+			'/api/v1/clear-payments': 'CPWG',
 		};
 
 		const normalizedPath = path.split('/').slice(0, 4).join('/');
