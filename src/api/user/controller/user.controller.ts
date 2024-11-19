@@ -470,7 +470,7 @@ export class UserController {
 	async findOne(@Param('id') id: string, @Res() res) {
 		try {
 			const user = await this.userService.findOne(id);
-
+			const wallet = await this.userService.getWalletAddressByUserId(id);
 			const { socialSecurityNumber, identificationNumber, ...userRest } = user;
 
 			const userResponse = {
@@ -489,6 +489,9 @@ export class UserController {
 					customMessage: errorCodes.WGE0002?.description,
 					customMessageEs: errorCodes.WGE0002?.descriptionEs,
 				});
+			}
+			if (wallet) {
+				userResponse.wallet = wallet;
 			}
 			return res.status(HttpStatus.OK).send({
 				statusCode: HttpStatus.OK,
@@ -1354,9 +1357,9 @@ export class UserController {
 		description: 'verify kyc.',
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async kyc(@Body() body, @Res() res) {
+	async kyc(@Body() body, @Res() res, @Req() req) {
 		try {
-			const resultValue = await this.userService.kycFlow(body);
+			const resultValue = await this.userService.kycFlow(body, req);
 			if (!resultValue) {
 				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
 					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

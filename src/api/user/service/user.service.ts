@@ -389,6 +389,32 @@ export class UserService {
 		}
 	}
 
+	async getWalletAddressByUserId(userId: string) {
+		const docClient = new DocumentClient();
+		const params = {
+			TableName: 'Wallets',
+			IndexName: 'UserIdIndex',
+			KeyConditionExpression: `UserId  = :userId`,
+			ExpressionAttributeValues: {
+				':userId': userId,
+			},
+		};
+
+		try {
+			const result = await docClient.query(params).promise();
+			const item = result.Items?.[0];
+			const wallet = {
+				id: item?.Id,
+				walletAddress: item?.WalletAddress,
+				active: item?.Active,
+			};
+			return wallet;
+		} catch (error) {
+			Sentry.captureException(error);
+			return {};
+		}
+	}
+
 	async findOneByEmailValidationAttributes(
 		email: string
 	): Promise<User | null> {
@@ -895,7 +921,8 @@ export class UserService {
 						const asset = wallet?.rafikiId
 							? await this.getWalletAsset(wallet?.rafikiId, token)
 							: null;
-						user.wallet = wallet;
+						const { keyId, privateKey, publicKey, ...walletRest } = wallet;
+						user.wallet = walletRest;
 						user.asset =
 							wallet?.rafikiId && asset
 								? { code: asset?.code, scale: asset?.scale }
@@ -1404,6 +1431,33 @@ export class UserService {
 		return data === 'GREEN';
 	}
 
+	private async checkDigest(req: any) {
+		const algoHeader = req.headers['x-payload-digest-alg'];
+		const digestHeader = req.headers['x-payload-digest'];
+
+		if (!algoHeader || !digestHeader) {
+			console.log('Missing required headers', algoHeader, digestHeader);
+		}
+
+		const algorithm = {
+			HMAC_SHA1_HEX: 'sha1',
+			HMAC_SHA256_HEX: 'sha256',
+			HMAC_SHA512_HEX: 'sha512',
+		}[algoHeader];
+
+		if (!algorithm) {
+			console.log('Unsupported algorithm', algorithm);
+		}
+
+		const calculatedDigest = createHmac(algorithm, this.appSecretKey)
+			.update(req.rawBody)
+			.digest('hex');
+
+		console.log('calculatedDigest', calculatedDigest);
+
+		return calculatedDigest === digestHeader;
+	}
+
 	private async setSumSubHeaders(
 		path: string,
 		method: string,
@@ -1441,8 +1495,20 @@ export class UserService {
 		}
 	}
 
-	async kycFlow(userInput) {
+	async capitalizeFirstLetter(str) {
+		return str
+			? str?.charAt?.(0)?.toUpperCase() + str?.slice?.(1)?.toLowerCase()
+			: '';
+	}
+
+	async kycFlow(userInput, req) {
 		if (userInput?.levelName == `basic-kyc-level-${this.envKey}`) {
+			console.log('req.headers kyc', req.headers);
+			console.log('req.rawBody', req.rawBody);
+			//const validDigest = await this.checkDigest(req);
+			//console.log('validDigest', validDigest);
+
+			//if (validDigest) {
 			const isValid = await this.validateDataToSumsub(
 				userInput?.reviewResult?.reviewAnswer
 			);
@@ -1453,13 +1519,19 @@ export class UserService {
 			}
 
 			if (isValid) {
+				const firstNameValue = await this.capitalizeFirstLetter(
+					sumsubData?.info?.firstName
+				);
+				const lastNameValue = await this.capitalizeFirstLetter(
+					sumsubData?.info?.lastName
+				);
 				const result = await this.dbInstance.update({
 					Id: sumsubData?.externalUserId,
 					State: 2,
 					IdentificationType: sumsubData?.info?.idDocs?.[0]?.idDocType,
 					IdentificationNumber: sumsubData?.info?.idDocs?.[0]?.number,
-					FirstName: sumsubData?.info?.firstName,
-					LastName: sumsubData?.info?.lastName,
+					FirstName: firstNameValue,
+					LastName: lastNameValue,
 					DateOfBirth: new Date(sumsubData?.info?.dob),
 				});
 
@@ -1472,6 +1544,12 @@ export class UserService {
 
 				return convertToCamelCase(result);
 			}
+			// } else {
+			// 	return {
+			// 		statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+			// 		customCode: 'WGE0016',
+			// 	};
+			// }
 		}
 	}
 
@@ -1480,7 +1558,7 @@ export class UserService {
 			if (id) {
 				const userDynamo = await this.dbInstance.query('Id').eq(id).exec();
 
-				if (userDynamo[0]?.Type === 'PLATFORM') {
+				if (userDynamo?.[0]?.Id) {
 					const newPassword = generateStrongPassword(11);
 
 					await this.cognitoService.resetPassword(
