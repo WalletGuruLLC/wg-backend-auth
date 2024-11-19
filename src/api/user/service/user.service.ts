@@ -1169,9 +1169,25 @@ export class UserService {
 			.eq(user.email)
 			.exec();
 		if (foundOtp.count === 0) {
-			throw new Error(`OTP does not exist`);
+			const otp = otpGenerator.generate(6, {
+				upperCaseAlphabets: false,
+				lowerCaseAlphabets: false,
+				specialChars: false,
+			});
+
+			const ttl = Math.floor(Date.now() / 1000) + 60 * 5;
+
+			const otpPayload = {
+				Email: user.email,
+				Otp: otp,
+				Ttl: ttl,
+			};
+			const createdOtp = await this.dbOtpInstance.create(otpPayload);
+
+			await this.sendOtpNotification(user, createdOtp.Otp);
+		} else {
+			await this.sendOtpNotification(user, foundOtp[0].Otp);
 		}
-		await this.sendOtpNotification(user, foundOtp[0].Otp);
 	}
 
 	async revokeTokenLogout(token: string) {

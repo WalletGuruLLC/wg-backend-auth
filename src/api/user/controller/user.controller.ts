@@ -1132,35 +1132,26 @@ export class UserController {
 		description: successCodes.WGE0071?.description,
 	})
 	@ApiForbiddenResponse({ description: 'Forbidden.' })
-	async sendOtpEmail(@Body() sendOtpDto: SendOtpDto) {
+	async sendOtpEmail(@Body() sendOtpDto: SendOtpDto, @Res() res) {
 		try {
 			const foundUser = await this.userService.findOneByEmail(sendOtpDto.email);
 			if (!foundUser) {
-				return {
+				return res.status(HttpStatus.NOT_FOUND).json({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0002',
-					customMessage: errorCodes.WGE0002?.description,
-					customMessageEs: errorCodes.WGE0002?.descriptionEs,
-				};
+				});
 			}
 			await this.userService.resendOtp(foundUser);
-			return {
+			return res.status(HttpStatus.OK).json({
 				statusCode: HttpStatus.OK,
 				customCode: 'WGE0071',
-				customMessage: successCodes.WGE0071?.description,
-				customMessageEs: successCodes.WGE0071?.descriptionEs,
-			};
+			});
 		} catch (error) {
 			Sentry.captureException(error);
-			throw new HttpException(
-				{
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-					customCode: 'WGE0070',
-					customMessage: errorCodes.WGE0070?.description,
-					customMessageEs: errorCodes.WGE0070?.descriptionEs,
-				},
-				HttpStatus.INTERNAL_SERVER_ERROR
-			);
+			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+				statusCode: HttpStatus.OK,
+				customCode: 'WGE0070',
+			});
 		}
 	}
 
