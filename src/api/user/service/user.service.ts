@@ -1235,6 +1235,7 @@ export class UserService {
 			'/api/v1/wallets': 'W325',
 			'/api/v1/settings': 'SE37',
 			'/api/v1/payments': 'PY38',
+			'/api/v1/clear-payments': 'CPWG',
 		};
 
 		const normalizedPath = path.split('/').slice(0, 4).join('/');
@@ -1496,9 +1497,14 @@ export class UserService {
 	}
 
 	async capitalizeFirstLetter(str) {
+		if (!str || typeof str !== 'string') {
+			return '';
+		}
+
 		return str
-			? str?.charAt?.(0)?.toUpperCase() + str?.slice?.(1)?.toLowerCase()
-			: '';
+			.split(' ')
+			.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+			.join(' ');
 	}
 
 	async kycFlow(userInput, req) {
