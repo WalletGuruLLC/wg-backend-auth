@@ -157,7 +157,7 @@ export class UserController {
 			if (validatePhoneNumber(createUserDto?.phone) === false) {
 				return res.status(HttpStatus.FORBIDDEN).send({
 					statusCode: HttpStatus.FORBIDDEN,
-					customCode: 'WGE0113',
+					customCode: 'WGE0127',
 				});
 			}
 
@@ -563,7 +563,7 @@ export class UserController {
 			) {
 				return res.status(HttpStatus.FORBIDDEN).send({
 					statusCode: HttpStatus.FORBIDDEN,
-					customCode: 'WGE0113',
+					customCode: 'WGE0127',
 				});
 			}
 
