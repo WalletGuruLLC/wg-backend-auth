@@ -1523,6 +1523,23 @@ export class UserService {
 			.join(' ');
 	}
 
+	async validateAndFormatNames(sumsubData) {
+		let firstName = sumsubData?.info?.firstName || '';
+		let lastName = sumsubData?.info?.lastName || '';
+
+		if (!lastName?.trim()) {
+			const nameParts = firstName?.trim()?.split(' ');
+
+			firstName = nameParts?.slice?.(0, 2)?.join(' ');
+			lastName = nameParts?.slice?.(2)?.join(' ');
+		}
+
+		const firstNameValue = await this.capitalizeFirstLetter(firstName);
+		const lastNameValue = await this.capitalizeFirstLetter(lastName);
+
+		return { firstName: firstNameValue, lastName: lastNameValue };
+	}
+
 	async kycFlow(userInput, req) {
 		if (userInput?.levelName == `basic-kyc-level-${this.envKey}`) {
 			console.log('req.headers kyc', req.headers);
@@ -1541,19 +1558,16 @@ export class UserService {
 			}
 
 			if (isValid) {
-				const firstNameValue = await this.capitalizeFirstLetter(
-					sumsubData?.info?.firstName
-				);
-				const lastNameValue = await this.capitalizeFirstLetter(
-					sumsubData?.info?.lastName
+				const { firstName, lastName } = await this.validateAndFormatNames(
+					sumsubData
 				);
 				const result = await this.dbInstance.update({
 					Id: sumsubData?.externalUserId,
 					State: 2,
 					IdentificationType: sumsubData?.info?.idDocs?.[0]?.idDocType,
 					IdentificationNumber: sumsubData?.info?.idDocs?.[0]?.number,
-					FirstName: firstNameValue,
-					LastName: lastNameValue,
+					FirstName: firstName,
+					LastName: lastName,
 					DateOfBirth: new Date(sumsubData?.info?.dob),
 				});
 
