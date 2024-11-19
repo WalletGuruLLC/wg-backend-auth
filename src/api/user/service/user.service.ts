@@ -1497,9 +1497,14 @@ export class UserService {
 	}
 
 	async capitalizeFirstLetter(str) {
+		if (!str || typeof str !== 'string') {
+			return '';
+		}
+
 		return str
-			? str?.charAt?.(0)?.toUpperCase() + str?.slice?.(1)?.toLowerCase()
-			: '';
+			.split(' ')
+			.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+			.join(' ');
 	}
 
 	async kycFlow(userInput, req) {
