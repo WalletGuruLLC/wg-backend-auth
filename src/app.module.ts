@@ -7,7 +7,7 @@ import { ModuleModule } from './api/module/module.module';
 import { SettingModule } from './api/setting/setting.module';
 import { NotificationsModule } from './api/notifications/notifications.module';
 import { SecretsModule } from './secrets.module';
-
+import { HealthModule } from './api/health/health.module';
 @Module({
 	imports: [
 		SecretsModule,
@@ -18,6 +18,7 @@ import { SecretsModule } from './secrets.module';
 		ModuleModule,
 		SettingModule,
 		NotificationsModule,
+		HealthModule,
 	],
 	controllers: [],
 	providers: [],
