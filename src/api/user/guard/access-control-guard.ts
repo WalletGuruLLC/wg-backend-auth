@@ -106,6 +106,7 @@ export class AccessControlMiddleware implements NestMiddleware {
 			'/api/v1/providers': 'SP95',
 			'/api/v1/wallets': 'W325',
 			'/api/v1/payments': 'PY38',
+			'/api/v1/health-check': 'HC01',
 		};
 
 		const normalizedPath = path.split('/').slice(0, 4).join('/');
