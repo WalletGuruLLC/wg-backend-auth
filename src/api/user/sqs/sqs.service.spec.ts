@@ -17,7 +17,8 @@ describe('SqsService', () => {
 	let sqsService: SqsService;
 	let logger: Logger;
 
-	const queueUrl = 'https://sqs.us-east-2.amazonaws.com/975050359967/paystreme-notifications-development';
+	const queueUrl =
+		'https://sqs.us-east-2.amazonaws.com/975050359967/paystreme-notifications-development';
 	const messageBody: LoginMessageDto = {
 		event: 'login_attempt',
 		email: 'user@example.com',
