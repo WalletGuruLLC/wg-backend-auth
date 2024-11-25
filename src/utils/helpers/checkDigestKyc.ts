@@ -20,13 +20,9 @@ export async function checkDigest(req: any, appSecretKey) {
 		return false;
 	}
 
-	console.log('req?.rawBody', req?.rawBody);
-
 	const calculatedDigest = createHmac(algorithm, appSecretKey)
 		.update(req?.rawBody)
 		.digest('hex');
-
-	console.log('calculatedDigest', calculatedDigest, digestHeader);
 
 	return calculatedDigest === digestHeader;
 }
