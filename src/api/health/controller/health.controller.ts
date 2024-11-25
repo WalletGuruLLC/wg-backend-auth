@@ -1,5 +1,18 @@
-import { Controller, Get, HttpException, HttpStatus, Post, Res, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiTags } from '@nestjs/swagger';
+import {
+	Controller,
+	Get,
+	HttpException,
+	HttpStatus,
+	Post,
+	Res,
+	UseGuards,
+} from '@nestjs/common';
+import {
+	ApiBearerAuth,
+	ApiCreatedResponse,
+	ApiForbiddenResponse,
+	ApiTags,
+} from '@nestjs/swagger';
 import { errorCodes } from '../../../utils/constants';
 import * as Sentry from '@sentry/nestjs';
 import { HealthService } from '../service/health.service';
@@ -11,10 +24,7 @@ import { UserService } from '../../user/service/user.service';
 @Controller('api/v1/health-check')
 @ApiBearerAuth('JWT')
 export class HealthController {
-	constructor(
-		private readonly healthService: HealthService
-	) {
-	}
+	constructor(private readonly healthService: HealthService) {}
 
 	// @UseGuards(CognitoAuthGuard)
 	@Post('/')
@@ -37,7 +47,7 @@ export class HealthController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR,
+				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
 	}
@@ -76,7 +86,7 @@ export class HealthController {
 					customMessage: errorCodes.WGE0016?.description,
 					customMessageEs: errorCodes.WGE0016?.descriptionEs,
 				},
-				HttpStatus.INTERNAL_SERVER_ERROR,
+				HttpStatus.INTERNAL_SERVER_ERROR
 			);
 		}
 	}

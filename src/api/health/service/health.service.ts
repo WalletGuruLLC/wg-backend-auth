@@ -19,9 +19,9 @@ export class HealthService {
 			{
 				headers: {
 					'Content-Type': 'application/x-www-form-urlencoded',
-					'accept': 'application/json',
+					accept: 'application/json',
 				},
-			},
+			}
 		);
 		if (token.status !== 200) {
 			throw new Error('Error getting token');
@@ -31,33 +31,29 @@ export class HealthService {
 	}
 
 	async getDataUptime(token: string) {
-		let userInfo = await axios.get(
-			this.URL_UPTIME + '/monitors',
-			{
-				headers: {
-					Authorization: token,
-				},
+		const userInfo = await axios.get(this.URL_UPTIME + '/monitors', {
+			headers: {
+				Authorization: token,
 			},
-		);
+		});
 		if (userInfo.status !== 200) {
 			throw new Error('Error getting data');
 		}
-		return userInfo.data ;
+		return userInfo.data;
 	}
 
-	async getBeatUptime(id: number, hour:number,token: string) {
-		let userInfo = await axios.get(
+	async getBeatUptime(id: number, hour: number, token: string) {
+		const userInfo = await axios.get(
 			this.URL_UPTIME + `/monitors/${id}/beats?hours=${hour}`,
 			{
 				headers: {
 					Authorization: token,
 				},
-			},
+			}
 		);
 		if (userInfo.status !== 200) {
 			throw new Error('Error getting data');
 		}
 		return userInfo.data.monitor_beats;
 	}
-
 }
