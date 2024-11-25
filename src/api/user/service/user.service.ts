@@ -60,6 +60,7 @@ export class UserService {
 	private apiUrl;
 	private appToken;
 	private appSecretKey;
+	private digestSecretKey;
 	private envKey;
 
 	constructor(private readonly sqsService: SqsService) {
@@ -76,6 +77,7 @@ export class UserService {
 		});
 		this.appToken = process.env.SUMSUB_APP_TOKEN;
 		this.appSecretKey = process.env.SUMSUB_SECRET_TOKEN;
+		this.digestSecretKey = process.env.SUMSUB_DIGEST_SECRET_TOKEN;
 		this.apiUrl = 'https://api.sumsub.com';
 		this.envKey = process.env.NODE_ENV;
 	}
@@ -1518,7 +1520,7 @@ export class UserService {
 		if (userInput?.levelName == `basic-kyc-level-${this.envKey}`) {
 			console.log('req.headers kyc', req.headers);
 			console.log('req.rawBody', req.rawBody);
-			const validDigest = await checkDigest(req, this.appSecretKey);
+			const validDigest = await checkDigest(req, this.digestSecretKey);
 			console.log('validDigest', validDigest);
 
 			if (validDigest) {
