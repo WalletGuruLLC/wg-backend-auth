@@ -27,7 +27,9 @@ async function bootstrap() {
 		});
 	}
 	await dynamoConnect();
-	const app = await NestFactory.create(AppModule);
+	const app = await NestFactory.create(AppModule, {
+		rawBody: true,
+	});
 	app.useGlobalFilters(new AllExceptionsFilter());
 
 	const config = new DocumentBuilder()

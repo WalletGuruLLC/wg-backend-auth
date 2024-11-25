@@ -46,6 +46,7 @@ import {
 } from '@aws-sdk/client-s3';
 import axios from 'axios';
 import { enmaskAttribute } from '../../../utils/helpers/enmask';
+import { checkDigest } from '../../../utils/helpers/checkDigestKyc';
 
 @Injectable()
 export class UserService {
@@ -1448,33 +1449,6 @@ export class UserService {
 		return data === 'GREEN';
 	}
 
-	private async checkDigest(req: any) {
-		const algoHeader = req.headers['x-payload-digest-alg'];
-		const digestHeader = req.headers['x-payload-digest'];
-
-		if (!algoHeader || !digestHeader) {
-			console.log('Missing required headers', algoHeader, digestHeader);
-		}
-
-		const algorithm = {
-			HMAC_SHA1_HEX: 'sha1',
-			HMAC_SHA256_HEX: 'sha256',
-			HMAC_SHA512_HEX: 'sha512',
-		}[algoHeader];
-
-		if (!algorithm) {
-			console.log('Unsupported algorithm', algorithm);
-		}
-
-		const calculatedDigest = createHmac(algorithm, this.appSecretKey)
-			.update(req.rawBody)
-			.digest('hex');
-
-		console.log('calculatedDigest', calculatedDigest);
-
-		return calculatedDigest === digestHeader;
-	}
-
 	private async setSumSubHeaders(
 		path: string,
 		method: string,
@@ -1544,48 +1518,48 @@ export class UserService {
 		if (userInput?.levelName == `basic-kyc-level-${this.envKey}`) {
 			console.log('req.headers kyc', req.headers);
 			console.log('req.rawBody', req.rawBody);
-			//const validDigest = await this.checkDigest(req);
-			//console.log('validDigest', validDigest);
+			const validDigest = await checkDigest(req, this.appSecretKey);
+			console.log('validDigest', validDigest);
 
-			//if (validDigest) {
-			const isValid = await this.validateDataToSumsub(
-				userInput?.reviewResult?.reviewAnswer
-			);
-			const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
-
-			if (!sumsubData?.externalUserId) {
-				return;
-			}
-
-			if (isValid) {
-				const { firstName, lastName } = await this.validateAndFormatNames(
-					sumsubData
+			if (validDigest) {
+				const isValid = await this.validateDataToSumsub(
+					userInput?.reviewResult?.reviewAnswer
 				);
-				const result = await this.dbInstance.update({
-					Id: sumsubData?.externalUserId,
-					State: 2,
-					IdentificationType: sumsubData?.info?.idDocs?.[0]?.idDocType,
-					IdentificationNumber: sumsubData?.info?.idDocs?.[0]?.number,
-					FirstName: firstName,
-					LastName: lastName,
-					DateOfBirth: new Date(sumsubData?.info?.dob),
-				});
+				const sumsubData = await this.getDataFromSumsub(userInput?.applicantId);
 
-				return convertToCamelCase(result);
+				if (!sumsubData?.externalUserId) {
+					return;
+				}
+
+				if (isValid) {
+					const { firstName, lastName } = await this.validateAndFormatNames(
+						sumsubData
+					);
+					const result = await this.dbInstance.update({
+						Id: sumsubData?.externalUserId,
+						State: 2,
+						IdentificationType: sumsubData?.info?.idDocs?.[0]?.idDocType,
+						IdentificationNumber: sumsubData?.info?.idDocs?.[0]?.number,
+						FirstName: firstName,
+						LastName: lastName,
+						DateOfBirth: new Date(sumsubData?.info?.dob),
+					});
+
+					return convertToCamelCase(result);
+				} else {
+					const result = await this.dbInstance.update({
+						Id: sumsubData?.externalUserId,
+						State: 5,
+					});
+
+					return convertToCamelCase(result);
+				}
 			} else {
-				const result = await this.dbInstance.update({
-					Id: sumsubData?.externalUserId,
-					State: 5,
-				});
-
-				return convertToCamelCase(result);
+				return {
+					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+					customCode: 'WGE0016',
+				};
 			}
-			// } else {
-			// 	return {
-			// 		statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-			// 		customCode: 'WGE0016',
-			// 	};
-			// }
 		}
 	}
 
