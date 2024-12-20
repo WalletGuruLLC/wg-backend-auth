@@ -52,3 +52,39 @@ export function validarPermisos({
 
 	return { hasAccess: true };
 }
+
+export function validatePermisionssSp({
+	role,
+	requestedModuleId,
+	requiredMethod,
+	userId = null,
+}) {
+	const permissionModule = role.Modules[requestedModuleId];
+	if (!permissionModule) {
+		return {
+			statusCode: HttpStatus.UNAUTHORIZED,
+			customCode: 'WGE0131',
+		};
+	}
+
+	if (userId && ['GET', 'PUT', 'PATCH', 'POST'].includes(requiredMethod)) {
+		const accessMap = {
+			GET: 8,
+			POST: 4,
+			PUT: 2,
+			PATCH: 1,
+			DELETE: 1,
+		};
+
+		const requiredAccess = accessMap[requiredMethod];
+
+		if ((permissionModule & requiredAccess) !== requiredAccess) {
+			return {
+				statusCode: HttpStatus.UNAUTHORIZED,
+				customCode: 'WGE0038',
+			};
+		}
+	}
+
+	return { hasAccess: true };
+}

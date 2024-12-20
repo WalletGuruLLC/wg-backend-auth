@@ -55,7 +55,10 @@ import { isValidEmail } from 'src/utils/helpers/validateEmail';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as Sentry from '@sentry/nestjs';
 import { validateLicense } from 'src/utils/helpers/validateLicenseDriver';
-import { validarPermisos } from 'src/utils/helpers/getAccessServiceProviders';
+import {
+	validarPermisos,
+	validatePermisionssSp,
+} from 'src/utils/helpers/getAccessServiceProviders';
 import { RoleService } from 'src/api/role/service/role.service';
 import { RefreshTokeenDTO } from '../dto/refresh-token.dto';
 import { enmaskAttribute } from '../../../utils/helpers/enmask';
@@ -624,18 +627,15 @@ export class UserController {
 							customCode: 'WGE0186',
 						});
 					}
-				} else {
-					const providerId = userFind?.serviceProviderId;
 
-					const userRoleId = userFindPermissions.roleId;
-					const role = await this.roleService.getRoleInfo(userRoleId);
-
-					const permisos = validarPermisos({
+					const role = await this.roleService.getRoleInfo(
+						userFindPermissions?.serviceProviderId
+					);
+					const permisos = validatePermisionssSp({
 						role,
-						requestedModuleId: 'SP95',
+						requestedModuleId: 'U783',
 						requiredMethod: 'PUT',
 						userId: id,
-						serviceProviderId: providerId,
 					});
 
 					if (!permisos.hasAccess) {
@@ -643,6 +643,27 @@ export class UserController {
 							statusCode: HttpStatus.NOT_FOUND,
 							customCode: permisos.customCode,
 						});
+					}
+				} else {
+					const providerId = userFind?.serviceProviderId;
+
+					const userRoleId = userFindPermissions.roleId;
+					const role = await this.roleService.getRoleInfo(userRoleId);
+					if (userFind?.type === 'PLATFORM') {
+						const permisos = validarPermisos({
+							role,
+							requestedModuleId: 'U783',
+							requiredMethod: 'PUT',
+							userId: id,
+							serviceProviderId: providerId,
+						});
+
+						if (!permisos.hasAccess) {
+							return res.status(HttpStatus.NOT_FOUND).send({
+								statusCode: HttpStatus.NOT_FOUND,
+								customCode: permisos.customCode,
+							});
+						}
 					}
 				}
 			}
