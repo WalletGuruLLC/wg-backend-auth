@@ -276,7 +276,7 @@ export class UserService {
 
 			// Generate password and hash it
 			const password =
-				type === 'WALLET' ? passwordHash : generateStrongPassword(11);
+				type === 'WALLET' ? passwordHash : generateStrongPassword(19);
 			const hashedPassword = await bcrypt.hash(password, 8);
 
 			// Generate random id
@@ -1568,7 +1568,7 @@ export class UserService {
 				const userDynamo = await this.dbInstance.query('Id').eq(id).exec();
 
 				if (userDynamo?.[0]?.Id) {
-					const newPassword = generateStrongPassword(11);
+					const newPassword = generateStrongPassword(19);
 
 					await this.cognitoService.resetPassword(
 						userDynamo[0]?.Email.toLowerCase(),
