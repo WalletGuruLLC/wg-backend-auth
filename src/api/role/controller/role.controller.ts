@@ -368,7 +368,7 @@ export class RoleController {
 				});
 			}
 
-			if (user?.type == 'WALLET' || user?.type == 'PROVIDER') {
+			if (user?.type == 'WALLET') {
 				return res.status(HttpStatus.NOT_FOUND).send({
 					statusCode: HttpStatus.NOT_FOUND,
 					customCode: 'WGE0038',
