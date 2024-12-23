@@ -653,12 +653,11 @@ export class UserController {
 						userFind?.type === 'PLATFORM' &&
 						userFindPermissions?.type === 'PLATFORM'
 					) {
-						const permisos = validarPermisos({
+						const permisos = validatePermisionssSp({
 							role,
 							requestedModuleId: 'U783',
 							requiredMethod: 'PUT',
 							userId: id,
-							serviceProviderId: providerId,
 						});
 
 						if (!permisos.hasAccess) {
