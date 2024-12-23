@@ -629,7 +629,7 @@ export class UserController {
 					}
 
 					const role = await this.roleService.getRoleInfo(
-						userFindPermissions?.serviceProviderId
+						userFindPermissions?.roleId
 					);
 					const permisos = validatePermisionssSp({
 						role,
@@ -645,8 +645,6 @@ export class UserController {
 						});
 					}
 				} else {
-					const providerId = userFind?.serviceProviderId;
-
 					const userRoleId = userFindPermissions.roleId;
 					const role = await this.roleService.getRoleInfo(userRoleId);
 					if (
