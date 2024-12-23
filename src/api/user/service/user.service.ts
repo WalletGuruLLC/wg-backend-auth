@@ -205,7 +205,7 @@ export class UserService {
 
 			await this.dbInstance.update({
 				Id: userFind?.id,
-				State: userFind?.Type == 'WALLET' ? 1 : 3,
+				// State: userFind?.Type == 'WALLET' ? 1 : 3,
 				Active: true,
 			});
 
@@ -535,15 +535,15 @@ export class UserService {
 
 			await this.dbInstance.update(updatePayload);
 
-			if (
-				userFind?.type == 'WALLET' &&
-				(userFind?.state == 2 || userFind?.state == 1)
-			) {
-				await this.dbInstance.update({
-					Id: id,
-					State: 3,
-				});
-			}
+			// if (
+			// 	userFind?.type == 'WALLET' &&
+			// 	(userFind?.state == 2 || userFind?.state == 1)
+			// ) {
+			// 	await this.dbInstance.update({
+			// 		Id: id,
+			// 		State: 3,
+			// 	});
+			// }
 
 			const userInfo = await this.getUserById(id);
 
