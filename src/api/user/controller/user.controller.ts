@@ -649,7 +649,10 @@ export class UserController {
 
 					const userRoleId = userFindPermissions.roleId;
 					const role = await this.roleService.getRoleInfo(userRoleId);
-					if (userFind?.type === 'PLATFORM') {
+					if (
+						userFind?.type === 'PLATFORM' &&
+						userFindPermissions?.type === 'PLATFORM'
+					) {
 						const permisos = validarPermisos({
 							role,
 							requestedModuleId: 'U783',
