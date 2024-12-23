@@ -1073,7 +1073,7 @@ export class UserService {
 			await convertToCamelCase(
 				this.dbInstance.update({
 					Id: userId,
-					State: 3,
+					// State: 3,
 					First: false,
 					Active: true,
 				})
