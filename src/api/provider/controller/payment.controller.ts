@@ -278,7 +278,7 @@ export class PaymentController {
 					userId: userFind.id,
 					serviceProviderId: getPaymentsParametersPaginated.serviceProviderId,
 				});
-			} else if (userFind?.type === 'ROVIDER') {
+			} else if (userFind?.type === 'PROVIDER') {
 				valid = validatePermisionssSp({
 					role,
 					requestedModuleId: 'PY38',
