@@ -3,6 +3,7 @@ import {
 	MiddlewareConsumer,
 	Module,
 	NestModule,
+	RequestMethod,
 } from '@nestjs/common';
 
 import { ConfigModule } from '@nestjs/config';
@@ -27,6 +28,10 @@ export class ProviderModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
 		consumer
 			.apply(AccessControlMiddleware)
+			.exclude({
+				path: 'api/v1/payments/list/payment-parameters',
+				method: RequestMethod.GET,
+			})
 			.forRoutes(ProviderController, PaymentController);
 	}
 }

@@ -32,6 +32,11 @@ import { GetPaymentsParametersPaginated } from '../dto/get-payment-parameters-pa
 import { TogglePaymentParameterDTO } from '../dto/toggle-payment-parameter.dto';
 import { UserService } from 'src/api/user/service/user.service';
 import { UpdatePaymentParameterDTO } from '../dto/update-provider-payment-parameter.dto';
+import { RoleService } from '../../role/service/role.service';
+import {
+	validarPermisos,
+	validatePermisionssSp,
+} from '../../../utils/helpers/getAccessServiceProviders';
 
 @ApiTags('payment')
 @ApiBearerAuth('JWT')
@@ -39,6 +44,7 @@ import { UpdatePaymentParameterDTO } from '../dto/update-provider-payment-parame
 export class PaymentController {
 	constructor(
 		private readonly providerService: ProviderService,
+		private readonly roleService: RoleService,
 		private readonly userService: UserService
 	) {}
 
@@ -257,6 +263,35 @@ export class PaymentController {
 	) {
 		try {
 			const userRequest = req.user?.UserAttributes;
+			const userInfo = req.user;
+			const userFind = await this.userService.findOneByEmail(
+				userInfo?.UserAttributes?.[0]?.Value
+			);
+			const userRoleId = userFind.roleId;
+			const role = await this.roleService.getRoleInfo(userRoleId);
+			let valid;
+			if (userFind?.type === 'PLATFORM') {
+				valid = validarPermisos({
+					role,
+					requestedModuleId: 'PY38',
+					requiredMethod: 'GET',
+					userId: userFind.id,
+					serviceProviderId: getPaymentsParametersPaginated.serviceProviderId,
+				});
+			} else if (userFind?.type === 'ROVIDER') {
+				valid = validatePermisionssSp({
+					role,
+					requestedModuleId: 'PY38',
+					requiredMethod: 'GET',
+					userId: userFind.id,
+				});
+			}
+			if (!valid?.hasAccess) {
+				return res.status(valid?.statusCode).send({
+					statusCode: HttpStatus.UNAUTHORIZED,
+					customCode: 'WGE0038',
+				});
+			}
 			const providerId = await this.providerService.getProviderId(
 				getPaymentsParametersPaginated?.serviceProviderId,
 				userRequest
