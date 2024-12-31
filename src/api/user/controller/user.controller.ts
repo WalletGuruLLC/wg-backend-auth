@@ -175,16 +175,16 @@ export class UserController {
 				}
 			}
 
-			const userPhone = await this.userService.findOneByPhone(
-				createUserDto?.phone
-			);
-
-			if (userPhone) {
-				return res.status(HttpStatus.FORBIDDEN).send({
-					statusCode: HttpStatus.FORBIDDEN,
-					customCode: 'WGE0113',
-				});
-			}
+			// const userPhone = await this.userService.findOneByPhone(
+			// 	createUserDto?.phone
+			// );
+			//
+			// if (userPhone) {
+			// 	return res.status(HttpStatus.FORBIDDEN).send({
+			// 		statusCode: HttpStatus.FORBIDDEN,
+			// 		customCode: 'WGE0113',
+			// 	});
+			// }
 
 			const result = await this.userService.create(createUserDto, userRequest);
 			return res.status(HttpStatus.CREATED).send({
@@ -345,16 +345,16 @@ export class UserController {
 				});
 			}
 
-			const userPhone = await this.userService.findOneByPhone(
-				updateUserDto?.phone
-			);
-
-			if (userPhone) {
-				return res.status(HttpStatus.FORBIDDEN).send({
-					statusCode: HttpStatus.FORBIDDEN,
-					customCode: 'WGE0113',
-				});
-			}
+			// const userPhone = await this.userService.findOneByPhone(
+			// 	updateUserDto?.phone
+			// );
+			//
+			// if (userPhone) {
+			// 	return res.status(HttpStatus.FORBIDDEN).send({
+			// 		statusCode: HttpStatus.FORBIDDEN,
+			// 		customCode: 'WGE0113',
+			// 	});
+			// }
 
 			const user = await this.userService.update(id, updateUserDto);
 			delete user.passwordHash;
@@ -1373,8 +1373,8 @@ export class UserController {
 		try {
 			const resultValue = await this.userService.kycFlow(body, req);
 			if (!resultValue) {
-				return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-					statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+				return res.status(HttpStatus.ACCEPTED).send({
+					statusCode: HttpStatus.ACCEPTED,
 					customCode: 'WGE0016',
 				});
 			}
