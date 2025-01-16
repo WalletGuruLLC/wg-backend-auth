@@ -6708,6 +6708,11 @@ rechoir@^0.6.2:
   dependencies:
     resolve "^1.1.6"
 
+redoc-express@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.npmjs.org/redoc-express/-/redoc-express-2.1.0.tgz"
+  integrity sha512-gq6FvghNirD3dCJ7w8Z6escXYHnU1Hk50baQsIeGunQQ9YRoy6qR/MjEOJtDEKaPNB2NgkIzQ9ESNX5/27zkDA==
+
 reflect-metadata@^0.1.12, "reflect-metadata@^0.1.12 || ^0.2.0", reflect-metadata@^0.1.13:
   version "0.1.14"
   resolved "https://registry.npmjs.org/reflect-metadata/-/reflect-metadata-0.1.14.tgz"
