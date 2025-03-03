@@ -11,6 +11,7 @@ registration, login, roles, etc.
 - AWS DynamoDB
 - Dynamoose (v2 or higher)
 - AWS SDK for Node.js
+- [Create resources of aws](https://github.com/ErgonStreamGH/wg-infra) `Wg infra`
 
 ## Installation
 
