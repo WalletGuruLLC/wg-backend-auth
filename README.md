@@ -80,7 +80,6 @@ Create a secret in AWS Secrets Manager with the name `walletguru-auth-local` and
 | UPTIME_PASSWORD            | Password for monitoring services with uptime                                                                                                                                 | No           |
 | UPTIME_USERNAME            | Username for monitoring services with uptime                                                                                                                                 | No           |
 
-Each microservice should:
 
 ### 4. Set Up Environment Variables
 
@@ -94,7 +93,7 @@ SECRET_NAME="walletguru-auth-local"
 
 ---
 
-### $. Run the Application
+### 5. Run the Application
 
 Using **Docker Compose**:
 
